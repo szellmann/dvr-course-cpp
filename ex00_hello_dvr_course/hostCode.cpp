@@ -17,15 +17,20 @@ extern "C" int main(int argc, char *argv[]) {
 
   Pipeline pl;
 
+  int imgWidth=512, imgHeight=512;
+  Frame fb(imgWidth, imgHeight);
+  pl.setFrame(fb);
+
   Camera cam;
-  cam.setOrientation(vec3f(0,0,-4),
+  cam.setOrientation(vec3f(0,0,-3),
                      vec3f(0,0,0),
                      vec3f(0,1,0),
                      90.f*M_PI/180.f);
 
-  int imgWidth=512, imgHeight=512;
-  Frame fb(imgWidth, imgHeight);
-  pl.setFrame(fb);
+  struct {
+    vec3f lower_left, horizontal, vertical;
+  } screen;
+  cam.getScreen(screen.lower_left,screen.horizontal,screen.vertical);
 
   std::vector<vec4f> tfValues({
     {0.f,0.f,1.f,0.05f },
@@ -43,14 +48,16 @@ extern "C" int main(int argc, char *argv[]) {
   pl.setRayGen(simpleRayMarcher);
   LaunchParams parms;
   // volume
-  parms.volume.bounds = box3f({-6,-6,-6},{6,6,6});
+  parms.volume.bounds = box3f({-1,-1,-1},{1,1,1});
   // transfunc
   parms.transfunc.valueRange = {0,1};
   parms.transfunc.size = (int)tfValues.size();
   parms.transfunc.values = tfValues.data();
   // camera
   parms.camera.org = cam.getPosition();
-  cam.getScreen(parms.camera.dir_00,parms.camera.dir_du,parms.camera.dir_dv);
+  parms.camera.dir_00 = screen.lower_left;
+  parms.camera.dir_du = screen.horizontal / imgWidth;
+  parms.camera.dir_dv = screen.vertical / imgHeight;
   // framebuffer
   parms.fbPointer   = fb.fbPointer;
   parms.fbDepth     = fb.fbDepth;

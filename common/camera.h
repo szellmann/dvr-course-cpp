@@ -66,7 +66,10 @@ struct Camera
     float screen_height = 2.f*tanf(0.5f*fovy);
     vertical   = screen_height * frame.vy;
     horizontal = screen_height * aspect * frame.vx;
-    lower_left = frame.vz
+    lower_left
+      =
+      /* NEGATIVE z axis! */
+      -frame.vz
       - 0.5f * vertical
       - 0.5f * horizontal;
   }
