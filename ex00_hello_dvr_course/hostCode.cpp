@@ -22,7 +22,7 @@ extern "C" int main(int argc, char *argv[]) {
   pl.setFrame(fb);
 
   Camera cam;
-  cam.setOrientation(vec3f(0,0,-3),
+  cam.setOrientation(vec3f(0,0,-2.5),
                      vec3f(0,0,0),
                      vec3f(0,1,0),
                      90.f*M_PI/180.f);
@@ -33,7 +33,7 @@ extern "C" int main(int argc, char *argv[]) {
   cam.getScreen(screen.lower_left,screen.horizontal,screen.vertical);
 
   std::vector<vec4f> tfValues({
-    {0.f,0.f,1.f,0.05f },
+    {0.f,0.f,1.f,0.1f },
     {0.f,1.f,0.f,0.1f }
   });
 
@@ -67,7 +67,7 @@ extern "C" int main(int argc, char *argv[]) {
   parms.ambientRadiance = 1.f;
   // DRV
   parms.samplingRate = 2.f;
-  parms.unitDistance = 1.f;
+  parms.unitDistance = 0.1f;
   // set params:
   pl.setLaunchParams(&parms,sizeof(parms), std::alignment_of<LaunchParams>());
 #endif
