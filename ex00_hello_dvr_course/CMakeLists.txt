@@ -11,6 +11,5 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(${PROJECT_NAME})
 target_sources(${PROJECT_NAME} PRIVATE hostCode.cpp deviceCode.cu)
-target_include_directories(${PROJECT_NAME} PRIVATE ${DVR_COURSE_COMMON_DIR})
 target_link_libraries(${PROJECT_NAME} PRIVATE dvr_course-common)
 configure_cuda_src(deviceCode.cu)
