@@ -11,7 +11,7 @@ programming model instead of raster hardware or shaders.
 - [ ] Implement OWL code path
 - [ ] Common: allow for building with an interactive pipeline (optional)
       that has a viewing window and ImGui TFE
-- [ ] Common: named pipelines, used as basename for PNGs
+- [x] Common: named pipelines, used as basename for PNGs
 - [ ] Common: allow setting the number of convergence frames on the
       pipeline object
 - [x] Ray entry point scrambling using random offsets

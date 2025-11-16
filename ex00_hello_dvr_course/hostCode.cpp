@@ -15,7 +15,7 @@ extern "C" int main(int argc, char *argv[]) {
   // Camera, FB, wrappers for RTX execution model, etc. etc.
   using namespace dvr_course;
 
-  Pipeline pl;
+  Pipeline pl("ex00_hello_dvr_course");
 
   int imgWidth=512, imgHeight=512;
   Frame fb(imgWidth, imgHeight);

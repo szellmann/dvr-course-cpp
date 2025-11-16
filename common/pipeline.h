@@ -17,8 +17,8 @@
 #pragma once
 
 // std
-#include <any>
 #include <functional>
+#include <string>
 // ours
 #include "fb.h"
 
@@ -28,6 +28,9 @@
 namespace dvr_course {
 
 struct Pipeline {
+
+  Pipeline(std::string name = "dvr-course-cpp") : name(name) {}
+  std::string name = "dvr-course-cpp";
 
 #ifdef RTCORE
   // for use with RTCORE (load from module)

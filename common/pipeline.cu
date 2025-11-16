@@ -64,7 +64,7 @@ void Pipeline::present() const {
     abort();
   }
 
-  std::string fileName("frame.png");
+  std::string fileName = name+".png";
   stbi_flip_vertically_on_write(1);
   stbi_write_png(
       fileName.c_str(), fb->width, fb->height, 4, fb->fbPointer, 4 * fb->width);
