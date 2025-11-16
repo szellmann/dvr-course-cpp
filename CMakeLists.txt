@@ -11,3 +11,4 @@ include(common/cmake/common.cmake)
 
 add_subdirectory(common)
 add_subdirectory(ex00_hello_dvr_course)
+add_subdirectory(ex01_let_there_be_voxels)

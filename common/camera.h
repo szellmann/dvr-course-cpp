@@ -74,9 +74,17 @@ struct Camera
       - 0.5f * horizontal;
   }
 
+  void viewAll(const box3f &box) {
+    vec3f up(0,1,0);
+    float diagonal = length(box.size());
+    float r = diagonal * 0.5f;
+    vec3f eye = box.center() + vec3f(0, 0, r + r / std::atan(fovy));
+    setOrientation(eye, box.center(), up, this->fovy);
+  }
+
   vec3f position, upVector;
-  float fovy;
   float distance;
+  float fovy{90.f*M_PI/180.f};
   float aspect{1.f};
 
   struct {
