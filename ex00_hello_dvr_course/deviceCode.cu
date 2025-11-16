@@ -29,14 +29,14 @@ extern "C" __constant__ LaunchParams optixLaunchParams;
 // ========================================================
 // Helpers
 // ========================================================
-inline  __device__ Ray generateRay(const vec2f screen)
+inline  __device__ Ray generateRay(const vec2f screen, Random &rnd)
 {
   auto &lp = optixLaunchParams;
   vec3f org = lp.camera.org;
   vec3f dir
     = lp.camera.dir_00
-    + screen.u * lp.camera.dir_du
-    + screen.v * lp.camera.dir_dv;
+    + (screen.u+rnd()) * lp.camera.dir_du
+    + (screen.v+rnd()) * lp.camera.dir_dv;
   dir = normalize(dir);
   if (fabs(dir.x) < 1e-5f) dir.x = 1e-5f;
   if (fabs(dir.y) < 1e-5f) dir.y = 1e-5f;
@@ -70,9 +70,15 @@ RAYGEN_PROGRAM(simpleRayMarcher)()
 {
   auto &lp = optixLaunchParams;
   const vec2i threadIndex = getLaunchIndex();
-  int pixelID = threadIndex.x + getLaunchDims().x * threadIndex.y;
+  const vec2i launchDim = getLaunchDims();
+  const int pixelID = threadIndex.x + getLaunchDims().x * threadIndex.y;
 
-  Ray ray = generateRay(vec2f(threadIndex)+vec2f(.5f));
+  Random rnd(lp.accumID*launchDim.x*launchDim.y+(unsigned)threadIndex.x,
+             (unsigned)threadIndex.y);
+
+  Ray ray = generateRay(vec2f(threadIndex)+vec2f(.5f), rnd);
+
+  const float interleavedSamplingOffset = rnd();
 
   float t0, t1;
   if (!boxTest(ray, lp.volume.bounds, t0, t1))
@@ -85,7 +91,7 @@ RAYGEN_PROGRAM(simpleRayMarcher)()
 
   float dt = 1.f/lp.samplingRate;
 
-  float t=ray.tmin;
+  float t=ray.tmin + interleavedSamplingOffset;
   float transmittance = 1.f;
 
   // Main ray marching loop:
