@@ -1,3 +1,7 @@
+// std
+#include <fstream>
+#include <string>
+
 // nanovdb
 #include <nanovdb/GridHandle.h>
 #include <nanovdb/HostBuffer.h>
@@ -11,6 +15,11 @@
 // ex01:
 #include "Params.h"
 
+struct {
+  std::string filepath;
+  std::string xfFile;
+} g_appState;
+
 namespace ex01_let_there_be_voxels {
 #ifndef RTCORE
 extern void simpleRayMarcher();
@@ -20,18 +29,61 @@ void printUsage() {
   fprintf(stderr, "%s", "Usage: ex01_let_there_be_voxels file.nvdb\n");
 }
 
+static void parseCommandLine(int argc, char *argv[]) {
+
+  for (int i = 1; i < argc; ++i) {
+    std::string arg = argv[i];
+    if (arg[0] != '-')
+      g_appState.filepath = arg;
+    else if (arg == "--xf")
+      g_appState.xfFile = argv[++i];
+  }
+}
+
+static bool loadXF(std::vector<vec4f> &xf) {
+  float opacity;
+  box1f valueRange, relRange;
+
+  std::ifstream in(g_appState.xfFile);
+
+  if (!in.good()) {
+    return false;
+  }
+
+  in.read((char *)&opacity, sizeof(opacity));
+  in.read((char *)&valueRange, sizeof(valueRange));
+  in.read((char *)&relRange, sizeof(relRange));
+
+  int numValues;
+  in.read((char *)&numValues, sizeof(numValues));
+
+  if (numValues <= 0) {
+    return false;
+  }
+
+  xf.resize(numValues);
+  in.read((char *)xf.data(), sizeof(xf[0]) * xf.size());
+
+  return true;
+}
+
 extern "C" int main(int argc, char *argv[]) {
 
   // common namespace for helper classes:
   // Camera, FB, wrappers for RTX execution model, etc. etc.
   using namespace dvr_course;
 
-  if (argc != 2) {
+  if (argc < 2) {
     printUsage();
     exit(-1);
   }
 
-  const char *filepath = argv[1];
+  parseCommandLine(argc, argv);
+
+  if (g_appState.filepath.empty()) {
+    printUsage();
+    exit(-1);
+  }
 
   uint8_t *gridData{nullptr};
   nanovdb::GridHandle<nanovdb::HostBuffer> gridHandle;
@@ -40,7 +92,7 @@ extern "C" int main(int argc, char *argv[]) {
 #ifdef RTCORE
 
 #else
-    auto grid = nanovdb::io::readGrid(filepath);
+    auto grid = nanovdb::io::readGrid(g_appState.filepath);
     gridData = (uint8_t *)std::malloc(grid.bufferSize() + NANOVDB_DATA_ALIGNMENT);
     void *dataPtr = nanovdb::alignPtr(gridData);
     std::memcpy(gridData, grid.data(), grid.bufferSize());
@@ -70,10 +122,16 @@ extern "C" int main(int argc, char *argv[]) {
   } screen;
   cam.getScreen(screen.lower_left,screen.horizontal,screen.vertical);
 
-  std::vector<vec4f> tfValues({
-    {0.f,0.f,1.f,0.1f },
-    {0.f,1.f,0.f,0.1f }
-  });
+  std::vector<vec4f> tfValues;
+
+  if (g_appState.xfFile.empty()) {
+    tfValues = std::vector<vec4f>({
+      {0.f,0.f,1.f,0.1f },
+      {0.f,1.f,0.f,0.1f }
+    });
+  } else {
+    loadXF(tfValues);
+  }
 
 #ifdef RTCORE
   pl.setRayGen("simpleRayMarcher");
@@ -107,7 +165,7 @@ extern "C" int main(int argc, char *argv[]) {
   parms.ambientRadiance = 1.f;
   // DRV
   parms.samplingRate = 2.f;
-  parms.unitDistance = 0.1f;
+  parms.unitDistance = 1.0f;
   // set params:
   pl.setLaunchParams(&parms,sizeof(parms), std::alignment_of<LaunchParams>());
 #endif
