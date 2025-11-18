@@ -48,7 +48,7 @@ inline  __device__ Ray generateRay(const vec2f screen, Random &rnd)
   return Ray(org,dir,0.f,1e10f);
 }
 
-inline __device__ bool sampleVolume(const Volume &vol, vec3f pos, float value)
+inline __device__ bool sampleVolume(const Volume &vol, vec3f pos, float &value)
 {
   // simple homogeneous volume:
   auto acc = vol.handle->getAccessor();
