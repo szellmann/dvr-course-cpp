@@ -2,7 +2,7 @@
 
 This example shows a simple marcher and a single homogeneous medium. This is
 the "status quo" in sci-vis style volume rendering from the time of the
-original real-time volume graphics SIGGRAPH course, yet using a GPGPU
+original real-time volume graphics Eurographics course [1], yet using a GPGPU
 programming model instead of raster hardware or shaders.
 
 ## TODOs:
@@ -15,3 +15,6 @@ programming model instead of raster hardware or shaders.
 - [ ] Common: allow setting the number of convergence frames on the
       pipeline object
 - [x] Ray entry point scrambling using random offsets
+
+
+[1]:   http://www.real-time-volume-graphics.org/?page_id=28
