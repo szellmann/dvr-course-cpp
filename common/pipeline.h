@@ -22,6 +22,14 @@
 // ours
 #include "fb.h"
 
+#ifndef RTCORE
+# define DECL_LAUNCH_PARAMS(T) T optixLaunchParams;
+# define SET_LAUNCH_PARAMS(p) optixLaunchParams = (p);
+#else
+# define DECL_LAUNCH_PARAMS(T)
+# define SET_LAUNCH_PARAMS(p)
+#endif
+
 // ========================================================
 // Common render pipeline class for DVR
 // ========================================================
@@ -29,8 +37,8 @@ namespace dvr_course {
 
 struct Pipeline {
 
-  Pipeline(std::string name = "dvr-course-cpp") : name(name) {}
-  std::string name = "dvr-course-cpp";
+  Pipeline(std::string name = "dvr-course-cpp");
+  ~Pipeline();
 
 #ifdef RTCORE
   // for use with RTCORE (load from module)
@@ -51,21 +59,24 @@ struct Pipeline {
   { func = f; }
 
   std::function<void()> func;
-
-  //   launch-params
-  void setLaunchParams(const void *ptr, size_t len, size_t a);
 #endif
-
-  bool isValid() const { return fb != nullptr; }
 
   // Frame
   void setFrame(Frame &f) { fb = &f; }
   Frame *fb{nullptr};
 
   // Interface
-  bool isRunning() const { return false; }
-  void launch() const;
+  bool isRunning() const { return running; }
+  bool isValid() const { return fb != nullptr; }
+  void launch();
   void present() const;
+
+ private:
+
+  struct Impl;
+  std::unique_ptr<Impl> impl;
+
+  bool running{false};
 };
 
 } // dvr_course

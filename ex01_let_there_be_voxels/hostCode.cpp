@@ -15,6 +15,8 @@
 // ex01:
 #include "Params.h"
 
+DECL_LAUNCH_PARAMS(ex01_let_there_be_voxels::LaunchParams)
+
 struct {
   std::string filepath;
   std::string xfFile;
@@ -167,7 +169,7 @@ extern "C" int main(int argc, char *argv[]) {
   parms.samplingRate = 2.f;
   parms.unitDistance = 1.0f;
   // set params:
-  pl.setLaunchParams(&parms,sizeof(parms), std::alignment_of<LaunchParams>());
+  SET_LAUNCH_PARAMS(parms);
 #endif
 
   // Render and present...

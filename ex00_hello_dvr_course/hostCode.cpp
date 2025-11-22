@@ -4,6 +4,8 @@
 // ex00:
 #include "Params.h"
 
+DECL_LAUNCH_PARAMS(ex00_hello_dvr_course::LaunchParams)
+
 namespace ex00_hello_dvr_course {
 #ifndef RTCORE
 extern void simpleRayMarcher();
@@ -69,7 +71,7 @@ extern "C" int main(int argc, char *argv[]) {
   parms.samplingRate = 2.f;
   parms.unitDistance = 0.1f;
   // set params:
-  pl.setLaunchParams(&parms,sizeof(parms), std::alignment_of<LaunchParams>());
+  SET_LAUNCH_PARAMS(parms);
 #endif
 
   // Render and present...

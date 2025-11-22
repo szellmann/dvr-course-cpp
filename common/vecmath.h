@@ -539,6 +539,30 @@ vec4f operator/(vec4f u, vec4f v) {
 }
 
 inline __host__ __device__
+vec4f& operator+=(vec4f &u, vec4f v) {
+  u=u+v;
+  return u;
+}
+
+inline __host__ __device__
+vec4f& operator-=(vec4f &u, vec4f v) {
+  u=u-v;
+  return u;
+}
+
+inline __host__ __device__
+vec4f& operator*=(vec4f &u, vec4f v) {
+  u=u*v;
+  return u;
+}
+
+inline __host__ __device__
+vec4f& operator/=(vec4f &u, vec4f v) {
+  u=u/v;
+  return u;
+}
+
+inline __host__ __device__
 vec4f min(vec4f u, vec4f v) {
   return {fminf(u.x,v.x),fminf(u.y,v.y),fminf(u.z,v.z),fminf(u.w,v.w)};
 }
