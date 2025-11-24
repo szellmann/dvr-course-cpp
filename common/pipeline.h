@@ -20,6 +20,7 @@
 #include <functional>
 #include <string>
 // ours
+#include "camera.h"
 #include "fb.h"
 
 #ifndef RTCORE
@@ -65,9 +66,13 @@ struct Pipeline {
   void setFrame(Frame &f) { fb = &f; }
   Frame *fb{nullptr};
 
+  // Camera
+  void setCamera(Camera &cam) { camera = &cam; }
+  Camera *camera{nullptr};
+
   // Interface
   bool isRunning() const { return running; }
-  bool isValid() const { return fb != nullptr; }
+  bool isValid() const { return fb != nullptr && camera != nullptr; }
   void launch();
   void present() const;
 

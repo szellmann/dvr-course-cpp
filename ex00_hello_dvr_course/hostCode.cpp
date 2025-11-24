@@ -28,11 +28,7 @@ extern "C" int main(int argc, char *argv[]) {
                      vec3f(0,0,0),
                      vec3f(0,1,0),
                      90.f*M_PI/180.f);
-
-  struct {
-    vec3f lower_left, horizontal, vertical;
-  } screen;
-  cam.getScreen(screen.lower_left,screen.horizontal,screen.vertical);
+  pl.setCamera(cam);
 
   std::vector<vec4f> tfValues({
     {0.f,0.f,1.f,0.1f },
@@ -44,7 +40,6 @@ extern "C" int main(int argc, char *argv[]) {
   OWLParams lp = pl.createLaunchParams({
     { "camera.dir_00", OWL_FLOAT3, OWL_OFFSETOFF(LaunchParams,camera.dir_00) }
   });
-  owlParamsSet3fv(lp,"camera.dir_00",(const float *)&camera.dir_00);
   // ... more owl setup
 #else
   pl.setRayGen(simpleRayMarcher);
@@ -55,11 +50,6 @@ extern "C" int main(int argc, char *argv[]) {
   parms.transfunc.valueRange = {0,1};
   parms.transfunc.size = (int)tfValues.size();
   parms.transfunc.values = tfValues.data();
-  // camera
-  parms.camera.org = cam.getPosition();
-  parms.camera.dir_00 = screen.lower_left;
-  parms.camera.dir_du = screen.horizontal / imgWidth;
-  parms.camera.dir_dv = screen.vertical / imgHeight;
   // framebuffer
   parms.fbPointer   = fb.fbPointer;
   parms.fbDepth     = fb.fbDepth;
@@ -70,14 +60,31 @@ extern "C" int main(int argc, char *argv[]) {
   // DRV
   parms.samplingRate = 2.f;
   parms.unitDistance = 0.1f;
-  // set params:
-  SET_LAUNCH_PARAMS(parms);
 #endif
 
   // Render and present...
   // For default (PNG image) pipeline this
   // loop returns immediately
   do {
+    // update camera:
+    struct {
+      vec3f lower_left, horizontal, vertical;
+    } screen;
+    cam.getScreen(screen.lower_left,screen.horizontal,screen.vertical);
+#ifdef RTCORE
+    owlParamsSet3fv(lp,"camera.dir_00",(const float *)&camera.dir_00);
+    // ...
+#else
+    parms.camera.org = cam.getPosition();
+    parms.camera.dir_00 = screen.lower_left;
+    parms.camera.dir_du = screen.horizontal / imgWidth;
+    parms.camera.dir_dv = screen.vertical / imgHeight;
+#endif
+
+    // set params:
+    SET_LAUNCH_PARAMS(parms);
+
+    // render:
     pl.launch();
     pl.present();
   } while (pl.isRunning());

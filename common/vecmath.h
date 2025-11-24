@@ -692,23 +692,32 @@ struct mat4f
 
 inline __host__ __device__
 mat4f operator*(const mat4f &a, const mat4f &b) {
-    return mat4f(
-      a(0,0) * b(0,0) + a(0,1) * b(1,0) + a(0,2) * b(2,0) + a(0,3) * b(3,0),
-      a(1,0) * b(0,0) + a(1,1) * b(1,0) + a(1,2) * b(2,0) + a(1,3) * b(3,0),
-      a(2,0) * b(0,0) + a(2,1) * b(1,0) + a(2,2) * b(2,0) + a(2,3) * b(3,0),
-      a(3,0) * b(0,0) + a(3,1) * b(1,0) + a(3,2) * b(2,0) + a(3,3) * b(3,0),
-      a(0,0) * b(0,1) + a(0,1) * b(1,1) + a(0,2) * b(2,1) + a(0,3) * b(3,1),
-      a(1,0) * b(0,1) + a(1,1) * b(1,1) + a(1,2) * b(2,1) + a(1,3) * b(3,1),
-      a(2,0) * b(0,1) + a(2,1) * b(1,1) + a(2,2) * b(2,1) + a(2,3) * b(3,1),
-      a(3,0) * b(0,1) + a(3,1) * b(1,1) + a(3,2) * b(2,1) + a(3,3) * b(3,1),
-      a(0,0) * b(0,2) + a(0,1) * b(1,2) + a(0,2) * b(2,2) + a(0,3) * b(3,2),
-      a(1,0) * b(0,2) + a(1,1) * b(1,2) + a(1,2) * b(2,2) + a(1,3) * b(3,2),
-      a(2,0) * b(0,2) + a(2,1) * b(1,2) + a(2,2) * b(2,2) + a(2,3) * b(3,2),
-      a(3,0) * b(0,2) + a(3,1) * b(1,2) + a(3,2) * b(2,2) + a(3,3) * b(3,2),
-      a(0,0) * b(0,3) + a(0,1) * b(1,3) + a(0,2) * b(2,3) + a(0,3) * b(3,3),
-      a(1,0) * b(0,3) + a(1,1) * b(1,3) + a(1,2) * b(2,3) + a(1,3) * b(3,3),
-      a(2,0) * b(0,3) + a(2,1) * b(1,3) + a(2,2) * b(2,3) + a(2,3) * b(3,3),
-      a(3,0) * b(0,3) + a(3,1) * b(1,3) + a(3,2) * b(2,3) + a(3,3) * b(3,3));
+  return mat4f(
+    a(0,0) * b(0,0) + a(0,1) * b(1,0) + a(0,2) * b(2,0) + a(0,3) * b(3,0),
+    a(1,0) * b(0,0) + a(1,1) * b(1,0) + a(1,2) * b(2,0) + a(1,3) * b(3,0),
+    a(2,0) * b(0,0) + a(2,1) * b(1,0) + a(2,2) * b(2,0) + a(2,3) * b(3,0),
+    a(3,0) * b(0,0) + a(3,1) * b(1,0) + a(3,2) * b(2,0) + a(3,3) * b(3,0),
+    a(0,0) * b(0,1) + a(0,1) * b(1,1) + a(0,2) * b(2,1) + a(0,3) * b(3,1),
+    a(1,0) * b(0,1) + a(1,1) * b(1,1) + a(1,2) * b(2,1) + a(1,3) * b(3,1),
+    a(2,0) * b(0,1) + a(2,1) * b(1,1) + a(2,2) * b(2,1) + a(2,3) * b(3,1),
+    a(3,0) * b(0,1) + a(3,1) * b(1,1) + a(3,2) * b(2,1) + a(3,3) * b(3,1),
+    a(0,0) * b(0,2) + a(0,1) * b(1,2) + a(0,2) * b(2,2) + a(0,3) * b(3,2),
+    a(1,0) * b(0,2) + a(1,1) * b(1,2) + a(1,2) * b(2,2) + a(1,3) * b(3,2),
+    a(2,0) * b(0,2) + a(2,1) * b(1,2) + a(2,2) * b(2,2) + a(2,3) * b(3,2),
+    a(3,0) * b(0,2) + a(3,1) * b(1,2) + a(3,2) * b(2,2) + a(3,3) * b(3,2),
+    a(0,0) * b(0,3) + a(0,1) * b(1,3) + a(0,2) * b(2,3) + a(0,3) * b(3,3),
+    a(1,0) * b(0,3) + a(1,1) * b(1,3) + a(1,2) * b(2,3) + a(1,3) * b(3,3),
+    a(2,0) * b(0,3) + a(2,1) * b(1,3) + a(2,2) * b(2,3) + a(2,3) * b(3,3),
+    a(3,0) * b(0,3) + a(3,1) * b(1,3) + a(3,2) * b(2,3) + a(3,3) * b(3,3));
+}
+
+inline __host__ __device__
+vec4f operator*(const mat4f &a, const vec4f &v) {
+  return vec4f(
+    a(0,0) * v.x + a(0,1) * v.y + a(0,2) * v.z + a(0,3) * v.w,
+    a(1,0) * v.x + a(1,1) * v.y + a(1,2) * v.z + a(1,3) * v.w,
+    a(2,0) * v.x + a(2,1) * v.y + a(2,2) * v.z + a(2,3) * v.w,
+    a(3,0) * v.x + a(3,1) * v.y + a(3,2) * v.z + a(3,3) * v.w);
 }
 
 inline __host__ __device__
@@ -764,6 +773,81 @@ mat4f make_ortho(float left, float right, float bottom, float top, float znear, 
 inline
 std::ostream& operator<<(std::ostream &out, const mat4f &m) {
   out << '(' << m.col0 << ',' << m.col1 << ',' << m.col2 << ',' << m.col3 << ')';
+  return out;
+}
+
+struct quatf
+{
+  quatf() = default;
+  __host__ __device__ quatf(float w, float x, float y, float z)
+    : w(w), x(x), y(y), z(z) {}
+  __host__ __device__ quatf(float w, const vec3f &v)
+    : w(w), x(v.x), y(v.y), z(v.z) {}
+
+  __host__ __device__
+  static quatf identity() {
+    return quatf(1.f,0.f,0.f,0.f);
+  }
+
+  static quatf rotation(const vec3f &from, const vec3f &to) {
+    vec3f nfrom = normalize(from);
+    vec3f nto   = normalize(to);
+    return quatf(dot(nfrom, nto), cross(nfrom, nto));
+  }
+
+  float w, x, y, z;
+};
+
+inline __host__ __device__
+quatf operator*(const quatf &p, const quatf &q) {
+  return quatf(
+    p.w*q.w - p.x*q.x - p.y*q.y - p.z*q.z,
+    p.w*q.x + p.x*q.w + p.y*q.z - p.z*q.y,
+    p.w*q.y - p.x*q.z + p.y*q.w + p.z*q.x,
+    p.w*q.z + p.x*q.y - p.y*q.x + p.z*q.w);
+}
+
+inline __host__ __device__
+quatf conjugate(const quatf &q) {
+  return {q.w,-q.x,-q.y,-q.z};
+}
+
+inline __host__ __device__
+mat4f rotationMatrix(const quatf &q) {
+  const float xx = q.x*q.x;
+  const float xy = q.x*q.y;
+  const float xz = q.x*q.z;
+  const float xw = q.x*q.w;
+  const float yy = q.y*q.y;
+  const float yz = q.y*q.z;
+  const float yw = q.y*q.w;
+  const float zz = q.z*q.z;
+  const float zw = q.z*q.w;
+  const float ww = q.w*q.w;
+
+  mat4f result;
+  result(0,0) = 2.f * (ww+xx) - 1.f;
+  result(1,0) = 2.f * (xy+zw);
+  result(2,0) = 2.f * (xz-yw);
+  result(3,0) = 0.f;
+  result(0,1) = 2.f * (xy-zw);
+  result(1,1) = 2.f * (ww+yy) - 1.f;
+  result(2,1) = 2.f * (yz+xw);
+  result(3,1) = 0.f;
+  result(0,2) = 2.f * (xz+yw);
+  result(1,2) = 2.f * (yz-xw);
+  result(2,2) = 2.f * (ww+zz) - 1.f;
+  result(3,2) = 0.f;
+  result(0,3) = 0.f;
+  result(1,3) = 0.f;
+  result(2,3) = 0.f;
+  result(3,3) = 1.f;
+  return result;
+}
+
+inline
+std::ostream& operator<<(std::ostream &out, const quatf &q) {
+  out << '(' << q.w << ',' << q.x << ',' << q.y << ',' << q.z << ')';
   return out;
 }
 

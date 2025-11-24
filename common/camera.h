@@ -20,6 +20,11 @@
 
 namespace dvr_course {
 
+using namespace vecmath;
+
+//=============================================================================
+// camera class:
+//=============================================================================
 struct Camera
 {
   void setAspect(float a) {
@@ -62,6 +67,10 @@ struct Camera
     return position;
   }
 
+  vec3f getPOI() const {
+    return position-frame.vz*distance;
+  }
+
   void getScreen(vec3f &lower_left, vec3f &horizontal, vec3f &vertical) const {
     float screen_height = 2.f*tanf(0.5f*fovy);
     vertical   = screen_height * frame.vy;
@@ -90,6 +99,80 @@ struct Camera
   struct {
     vec3f vx, vy, vz;
   } frame;
+};
+
+
+//=============================================================================
+// camera manip:
+//=============================================================================
+struct CameraManip
+{
+  CameraManip() = default;
+
+  CameraManip(Camera *cam, int w, int h)
+    : camera(cam), vpWidth(w), vpHeight(h) {}
+
+  void handleMouseDown(int x, int y) {
+    dragging = true;
+
+    arcball.downPos = ballProject(x,y);
+    arcball.downRotation = arcball.currRotation;
+  }
+
+  void handleMouseUp(int x, int y) {
+    dragging = false;
+  }
+
+  void handleMouseMove(int x, int y) {
+    if (!camera || !dragging)
+      return;
+
+    vec3f currPos = ballProject(x,y);
+    arcball.currRotation
+      = quatf::rotation(arcball.downPos, currPos) * arcball.downRotation;
+
+    // update camera:
+    mat4f rotmat = rotationMatrix(conjugate(arcball.currRotation));
+
+    vec3f poi = camera->getPOI();
+
+    vec4f eye4(0.f,0.f,camera->distance,1.f);
+    eye4 = rotmat * eye4;
+    vec3f eye(eye4.x,eye4.y,eye4.z);
+    eye += poi;
+
+    vec4f up4 = rotmat(1);
+    vec3f up(up4.x,up4.y,up4.z);
+
+    camera->setOrientation(eye, poi, up, camera->fovy);
+  }
+
+  vec3f ballProject(int x, int y) {
+    const float radius{1.f};
+    vec3f v(0.f);
+    v.x =  (x-0.5f*vpWidth ) / (radius*0.5f*vpWidth);
+    v.y = -(y-0.5f*vpHeight) / (radius*0.5f*vpHeight);
+
+    float d = v.x*v.x+v.y*v.y;
+    if (d > 1.f) {
+      float length = sqrtf(d);
+      v.x /= length;
+      v.y /= length;
+    } else {
+      v.z = sqrtf(1.f-d);
+    }
+    return v;
+  }
+
+  Camera *camera{nullptr};
+  bool dragging{false};
+  int vpWidth{0}, vpHeight{0};
+
+  struct {
+    vec3f downPos{0.f,0.f,0.f};
+    quatf currRotation{quatf::identity()};
+    quatf downRotation{quatf::identity()};
+  } arcball;
 };
 
 } // namespace dvr_course

@@ -118,11 +118,7 @@ extern "C" int main(int argc, char *argv[]) {
 
   Camera cam;
   cam.viewAll(volbounds);
-
-  struct {
-    vec3f lower_left, horizontal, vertical;
-  } screen;
-  cam.getScreen(screen.lower_left,screen.horizontal,screen.vertical);
+  pl.setCamera(cam);
 
   std::vector<vec4f> tfValues;
 
@@ -153,11 +149,6 @@ extern "C" int main(int argc, char *argv[]) {
   parms.transfunc.valueRange = {0,1};
   parms.transfunc.size = (int)tfValues.size();
   parms.transfunc.values = tfValues.data();
-  // camera
-  parms.camera.org = cam.getPosition();
-  parms.camera.dir_00 = screen.lower_left;
-  parms.camera.dir_du = screen.horizontal / imgWidth;
-  parms.camera.dir_dv = screen.vertical / imgHeight;
   // framebuffer
   parms.fbPointer   = fb.fbPointer;
   parms.fbDepth     = fb.fbDepth;
@@ -168,14 +159,30 @@ extern "C" int main(int argc, char *argv[]) {
   // DRV
   parms.samplingRate = 2.f;
   parms.unitDistance = 1.0f;
-  // set params:
-  SET_LAUNCH_PARAMS(parms);
 #endif
 
   // Render and present...
   // For default (PNG image) pipeline this
   // loop returns immediately
   do {
+    // update camera:
+    struct {
+      vec3f lower_left, horizontal, vertical;
+    } screen;
+    cam.getScreen(screen.lower_left,screen.horizontal,screen.vertical);
+#ifdef RTCORE
+    owlParamsSet3fv(lp,"camera.dir_00",(const float *)&camera.dir_00);
+    // ...
+#else
+    parms.camera.org = cam.getPosition();
+    parms.camera.dir_00 = screen.lower_left;
+    parms.camera.dir_du = screen.horizontal / imgWidth;
+    parms.camera.dir_dv = screen.vertical / imgHeight;
+#endif
+
+    // set params:
+    SET_LAUNCH_PARAMS(parms);
+
     pl.launch();
     pl.present();
   } while (pl.isRunning());

@@ -45,8 +45,11 @@ struct Pipeline::Impl
   Impl(std::string name) : name(name) {}
   ~Impl() = default;
 
-  void init()
+  void init(Camera *camera, int w, int h)
   {
+    width = w;
+    height = h;
+    manip = CameraManip(camera, width, height);
 #ifdef INTERACTIVE
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD))
       throw std::runtime_error("failed to initialize SDL");
@@ -86,16 +89,33 @@ struct Pipeline::Impl
 #endif
   }
 
-  bool quitEvent() const
+  bool pollEvents()
   {
 #ifdef INTERACTIVE
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
+      // quit:
       if (event.type == SDL_EVENT_QUIT)
         return true;
       if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED
           && event.window.windowID == SDL_GetWindowID(sdl_window))
         return true;
+      // mouse events
+      if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
+        SDL_MouseButtonEvent button = event.button;
+        manip.handleMouseDown(button.x,button.y);
+        return false;
+      }
+      if (event.type == SDL_EVENT_MOUSE_BUTTON_UP) {
+        SDL_MouseButtonEvent button = event.button;
+        manip.handleMouseUp(button.x,button.y);
+        return false;
+      }
+      if (event.type == SDL_EVENT_MOUSE_MOTION) {
+        SDL_MouseMotionEvent motion = event.motion;
+        manip.handleMouseMove(motion.x,motion.y);
+        return false;
+      }
     }
     return false;
 #else
@@ -119,6 +139,8 @@ struct Pipeline::Impl
           width,
           height);
 
+      manip.vpWidth = width;
+      manip.vpHeight = height;
     }
 
     SDL_UpdateTexture(fbTexture,
@@ -149,7 +171,14 @@ struct Pipeline::Impl
 
     SDL_SetRenderDrawColorFloat(sdl_renderer, 0.1f, 0.1f, 0.1f, 1.f);
     SDL_RenderClear(sdl_renderer);
-    SDL_RenderTexture(sdl_renderer, fbTexture, nullptr, nullptr);
+    SDL_RenderTextureRotated(
+        sdl_renderer,
+        fbTexture,
+        nullptr,
+        nullptr,
+        0.0,
+        nullptr,
+        SDL_FLIP_VERTICAL);
     ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), sdl_renderer);
     SDL_RenderPresent(sdl_renderer);
 #else
@@ -165,6 +194,7 @@ struct Pipeline::Impl
   SDL_Window *sdl_window{nullptr};
   SDL_Renderer *sdl_renderer{nullptr};
   SDL_Texture *fbTexture{nullptr};
+  CameraManip manip;
 #endif
   int width{512};
   int height{512};
@@ -175,9 +205,14 @@ Pipeline::Pipeline(std::string name) : impl(new Impl(name)) {}
 Pipeline::~Pipeline() {}
 
 void Pipeline::launch() {
+  if (!isValid()) {
+    fprintf(stderr,"Pipeline invalid, aborting...\n");
+    abort();
+  }
+
   if (!running)
-    impl->init();
-  running = !impl->quitEvent();
+    impl->init(camera, fb->width, fb->height);
+  running = !impl->pollEvents();
 
   if (!func)
     return;
