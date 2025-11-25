@@ -112,19 +112,16 @@ struct Pipeline::Impl
       if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
         SDL_MouseButtonEvent button = event.button;
         manip.handleMouseDown(button.x,button.y);
-        clearFramebuffer();
         return false;
       }
       if (event.type == SDL_EVENT_MOUSE_BUTTON_UP) {
         SDL_MouseButtonEvent button = event.button;
         manip.handleMouseUp(button.x,button.y);
-        clearFramebuffer();
         return false;
       }
       if (event.type == SDL_EVENT_MOUSE_MOTION) {
         SDL_MouseMotionEvent motion = event.motion;
         manip.handleMouseMove(motion.x,motion.y);
-        clearFramebuffer();
         return false;
       }
     }
@@ -246,6 +243,8 @@ void Pipeline::launch() {
 
   if (!func)
     return;
+
+  impl->clearFramebuffer();
 
 #ifdef RTCORE
 
