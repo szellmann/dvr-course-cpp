@@ -30,6 +30,8 @@ struct Frame
   Frame(int w, int h);
   ~Frame();
 
+  void clear(const vec4f &rgba = vec4f(0.f), float depth = 1.f);
+
   uint32_t *fbPointer{nullptr};
   float    *fbDepth{nullptr};
   vec4f    *accumBuffer{nullptr};

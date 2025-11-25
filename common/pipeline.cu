@@ -45,10 +45,16 @@ struct Pipeline::Impl
   Impl(std::string name) : name(name) {}
   ~Impl() = default;
 
-  void init(Camera *camera, int w, int h)
+  void init(Frame *frame, Camera *camera)
   {
-    width = w;
-    height = h;
+    if (!frame || !camera) {
+      fprintf(stderr,"Pipeline invalid on init, aborting...\n");
+      abort();
+    }
+
+    fb = frame;
+    width = fb->width;
+    height = fb->height;
     manip = CameraManip(camera, width, height);
 #ifdef INTERACTIVE
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD))
@@ -104,16 +110,19 @@ struct Pipeline::Impl
       if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
         SDL_MouseButtonEvent button = event.button;
         manip.handleMouseDown(button.x,button.y);
+        fb->clear();
         return false;
       }
       if (event.type == SDL_EVENT_MOUSE_BUTTON_UP) {
         SDL_MouseButtonEvent button = event.button;
         manip.handleMouseUp(button.x,button.y);
+        fb->clear();
         return false;
       }
       if (event.type == SDL_EVENT_MOUSE_MOTION) {
         SDL_MouseMotionEvent motion = event.motion;
         manip.handleMouseMove(motion.x,motion.y);
+        fb->clear();
         return false;
       }
     }
@@ -194,6 +203,7 @@ struct Pipeline::Impl
   SDL_Window *sdl_window{nullptr};
   SDL_Renderer *sdl_renderer{nullptr};
   SDL_Texture *fbTexture{nullptr};
+  Frame *fb{nullptr};
   CameraManip manip;
 #endif
   int width{512};
@@ -211,7 +221,7 @@ void Pipeline::launch() {
   }
 
   if (!running)
-    impl->init(camera, fb->width, fb->height);
+    impl->init(fb, camera);
   running = !impl->pollEvents();
 
   if (!func)

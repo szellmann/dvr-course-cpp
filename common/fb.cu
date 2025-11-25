@@ -14,6 +14,7 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
+#include "dvr_course-common.cuh"
 #include "fb.h"
 
 namespace dvr_course {
@@ -33,6 +34,24 @@ Frame::~Frame()
   std::free(fbPointer);
   std::free(fbDepth);
   std::free(accumBuffer);
+#endif
+}
+
+void Frame::clear(const vec4f &rgba, float depth)
+{
+#ifndef RTCORE
+  for (int y=0; y<height; ++y) {
+    for (int x=0; x<width; ++x) {
+      int pixelID = x+y*width;
+      if (fbPointer) {
+        fbPointer[pixelID] = make_rgba(rgba);
+      }
+
+      if (fbDepth) {
+        fbDepth[pixelID] = depth;
+      }
+    }
+  }
 #endif
 }
 
