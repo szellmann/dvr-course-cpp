@@ -26,6 +26,8 @@
 #endif
 // ours
 #include "pipeline.h"
+#include "thread_pool.h"
+#include "for_each.h"
 #include "dvr_course-common.h"
 #include "dvr_course-common.cuh"
 
@@ -110,19 +112,19 @@ struct Pipeline::Impl
       if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
         SDL_MouseButtonEvent button = event.button;
         manip.handleMouseDown(button.x,button.y);
-        fb->clear();
+        clearFramebuffer();
         return false;
       }
       if (event.type == SDL_EVENT_MOUSE_BUTTON_UP) {
         SDL_MouseButtonEvent button = event.button;
         manip.handleMouseUp(button.x,button.y);
-        fb->clear();
+        clearFramebuffer();
         return false;
       }
       if (event.type == SDL_EVENT_MOUSE_MOTION) {
         SDL_MouseMotionEvent motion = event.motion;
         manip.handleMouseMove(motion.x,motion.y);
-        fb->clear();
+        clearFramebuffer();
         return false;
       }
     }
@@ -199,6 +201,23 @@ struct Pipeline::Impl
 #endif
   }
 
+  void clearFramebuffer(const vec4f &rgba = vec4f(0.f), float depth = 0.f)
+  {
+#ifndef RTCORE
+    parallel::for_each(pool, 0, width, 0, height,
+      [=](int x, int y) {
+        int pixelID = x+y*width;
+        if (fb->fbPointer) {
+          fb->fbPointer[pixelID] = make_rgba(rgba);
+        }
+
+        if (fb->fbDepth) {
+          fb->fbDepth[pixelID] = depth;
+        }
+      });
+#endif
+  }
+
 #ifdef INTERACTIVE
   SDL_Window *sdl_window{nullptr};
   SDL_Renderer *sdl_renderer{nullptr};
@@ -209,6 +228,7 @@ struct Pipeline::Impl
   int width{512};
   int height{512};
   std::string name;
+  thread_pool pool{std::thread::hardware_concurrency()};
 };
 
 Pipeline::Pipeline(std::string name) : impl(new Impl(name)) {}
@@ -230,13 +250,12 @@ void Pipeline::launch() {
 #ifdef RTCORE
 
 #else
-  launchDims = {fb->width,fb->height};
-  for (int y=0; y<launchDims.y; ++y) {
-    for (int x=0; x<launchDims.x; ++x) {
+  parallel::for_each(impl->pool, 0, fb->width, 0, fb->height,
+    [&](int x, int y) {
+      launchDims = {fb->width,fb->height};
       launchIndex = {x,y};
       func();
-    }
-  }
+    });
 #endif
 }
 

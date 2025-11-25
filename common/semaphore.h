@@ -16,24 +16,74 @@
 
 #pragma once
 
-#include <cstdint>
-#include "vecmath.h"
+#if defined(_WIN32) || defined(__APPLE__)
+# define SEMAPHORE_USE_STD 1
+#endif
+
+#ifdef SEMAPHORE_USE_STD
+# include <atomic>
+# include <condition_variable>
+# include <mutex>
+#else
+# include <semaphore.h>
+#endif
 
 namespace dvr_course {
 
-// import into "dvr_course":
-using namespace vecmath;
+#ifdef SEMAPHORE_USE_STD
 
-struct Frame
-{
-  Frame() = default;
-  Frame(int w, int h);
-  ~Frame();
+class semaphore {
+public:
+  explicit semaphore(unsigned count = 0) : count_(count)
+  {}
 
-  uint32_t *fbPointer{nullptr};
-  float    *fbDepth{nullptr};
-  vec4f    *accumBuffer{nullptr};
-  int       width{0}, height{0};
+  void notify() {
+    std::unique_lock<std::mutex> l(mutex_);
+    ++count_;
+    cond_.notify_one();
+  }
+
+  void wait() {
+    std::unique_lock<std::mutex> l(mutex_);
+    cond_.wait(l, [this]() { return count_ > 0; });
+    count_--;
+  }
+
+private:
+    std::condition_variable cond_;
+    std::mutex mutex_;
+    std::atomic<unsigned> count_;
 };
 
-} // namespace dvr_course
+#else
+
+class semaphore
+{
+public:
+
+  explicit semaphore(unsigned count = 0) {
+    sem_init(&sem_, 0, count);
+  }
+
+  ~semaphore() {
+    sem_close(&sem_);
+    sem_destroy(&sem_);
+  }
+
+  void notify() {
+    sem_post(&sem_);
+  }
+
+  void wait() {
+    sem_wait(&sem_);
+  }
+
+private:
+    sem_t sem_;
+};
+
+#endif
+
+} // dvr_course
+
+
