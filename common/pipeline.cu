@@ -57,8 +57,9 @@ struct Pipeline::Impl
     fb = frame;
     width = fb->width;
     height = fb->height;
-    manip = CameraManip(camera, width, height);
 #ifdef INTERACTIVE
+    manip = CameraManip(camera, width, height);
+
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD))
       throw std::runtime_error("failed to initialize SDL");
   
@@ -219,9 +220,9 @@ struct Pipeline::Impl
   SDL_Window *sdl_window{nullptr};
   SDL_Renderer *sdl_renderer{nullptr};
   SDL_Texture *fbTexture{nullptr};
-  Frame *fb{nullptr};
   CameraManip manip;
 #endif
+  Frame *fb{nullptr};
   int width{512};
   int height{512};
   std::string name;
