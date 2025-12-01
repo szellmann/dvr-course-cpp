@@ -98,38 +98,42 @@ struct Pipeline::Impl
 #endif
   }
 
-  bool pollEvents()
+  void pollEvents(bool &quit)
   {
 #ifdef INTERACTIVE
+    quit = false;
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
       // quit:
-      if (event.type == SDL_EVENT_QUIT)
-        return true;
+      if (event.type == SDL_EVENT_QUIT) {
+        quit = true;
+        return;
+      }
       if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED
-          && event.window.windowID == SDL_GetWindowID(sdl_window))
-        return true;
+          && event.window.windowID == SDL_GetWindowID(sdl_window)) {
+        quit = true;
+        return;
+      }
       // mouse events
       if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
         SDL_MouseButtonEvent button = event.button;
         manip.handleMouseDown(button.x,button.y);
-        return false;
+        return;
       }
       if (event.type == SDL_EVENT_MOUSE_BUTTON_UP) {
         SDL_MouseButtonEvent button = event.button;
         manip.handleMouseUp(button.x,button.y);
-        return false;
+        return;
       }
       if (event.type == SDL_EVENT_MOUSE_MOTION) {
         SDL_MouseMotionEvent motion = event.motion;
         manip.handleMouseMove(motion.x,motion.y);
-        return false;
+        return;
       }
     }
-    return false;
 #else
     // non-interactive pipeline: one shot
-    return true;
+    quit = true;
 #endif
   }
 
@@ -240,7 +244,10 @@ void Pipeline::launch() {
 
   if (!running)
     impl->init(fb, camera);
-  running = !impl->pollEvents();
+
+  bool quit = false;
+  impl->pollEvents(quit);
+  running = !quit;
 
   if (!func)
     return;
