@@ -22,6 +22,7 @@
 // ours
 #include "camera.h"
 #include "fb.h"
+#include "transfunc.h"
 
 #ifndef RTCORE
 # define DECL_LAUNCH_PARAMS(T) T optixLaunchParams;
@@ -69,6 +70,9 @@ struct Pipeline {
   // Camera
   void setCamera(Camera &cam) { camera = &cam; }
   Camera *camera{nullptr};
+
+  void setTransfunc(Transfunc &tf) { transfunc = &tf; }
+  Transfunc *transfunc{nullptr};
 
   // Interface
   bool isRunning() const { return running; }

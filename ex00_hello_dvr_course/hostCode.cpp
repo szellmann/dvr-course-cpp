@@ -34,6 +34,9 @@ extern "C" int main(int argc, char *argv[]) {
     {0.f,0.f,1.f,0.1f },
     {0.f,1.f,0.f,0.1f }
   });
+  dvr_course::Transfunc tf;
+  tf.rgbaLUT = tfValues;
+  pl.setTransfunc(tf);
 
 #ifdef RTCORE
   pl.setRayGen("simpleRayMarcher");
@@ -46,10 +49,6 @@ extern "C" int main(int argc, char *argv[]) {
   LaunchParams parms;
   // volume
   parms.volume.bounds = box3f({-1,-1,-1},{1,1,1});
-  // transfunc
-  parms.transfunc.valueRange = {0,1};
-  parms.transfunc.size = (int)tfValues.size();
-  parms.transfunc.values = tfValues.data();
   // framebuffer
   parms.fbPointer   = fb.fbPointer;
   parms.fbDepth     = fb.fbDepth;
@@ -66,7 +65,6 @@ extern "C" int main(int argc, char *argv[]) {
   // For default (PNG image) pipeline this
   // loop returns immediately
   do {
-    // update camera:
     struct {
       vec3f lower_left, horizontal, vertical;
     } screen;
@@ -75,10 +73,15 @@ extern "C" int main(int argc, char *argv[]) {
     owlParamsSet3fv(lp,"camera.dir_00",(const float *)&camera.dir_00);
     // ...
 #else
+    // update camera:
     parms.camera.org = cam.getPosition();
     parms.camera.dir_00 = screen.lower_left;
     parms.camera.dir_du = screen.horizontal / imgWidth;
     parms.camera.dir_dv = screen.vertical / imgHeight;
+    // update transfunc:
+    parms.transfunc.valueRange = {0,1};
+    parms.transfunc.size = (int)tf.rgbaLUT.size();
+    parms.transfunc.values = tf.rgbaLUT.data();
 #endif
 
     // set params:

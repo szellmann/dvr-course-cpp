@@ -28,6 +28,7 @@
 #include "pipeline.h"
 #include "thread_pool.h"
 #include "for_each.h"
+#include "tfe.h"
 #include "dvr_course-common.h"
 #include "dvr_course-common.cuh"
 
@@ -47,7 +48,7 @@ struct Pipeline::Impl
   Impl(std::string name) : name(name) {}
   ~Impl() = default;
 
-  void init(Frame *frame, Camera *camera)
+  void init(Frame *frame, Camera *camera, Transfunc *tf)
   {
     if (!frame || !camera) {
       fprintf(stderr,"Pipeline invalid on init, aborting...\n");
@@ -57,6 +58,7 @@ struct Pipeline::Impl
     fb = frame;
     width = fb->width;
     height = fb->height;
+    transfunc = tf;
 #ifdef INTERACTIVE
     manip = CameraManip(camera, width, height);
 
@@ -87,6 +89,17 @@ struct Pipeline::Impl
 
     ImGui_ImplSDL3_InitForSDLRenderer(sdl_window, sdl_renderer);
     ImGui_ImplSDLRenderer3_Init(sdl_renderer);
+
+    std::vector<vec4f> colors;
+    if (transfunc) {
+      colors = transfunc->rgbaLUT;
+    } else {
+      colors = std::vector<vec4f>({{0.f,0.1f,0.9f,0.0f},
+                                   {1.f,0.5f,0.3f,1.f}});
+    }
+
+    tfe.setLookupTable(colors);
+    tfe.setSDL3Renderer(sdl_renderer);
 #endif
   }
   
@@ -104,6 +117,8 @@ struct Pipeline::Impl
     quit = false;
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
+      // imgui:
+      ImGui_ImplSDL3_ProcessEvent(&event);
       // quit:
       if (event.type == SDL_EVENT_QUIT) {
         quit = true;
@@ -115,20 +130,23 @@ struct Pipeline::Impl
         return;
       }
       // mouse events
-      if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
-        SDL_MouseButtonEvent button = event.button;
-        manip.handleMouseDown(button.x,button.y);
-        return;
-      }
-      if (event.type == SDL_EVENT_MOUSE_BUTTON_UP) {
-        SDL_MouseButtonEvent button = event.button;
-        manip.handleMouseUp(button.x,button.y);
-        return;
-      }
-      if (event.type == SDL_EVENT_MOUSE_MOTION) {
-        SDL_MouseMotionEvent motion = event.motion;
-        manip.handleMouseMove(motion.x,motion.y);
-        return;
+      ImGuiIO& io = ImGui::GetIO();
+      if (!io.WantCaptureMouse) {
+        if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
+          SDL_MouseButtonEvent button = event.button;
+          manip.handleMouseDown(button.x,button.y);
+          return;
+        }
+        if (event.type == SDL_EVENT_MOUSE_BUTTON_UP) {
+          SDL_MouseButtonEvent button = event.button;
+          manip.handleMouseUp(button.x,button.y);
+          return;
+        }
+        if (event.type == SDL_EVENT_MOUSE_MOTION) {
+          SDL_MouseMotionEvent motion = event.motion;
+          manip.handleMouseMove(motion.x,motion.y);
+          return;
+        }
       }
     }
 #else
@@ -166,17 +184,17 @@ struct Pipeline::Impl
 
     ImGui::NewFrame();
 
-    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking
-        | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse
-        | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove
-        | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+    //ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking
+    //    | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse
+    //    | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove
+    //    | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 
-    ImGui::Begin("MainDockSpace", nullptr, window_flags);
-
-    ImGui::Image((ImTextureID)fbTexture,
-        ImGui::GetContentRegionAvail(),
-        ImVec2(0, 1),
-        ImVec2(1, 0));
+    ImGui::Begin("TFE");//, nullptr, window_flags);
+    tfe.drawImmediate();
+    //ImGui::Image((ImTextureID)fbTexture,
+    //    ImGui::GetContentRegionAvail(),
+    //    ImVec2(0, 1),
+    //    ImVec2(1, 0));
 
     ImGui::End();
 
@@ -225,8 +243,10 @@ struct Pipeline::Impl
   SDL_Renderer *sdl_renderer{nullptr};
   SDL_Texture *fbTexture{nullptr};
   CameraManip manip;
+  TFE tfe;
 #endif
   Frame *fb{nullptr};
+  Transfunc *transfunc{nullptr};
   int width{512};
   int height{512};
   std::string name;
@@ -243,11 +263,15 @@ void Pipeline::launch() {
   }
 
   if (!running)
-    impl->init(fb, camera);
+    impl->init(fb, camera, transfunc);
 
   bool quit = false;
   impl->pollEvents(quit);
   running = !quit;
+
+  if (transfunc && impl->tfe.updated()) {
+    transfunc->rgbaLUT = impl->tfe.getUpdatedLookupTable();
+  }
 
   if (!func)
     return;

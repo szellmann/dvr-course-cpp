@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_library(${PROJECT_NAME})
-target_sources(${PROJECT_NAME} PRIVATE fb.cu pipeline.cu)
+target_sources(${PROJECT_NAME} PRIVATE fb.cu pipeline.cu alpha_editor.cpp tfe.cpp)
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE external)
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 configure_cuda_src(fb.cu)
@@ -18,6 +18,10 @@ option(DVR_COURSE_PIPELINE_INTERACTIVE "Use interactive viewer instead of png ou
 if (DVR_COURSE_PIPELINE_INTERACTIVE)
   target_compile_definitions(${PROJECT_NAME} PRIVATE INTERACTIVE=1)
   include(FetchContent)
+
+  # OpenGL
+  find_package(OpenGL REQUIRED)
+  target_link_libraries(${PROJECT_NAME} PRIVATE OpenGL::GL)
 
   # SDL3
   find_package(SDL3 QUIET)
