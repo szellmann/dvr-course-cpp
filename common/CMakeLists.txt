@@ -68,5 +68,7 @@ if (DVR_COURSE_PIPELINE_INTERACTIVE)
     ${dvr_course_imgui_LOCATION}/misc/cpp)
 endif()
 
+add_subdirectory(3rdparty)
+
 
 

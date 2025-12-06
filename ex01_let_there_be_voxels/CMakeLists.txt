@@ -9,8 +9,6 @@ include(../common/cmake/common.cmake)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_subdirectory(nanovdb)
-
 add_executable(${PROJECT_NAME})
 target_sources(${PROJECT_NAME} PRIVATE hostCode.cpp deviceCode.cu)
 target_link_libraries(${PROJECT_NAME} PRIVATE dvr_course-common)
