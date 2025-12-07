@@ -20,6 +20,9 @@
 
 #pragma once
 
+#ifndef RTCORE
+#include <iostream>
+#endif
 #include "vecmath.h"
 
 namespace dvr_course {
@@ -36,6 +39,7 @@ using namespace vecmath;
 namespace dvr_course {
 const vec2i getLaunchIndex(void);
 const vec2i getLaunchDims(void);
+const bool debug(void);
 #define RAYGEN_PROGRAM(name) void name
 
 inline __device__ float linear_to_srgb(float x) {

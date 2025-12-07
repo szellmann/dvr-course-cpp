@@ -82,6 +82,8 @@ extern "C" int main(int argc, char *argv[]) {
     parms.transfunc.valueRange = {0,1};
     parms.transfunc.size = (int)tf.rgbaLUT.size();
     parms.transfunc.values = tf.rgbaLUT.data();
+    // update accum:
+    parms.accumID = pl.frameID;
 #endif
 
     // set params:

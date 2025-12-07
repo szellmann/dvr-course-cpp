@@ -112,20 +112,24 @@ struct CameraManip
   CameraManip(Camera *cam, int w, int h)
     : camera(cam), vpWidth(w), vpHeight(h) {}
 
-  void handleMouseDown(int x, int y) {
+  bool handleMouseDown(int x, int y) {
+    if (!camera) return false;
     dragging = true;
 
     arcball.downPos = ballProject(x,y);
     arcball.downRotation = arcball.currRotation;
+    return true;
   }
 
-  void handleMouseUp(int x, int y) {
+  bool handleMouseUp(int x, int y) {
+    if (!camera) return false;
     dragging = false;
+    return true;
   }
 
-  void handleMouseMove(int x, int y) {
+  bool handleMouseMove(int x, int y) {
     if (!camera || !dragging)
-      return;
+      return false;
 
     vec3f currPos = ballProject(x,y);
     arcball.currRotation
@@ -145,6 +149,7 @@ struct CameraManip
     vec3f up(up4.x,up4.y,up4.z);
 
     camera->setOrientation(eye, poi, up, camera->fovy);
+    return true;
   }
 
   vec3f ballProject(int x, int y) {

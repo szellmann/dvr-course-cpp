@@ -67,11 +67,13 @@ struct Pipeline {
   void setFrame(Frame &f) { fb = &f; }
   Frame *fb{nullptr};
 
+  int frameID{0};
+
   // Camera
   void setCamera(Camera &cam) { camera = &cam; }
   Camera *camera{nullptr};
 
-  void setTransfunc(Transfunc &tf) { transfunc = &tf; }
+  void setTransfunc(Transfunc &tf);
   Transfunc *transfunc{nullptr};
 
   // Interface

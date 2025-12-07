@@ -43,6 +43,10 @@ const vec2i getLaunchIndex(void)
 const vec2i getLaunchDims(void)
 { return launchDims; }
 
+const bool debug(void) {
+  return launchIndex.x == launchDims.x/2 && launchIndex.y == launchDims.y/2;
+}
+
 struct Pipeline::Impl
 {
   Impl(std::string name) : name(name) {}
@@ -90,15 +94,6 @@ struct Pipeline::Impl
     ImGui_ImplSDL3_InitForSDLRenderer(sdl_window, sdl_renderer);
     ImGui_ImplSDLRenderer3_Init(sdl_renderer);
 
-    std::vector<vec4f> colors;
-    if (transfunc) {
-      colors = transfunc->rgbaLUT;
-    } else {
-      colors = std::vector<vec4f>({{0.f,0.1f,0.9f,0.0f},
-                                   {1.f,0.5f,0.3f,1.f}});
-    }
-
-    tfe.setLookupTable(colors);
     tfe.setSDL3Renderer(sdl_renderer);
 #endif
   }
@@ -111,7 +106,7 @@ struct Pipeline::Impl
 #endif
   }
 
-  void pollEvents(bool &quit)
+  void pollEvents(bool &quit, bool &cameraUpdate)
   {
 #ifdef INTERACTIVE
     quit = false;
@@ -134,17 +129,17 @@ struct Pipeline::Impl
       if (!io.WantCaptureMouse) {
         if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
           SDL_MouseButtonEvent button = event.button;
-          manip.handleMouseDown(button.x,button.y);
+          cameraUpdate = manip.handleMouseDown(button.x,button.y);
           return;
         }
         if (event.type == SDL_EVENT_MOUSE_BUTTON_UP) {
           SDL_MouseButtonEvent button = event.button;
-          manip.handleMouseUp(button.x,button.y);
+          cameraUpdate = manip.handleMouseUp(button.x,button.y);
           return;
         }
         if (event.type == SDL_EVENT_MOUSE_MOTION) {
           SDL_MouseMotionEvent motion = event.motion;
-          manip.handleMouseMove(motion.x,motion.y);
+          cameraUpdate = manip.handleMouseMove(motion.x,motion.y);
           return;
         }
       }
@@ -234,6 +229,10 @@ struct Pipeline::Impl
         if (fb->fbDepth) {
           fb->fbDepth[pixelID] = depth;
         }
+
+        if (fb->accumBuffer) {
+          fb->accumBuffer[pixelID] = vec4f(0.f);
+        }
       });
 #endif
   }
@@ -256,6 +255,11 @@ struct Pipeline::Impl
 Pipeline::Pipeline(std::string name) : impl(new Impl(name)) {}
 Pipeline::~Pipeline() {}
 
+void Pipeline::setTransfunc(Transfunc &tf) {
+  transfunc = &tf;
+  impl->tfe.setLookupTable(transfunc->rgbaLUT);
+}
+
 void Pipeline::launch() {
   if (!isValid()) {
     fprintf(stderr,"Pipeline invalid, aborting...\n");
@@ -265,18 +269,25 @@ void Pipeline::launch() {
   if (!running)
     impl->init(fb, camera, transfunc);
 
-  bool quit = false;
-  impl->pollEvents(quit);
+  bool quit = false, cameraUpdate = false;
+  impl->pollEvents(quit,cameraUpdate);
   running = !quit;
+
+  bool resetAccum = false;
+
+  if (cameraUpdate)
+    resetAccum = true;
 
   if (transfunc && impl->tfe.updated()) {
     transfunc->rgbaLUT = impl->tfe.getUpdatedLookupTable();
+    resetAccum = true;
   }
 
   if (!func)
     return;
 
-  impl->clearFramebuffer();
+  if (frameID == 0)
+    impl->clearFramebuffer();
 
 #ifdef RTCORE
 
@@ -288,6 +299,11 @@ void Pipeline::launch() {
       func();
     });
 #endif
+
+  if (resetAccum)
+    frameID = 0;
+  else
+    frameID++;
 }
 
 void Pipeline::present() const {

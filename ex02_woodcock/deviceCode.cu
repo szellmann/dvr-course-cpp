@@ -133,8 +133,9 @@ RAYGEN_PROGRAM(simpleRayMarcher)()
   color.x = linear_to_srgb(color.x);
   color.y = linear_to_srgb(color.y);
   color.z = linear_to_srgb(color.z);
-  lp.accumBuffer[pixelID] = vec4f(color,alpha);
-  lp.fbPointer[pixelID] = make_rgba(vec4f(color,alpha));
+  float accum = 1.f/(lp.accumID+1);
+  lp.accumBuffer[pixelID] = lerp(vec4f(color,alpha), lp.accumBuffer[pixelID], accum);
+  lp.fbPointer[pixelID] = make_rgba(lp.accumBuffer[pixelID]);
 }
 
 } // namespace ex02_woodcock

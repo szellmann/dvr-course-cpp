@@ -1200,6 +1200,11 @@ vec3f lerp(vec3f a, vec3f b, float x) {
 }
 
 inline __host__ __device__
+vec4f lerp(vec4f a, vec4f b, float x) {
+  return x*a + (1.f-x)*b;
+}
+
+inline __host__ __device__
 float clamp(float x, float a, float b) {
   return fmaxf(a,fminf(x,b));
 }
