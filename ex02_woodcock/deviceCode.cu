@@ -127,7 +127,7 @@ RAYGEN_PROGRAM(simpleRayMarcher)()
     }
   }
 
-  vec3f color = albedo;
+  vec3f color = albedo * lp.ambientColor * lp.ambientRadiance;
   float alpha = extinction > 0.f ? 1.f : 0.f;
 
   color.x = linear_to_srgb(color.x);
