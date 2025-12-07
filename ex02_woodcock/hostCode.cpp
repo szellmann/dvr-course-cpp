@@ -121,6 +121,7 @@ extern "C" int main(int argc, char *argv[]) {
   if (g_appState.xfFile.empty()) {
     tf.valueRange = {gridHandle.grid<float>()->tree().root().minimum(),
                      gridHandle.grid<float>()->tree().root().maximum()};
+    if (tf.valueRange.empty()) tf.valueRange = {0.f,1.f};
     tf.rgbaLUT = std::vector<vec4f>({
       {0.f,0.f,1.f,0.1f },
       {0.f,1.f,0.f,0.1f }

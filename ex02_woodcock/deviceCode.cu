@@ -109,7 +109,7 @@ RAYGEN_PROGRAM(simpleRayMarcher)()
 
     t -= (logf(1.f - rnd()) / (majorant / lp.unitDistance));
 
-    if (t >= ray.tmax)
+    if (t > ray.tmax)
       break;
 
     vec3f P = ray.org+ray.dir*t;
