@@ -4,6 +4,10 @@
 // ex00:
 #include "Params.h"
 
+// common namespace for helper classes:
+// Camera, FB, wrappers for RTX execution model, etc. etc.
+using namespace dvr_course;
+
 DECL_LAUNCH_PARAMS(ex00_hello_dvr_course::LaunchParams)
 
 namespace ex00_hello_dvr_course {
@@ -13,11 +17,7 @@ extern void simpleRayMarcher();
 
 extern "C" int main(int argc, char *argv[]) {
 
-  // common namespace for helper classes:
-  // Camera, FB, wrappers for RTX execution model, etc. etc.
-  using namespace dvr_course;
-
-  Pipeline pl("ex00_hello_dvr_course");
+  Pipeline pl(argc, argv, "ex00_hello_dvr_course");
 
   int imgWidth=512, imgHeight=512;
   Frame fb(imgWidth, imgHeight);
@@ -30,13 +30,16 @@ extern "C" int main(int argc, char *argv[]) {
                      90.f*M_PI/180.f);
   pl.setCamera(cam);
 
-  std::vector<vec4f> tfValues({
-    {0.f,0.f,1.f,0.1f },
-    {0.f,1.f,0.f,0.1f }
-  });
-  dvr_course::Transfunc tf;
-  tf.rgbaLUT = tfValues;
-  pl.setTransfunc(tf);
+  if (pl.transfunc == nullptr) {
+    std::vector<vec4f> tfValues({
+      {0.f,0.f,1.f,0.1f },
+      {0.f,1.f,0.f,0.1f }
+    });
+    dvr_course::Transfunc tf;
+    tf.valueRange = {0.f,1.f};
+    tf.rgbaLUT = tfValues;
+    pl.setTransfunc(tf);
+  }
 
 #ifdef RTCORE
   pl.setRayGen("simpleRayMarcher");
@@ -56,7 +59,7 @@ extern "C" int main(int argc, char *argv[]) {
   // lighting
   parms.ambientColor = vec3f(1.f);
   parms.ambientRadiance = 1.f;
-  // DRV
+  // DVR
   parms.samplingRate = 2.f;
   parms.unitDistance = 0.1f;
 #endif
@@ -79,9 +82,9 @@ extern "C" int main(int argc, char *argv[]) {
     parms.camera.dir_du = screen.horizontal / imgWidth;
     parms.camera.dir_dv = screen.vertical / imgHeight;
     // update transfunc:
-    parms.transfunc.valueRange = {0,1};
-    parms.transfunc.size = (int)tf.rgbaLUT.size();
-    parms.transfunc.values = tf.rgbaLUT.data();
+    parms.transfunc.valueRange = pl.transfunc->valueRange;
+    parms.transfunc.size = (int)pl.transfunc->rgbaLUT.size();
+    parms.transfunc.values = pl.transfunc->rgbaLUT.data();
     // update accum:
     parms.accumID = pl.frameID;
 #endif

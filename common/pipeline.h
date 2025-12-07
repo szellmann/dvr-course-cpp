@@ -40,6 +40,7 @@ namespace dvr_course {
 struct Pipeline {
 
   Pipeline(std::string name = "dvr-course-cpp");
+  Pipeline(int argc, char *argv[], std::string name = "dvr-course-cpp");
   ~Pipeline();
 
 #ifdef RTCORE

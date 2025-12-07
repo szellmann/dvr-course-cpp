@@ -15,11 +15,14 @@
 // ex01:
 #include "Params.h"
 
+// common namespace for helper classes:
+// Camera, FB, wrappers for RTX execution model, etc. etc.
+using namespace dvr_course;
+
 DECL_LAUNCH_PARAMS(ex01_let_there_be_voxels::LaunchParams)
 
 struct {
   std::string filepath;
-  std::string xfFile;
 } g_appState;
 
 namespace ex01_let_there_be_voxels {
@@ -35,42 +38,12 @@ static void parseCommandLine(int argc, char *argv[]) {
 
   for (int i = 1; i < argc; ++i) {
     std::string arg = argv[i];
-    if (arg[0] != '-')
+    if (arg[0] != '-' && endsWith(arg,".nvdb"))
       g_appState.filepath = arg;
-    else if (arg == "--xf")
-      g_appState.xfFile = argv[++i];
   }
-}
-
-static bool loadXF(dvr_course::Transfunc &tf) {
-  std::ifstream in(g_appState.xfFile);
-
-  if (!in.good()) {
-    return false;
-  }
-
-  in.read((char *)&tf.opacity, sizeof(tf.opacity));
-  in.read((char *)&tf.valueRange, sizeof(tf.valueRange));
-  in.read((char *)&tf.relRange, sizeof(tf.relRange));
-
-  int numValues;
-  in.read((char *)&numValues, sizeof(numValues));
-
-  if (numValues <= 0) {
-    return false;
-  }
-
-  tf.rgbaLUT.resize(numValues);
-  in.read((char *)tf.rgbaLUT.data(), sizeof(tf.rgbaLUT[0]) * tf.rgbaLUT.size());
-
-  return true;
 }
 
 extern "C" int main(int argc, char *argv[]) {
-
-  // common namespace for helper classes:
-  // Camera, FB, wrappers for RTX execution model, etc. etc.
-  using namespace dvr_course;
 
   if (argc < 2) {
     printUsage();
@@ -108,7 +81,7 @@ extern "C" int main(int argc, char *argv[]) {
   box3f volbounds({(float)boundsMin[0], (float)boundsMin[1], (float)boundsMin[2]},
                   {(float)boundsMax[0], (float)boundsMax[1], (float)boundsMax[2]});
 
-  Pipeline pl("ex01_let_there_be_voxels");
+  Pipeline pl(argc, argv, "ex01_let_there_be_voxels");
 
   int imgWidth=512, imgHeight=512;
   Frame fb(imgWidth, imgHeight);
@@ -118,8 +91,8 @@ extern "C" int main(int argc, char *argv[]) {
   cam.viewAll(volbounds);
   pl.setCamera(cam);
 
-  dvr_course::Transfunc tf;
-  if (g_appState.xfFile.empty()) {
+  if (pl.transfunc == nullptr) {
+    dvr_course::Transfunc tf;
     tf.valueRange = {gridHandle.grid<float>()->tree().root().minimum(),
                      gridHandle.grid<float>()->tree().root().maximum()};
 
@@ -133,10 +106,8 @@ extern "C" int main(int argc, char *argv[]) {
       {0.f,0.f,1.f,0.1f },
       {0.f,1.f,0.f,0.1f }
     });
-  } else {
-    loadXF(tf);
+    pl.setTransfunc(tf);
   }
-  pl.setTransfunc(tf);
 
 #ifdef RTCORE
   pl.setRayGen("simpleRayMarcher");
@@ -159,7 +130,7 @@ extern "C" int main(int argc, char *argv[]) {
   // lighting
   parms.ambientColor = vec3f(1.f);
   parms.ambientRadiance = 1.f;
-  // DRV
+  // DVR
   parms.samplingRate = 2.f;
   parms.unitDistance = 1.0f;
 #endif
@@ -182,9 +153,9 @@ extern "C" int main(int argc, char *argv[]) {
     parms.camera.dir_du = screen.horizontal / imgWidth;
     parms.camera.dir_dv = screen.vertical / imgHeight;
     // update transfunc:
-    parms.transfunc.valueRange = tf.valueRange;
-    parms.transfunc.size = (int)tf.rgbaLUT.size();
-    parms.transfunc.values = tf.rgbaLUT.data();
+    parms.transfunc.valueRange = pl.transfunc->valueRange;
+    parms.transfunc.size = (int)pl.transfunc->rgbaLUT.size();
+    parms.transfunc.values = pl.transfunc->rgbaLUT.data();
     // update accum:
     parms.accumID = pl.frameID;
 #endif

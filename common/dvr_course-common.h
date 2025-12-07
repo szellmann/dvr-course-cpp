@@ -20,11 +20,24 @@
 
 #pragma once
 
+// std
+#include <iostream>
+#include <string>
+// ours
 #include "fb.h"
 #include "vecmath.h"
 
 namespace dvr_course {
 using namespace vecmath;
+
+
+inline bool endsWith(const std::string &s, const std::string &suffix) {
+  if (s.length() < suffix.length())
+    return false;
+
+  return s.substr(s.size()-suffix.size(),suffix.size()) == suffix;
+}
+
 } // dvr_course
 
 #include "camera.h"

@@ -14,6 +14,8 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
+// std
+#include <fstream>
 #ifdef INTERACTIVE
 # include <SDL3/SDL.h>
 # define IMGUI_DISABLE_INCLUDE_IMCONFIG_H
@@ -47,12 +49,61 @@ const bool debug(void) {
   return launchIndex.x == launchDims.x/2 && launchIndex.y == launchDims.y/2;
 }
 
+static bool loadXF(std::string xfFile, dvr_course::Transfunc &tf) {
+  std::ifstream in(xfFile);
+
+  if (!in.good()) {
+    return false;
+  }
+
+  in.read((char *)&tf.opacity, sizeof(tf.opacity));
+  in.read((char *)&tf.valueRange, sizeof(tf.valueRange));
+  in.read((char *)&tf.relRange, sizeof(tf.relRange));
+
+  int numValues;
+  in.read((char *)&numValues, sizeof(numValues));
+
+  if (numValues <= 0) {
+    return false;
+  }
+
+  tf.rgbaLUT.resize(numValues);
+  in.read((char *)tf.rgbaLUT.data(), sizeof(tf.rgbaLUT[0]) * tf.rgbaLUT.size());
+
+  return true;
+}
+
 struct Pipeline::Impl
 {
   Impl(std::string name) : name(name) {}
+  Impl(int argc, char *argv[], std::string name) : name(name)
+  {
+    parseCommandLine(argc,argv);
+    if (!xfFile.empty()) {
+      if (loadXF(xfFile,ourTransfunc)) {
+        transfunc = &ourTransfunc;
+      }
+    }
+  }
   ~Impl() = default;
 
-  void init(Frame *frame, Camera *camera, Transfunc *tf)
+  void parseCommandLine(int argc, char *argv[])
+  {
+    for (int i = 1; i < argc; ++i) {
+      std::string arg = argv[i];
+      if (arg == "--bgcolor") {
+        bgcolor.r = std::stof(argv[++i]);
+        bgcolor.g = std::stof(argv[++i]);
+        bgcolor.b = std::stof(argv[++i]);
+      } else if (arg == "--sample-limit") {
+        sampleLimit = atoi(argv[++i]);
+      } else if (arg == "--xf") {
+        xfFile = argv[++i];
+      }
+    }
+  }
+
+  void init(Frame *frame, Camera *camera)
   {
     if (!frame || !camera) {
       fprintf(stderr,"Pipeline invalid on init, aborting...\n");
@@ -62,7 +113,6 @@ struct Pipeline::Impl
     fb = frame;
     width = fb->width;
     height = fb->height;
-    transfunc = tf;
 #ifdef INTERACTIVE
     manip = CameraManip(camera, width, height);
 
@@ -195,7 +245,7 @@ struct Pipeline::Impl
 
     ImGui::Render();
 
-    SDL_SetRenderDrawColorFloat(sdl_renderer, 0.1f, 0.1f, 0.1f, 1.f);
+    SDL_SetRenderDrawColorFloat(sdl_renderer, bgcolor.r, bgcolor.g, bgcolor.b, 1.f);
     SDL_RenderClear(sdl_renderer);
     SDL_RenderTextureRotated(
         sdl_renderer,
@@ -246,17 +296,31 @@ struct Pipeline::Impl
 #endif
   Frame *fb{nullptr};
   Transfunc *transfunc{nullptr};
+  Transfunc ourTransfunc;
   int width{512};
   int height{512};
   std::string name;
+  vec3f bgcolor{0.1f, 0.1f, 0.1f};
+  int sampleLimit{INT_MAX};
+  std::string xfFile;
   thread_pool pool{std::thread::hardware_concurrency()};
 };
 
 Pipeline::Pipeline(std::string name) : impl(new Impl(name)) {}
+Pipeline::Pipeline(int argc, char *argv[], std::string name)
+  : impl(new Impl(argc,argv,name))
+{
+  transfunc = impl->transfunc;
+#ifdef INTERACTIVE
+  if (transfunc)
+    impl->tfe.setLookupTable(transfunc->rgbaLUT);
+#endif
+}
 Pipeline::~Pipeline() {}
 
 void Pipeline::setTransfunc(Transfunc &tf) {
   transfunc = &tf;
+  impl->transfunc = transfunc;
 #ifdef INTERACTIVE
   impl->tfe.setLookupTable(transfunc->rgbaLUT);
 #endif
@@ -269,7 +333,7 @@ void Pipeline::launch() {
   }
 
   if (!running)
-    impl->init(fb, camera, transfunc);
+    impl->init(fb, camera);
 
   bool quit = false, cameraUpdate = false;
   impl->pollEvents(quit,cameraUpdate);
@@ -293,16 +357,18 @@ void Pipeline::launch() {
   if (frameID == 0)
     impl->clearFramebuffer();
 
+  if (frameID < impl->sampleLimit) {
 #ifdef RTCORE
 
 #else
-  parallel::for_each(impl->pool, 0, fb->width, 0, fb->height,
-    [&](int x, int y) {
-      launchDims = {fb->width,fb->height};
-      launchIndex = {x,y};
-      func();
-    });
+    parallel::for_each(impl->pool, 0, fb->width, 0, fb->height,
+      [&](int x, int y) {
+        launchDims = {fb->width,fb->height};
+        launchIndex = {x,y};
+        func();
+      });
 #endif
+  }
 
   if (resetAccum)
     frameID = 0;
