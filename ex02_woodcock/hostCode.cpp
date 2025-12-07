@@ -153,7 +153,6 @@ extern "C" int main(int argc, char *argv[]) {
   parms.ambientColor = vec3f(1.f);
   parms.ambientRadiance = 1.f;
   // DRV
-  parms.samplingRate = 2.f;
   parms.unitDistance = 1.0f;
 #endif
 

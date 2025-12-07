@@ -67,7 +67,6 @@ struct LaunchParams {
   float ambientRadiance;
 
   // DVR:
-  float samplingRate;
   float unitDistance;
 };
 
