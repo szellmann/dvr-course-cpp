@@ -126,9 +126,9 @@ RAYGEN_PROGRAM(simpleRayMarcher)()
     transmittance *= stepTransmittance;
   }
 
-  color.x = linear_to_srgb(color.x);
-  color.y = linear_to_srgb(color.y);
-  color.z = linear_to_srgb(color.z);
+  color.r = linear_to_srgb(color.r);
+  color.g = linear_to_srgb(color.g);
+  color.b = linear_to_srgb(color.b);
   float accum = 1.f/(lp.accumID+1);
   lp.accumBuffer[pixelID] = lerp(vec4f(color,alpha), lp.accumBuffer[pixelID], accum);
   lp.fbPointer[pixelID] = make_rgba(lp.accumBuffer[pixelID]);
