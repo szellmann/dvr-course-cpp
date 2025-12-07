@@ -25,6 +25,9 @@ using namespace vecmath;
 
 struct Transfunc
 {
+  float opacity{1.f};
+  box1f valueRange{0.1,1.f};
+  box1f relRange{0.1,1.f};
   std::vector<vec4f> rgbaLUT;
 };
 

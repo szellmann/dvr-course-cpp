@@ -42,19 +42,16 @@ static void parseCommandLine(int argc, char *argv[]) {
   }
 }
 
-static bool loadXF(std::vector<vec4f> &xf) {
-  float opacity;
-  box1f valueRange, relRange;
-
+static bool loadXF(dvr_course::Transfunc &tf) {
   std::ifstream in(g_appState.xfFile);
 
   if (!in.good()) {
     return false;
   }
 
-  in.read((char *)&opacity, sizeof(opacity));
-  in.read((char *)&valueRange, sizeof(valueRange));
-  in.read((char *)&relRange, sizeof(relRange));
+  in.read((char *)&tf.opacity, sizeof(tf.opacity));
+  in.read((char *)&tf.valueRange, sizeof(tf.valueRange));
+  in.read((char *)&tf.relRange, sizeof(tf.relRange));
 
   int numValues;
   in.read((char *)&numValues, sizeof(numValues));
@@ -63,8 +60,8 @@ static bool loadXF(std::vector<vec4f> &xf) {
     return false;
   }
 
-  xf.resize(numValues);
-  in.read((char *)xf.data(), sizeof(xf[0]) * xf.size());
+  tf.rgbaLUT.resize(numValues);
+  in.read((char *)tf.rgbaLUT.data(), sizeof(tf.rgbaLUT[0]) * tf.rgbaLUT.size());
 
   return true;
 }
@@ -120,18 +117,17 @@ extern "C" int main(int argc, char *argv[]) {
   cam.viewAll(volbounds);
   pl.setCamera(cam);
 
-  std::vector<vec4f> tfValues;
-
+  dvr_course::Transfunc tf;
   if (g_appState.xfFile.empty()) {
-    tfValues = std::vector<vec4f>({
+    tf.valueRange = {gridHandle.grid<float>()->tree().root().minimum(),
+                     gridHandle.grid<float>()->tree().root().maximum()};
+    tf.rgbaLUT = std::vector<vec4f>({
       {0.f,0.f,1.f,0.1f },
       {0.f,1.f,0.f,0.1f }
     });
   } else {
-    loadXF(tfValues);
+    loadXF(tf);
   }
-  dvr_course::Transfunc tf;
-  tf.rgbaLUT = tfValues;
   pl.setTransfunc(tf);
 
 #ifdef RTCORE
@@ -178,7 +174,7 @@ extern "C" int main(int argc, char *argv[]) {
     parms.camera.dir_du = screen.horizontal / imgWidth;
     parms.camera.dir_dv = screen.vertical / imgHeight;
     // update transfunc:
-    parms.transfunc.valueRange = {0,1};
+    parms.transfunc.valueRange = tf.valueRange;
     parms.transfunc.size = (int)tf.rgbaLUT.size();
     parms.transfunc.values = tf.rgbaLUT.data();
     // update accum:
