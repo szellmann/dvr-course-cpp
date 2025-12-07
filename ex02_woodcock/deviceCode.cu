@@ -131,12 +131,14 @@ RAYGEN_PROGRAM(simpleRayMarcher)()
   vec3f color = albedo * lp.ambientColor * lp.ambientRadiance;
   float alpha = extinction > 0.f ? 1.f : 0.f;
 
-  color.r = linear_to_srgb(color.r);
-  color.g = linear_to_srgb(color.g);
-  color.b = linear_to_srgb(color.b);
   float accum = 1.f/(lp.accumID+1);
   lp.accumBuffer[pixelID] = lerp(vec4f(color,alpha), lp.accumBuffer[pixelID], accum);
-  lp.fbPointer[pixelID] = make_rgba(lp.accumBuffer[pixelID]);
+
+  vec4f accumColor = lp.accumBuffer[pixelID];
+  accumColor.r = linear_to_srgb(accumColor.r);
+  accumColor.g = linear_to_srgb(accumColor.g);
+  accumColor.b = linear_to_srgb(accumColor.b);
+  lp.fbPointer[pixelID] = make_rgba(accumColor);
 }
 
 } // namespace ex02_woodcock
