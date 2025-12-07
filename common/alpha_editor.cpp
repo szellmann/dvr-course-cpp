@@ -107,11 +107,7 @@ namespace dvr_course {
     //ImGui::GetWindowDrawList()->AddCallback(disableBlendCB, nullptr);
     ImVec2 old_padding = ImGui::GetStyle().FramePadding;
     ImGui::GetStyle().FramePadding = ImVec2(0,0);
-    ImGui::ImageButton("##",
-        (ImU64)texture_,
-        ImVec2(canvasSize_.x,canvasSize_.y),
-        ImVec2(1,0),
-        ImVec2(0,1));
+    ImGui::ImageButton("##", (ImU64)texture_, ImVec2(canvasSize_.x,canvasSize_.y));
     ImGui::GetStyle().FramePadding = old_padding;
 
     MouseEvent event = generateMouseEvent();
@@ -228,8 +224,8 @@ namespace dvr_course {
       float alpha2 = colors[indexb].w;
       float frac = indexf-indexa;
 
-      vec3f rgb = lerp(rgb1, rgb2, frac);
-      float alpha = lerp(alpha1, alpha2, frac);
+      vec3f rgb = lerp(rgb1, rgb2, 1.f-frac);
+      float alpha = lerp(alpha1, alpha2, 1.f-frac);
 
       updated[i] = vec4f(rgb,alpha);
     }
@@ -269,8 +265,7 @@ namespace dvr_course {
     int x = ImGui::GetIO().MousePos.x - ImGui::GetCursorScreenPos().x;
     int y = ImGui::GetCursorScreenPos().y - ImGui::GetIO().MousePos.y - 1;
    
-    #define FLIP_X(X) canvasSize_.x-(X)-1
-    event.pos = { FLIP_X(x), y };
+    event.pos = { x, y };
     event.button = ImGui::GetIO().MouseDown[0] ? MouseEvent::Left :
                    ImGui::GetIO().MouseDown[1] ? MouseEvent::Middle :
                    ImGui::GetIO().MouseDown[2] ? MouseEvent::Right:
@@ -326,7 +321,7 @@ namespace dvr_course {
       if (lastEvent_.button == MouseEvent::Left && std::abs(lastX-thisX) > 1) {
         float alpha1;
         float alpha2;
-        if (lastX > thisX) {
+        if (lastX < thisX) {
           alpha1 = updated[zoom(lastX)].w;
           alpha2 = updated[zoom(thisX)].w;
         } else {
