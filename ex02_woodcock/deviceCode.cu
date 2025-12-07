@@ -67,10 +67,10 @@ inline __device__ bool sampleVolume(const Volume &vol, vec3f pos, float &value)
 inline __device__ vec4f postClassify(Transfunc tf, float v)
 {
   v = (v - tf.valueRange.lower) / (tf.valueRange.upper - tf.valueRange.lower);
-  int idx = v*tf.size;
+  int idx = v*(tf.size);
   float frac = (v*tf.size)-idx;
-  vec4f v1 = tf.values[idx];
-  vec4f v2 = tf.values[idx+1];
+  vec4f v1 = tf.values[clamp(idx,0,tf.size-1)];
+  vec4f v2 = tf.values[clamp(idx+1,0,tf.size-1)];
   return v1*frac+v2*(1.f-frac);
 }
 

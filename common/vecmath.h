@@ -1190,6 +1190,16 @@ interval3f operator*(const vec3f& a, const interval1f& b) {
 // ==================================================================
 
 inline __host__ __device__
+int min(int x, int y) {
+  return x<y?x:y;
+}
+
+inline __host__ __device__
+int max(int x, int y) {
+  return y<x?x:y;
+}
+
+inline __host__ __device__
 float lerp(float a, float b, float x) {
   return x*a + (1.f-x)*b;
 }
@@ -1202,6 +1212,11 @@ vec3f lerp(vec3f a, vec3f b, float x) {
 inline __host__ __device__
 vec4f lerp(vec4f a, vec4f b, float x) {
   return x*a + (1.f-x)*b;
+}
+
+inline __host__ __device__
+int clamp(int x, int a, int b) {
+  return max(a,min(x,b));
 }
 
 inline __host__ __device__
