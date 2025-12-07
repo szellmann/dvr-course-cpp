@@ -24,7 +24,7 @@ struct {
 
 namespace ex02_woodcock {
 #ifndef RTCORE
-extern void simpleRayMarcher();
+extern void woodockTrackingAE();
 #endif
 
 void printUsage() {
@@ -139,14 +139,14 @@ extern "C" int main(int argc, char *argv[]) {
   pl.setTransfunc(tf);
 
 #ifdef RTCORE
-  pl.setRayGen("simpleRayMarcher");
+  pl.setRayGen("woodockTrackingAE");
   OWLParams lp = pl.createLaunchParams({
     { "camera.dir_00", OWL_FLOAT3, OWL_OFFSETOFF(LaunchParams,camera.dir_00) }
   });
   owlParamsSet3fv(lp,"camera.dir_00",(const float *)&camera.dir_00);
   // ... more owl setup
 #else
-  pl.setRayGen(simpleRayMarcher);
+  pl.setRayGen(woodockTrackingAE);
   LaunchParams parms;
   // volume
   parms.volume.handle = gridHandle.grid<float>();
