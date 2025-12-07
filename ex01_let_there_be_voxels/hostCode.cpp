@@ -103,9 +103,10 @@ extern "C" int main(int argc, char *argv[]) {
     exit(-1);
   }
 
-  auto bbox = gridHandle.gridMetaData()->indexBBox();
-  box3f volbounds({(float)bbox.min()[0], (float)bbox.min()[1], (float)bbox.min()[2]},
-                  {(float)bbox.max()[0], (float)bbox.max()[1], (float)bbox.max()[2]});
+  auto boundsMin = gridHandle.gridMetaData()->worldBBox().min();
+  auto boundsMax = gridHandle.gridMetaData()->worldBBox().max();
+  box3f volbounds({(float)boundsMin[0], (float)boundsMin[1], (float)boundsMin[2]},
+                  {(float)boundsMax[0], (float)boundsMax[1], (float)boundsMax[2]});
 
   Pipeline pl("ex01_let_there_be_voxels");
 

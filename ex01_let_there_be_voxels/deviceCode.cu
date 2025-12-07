@@ -50,18 +50,18 @@ inline  __device__ Ray generateRay(const vec2f screen, Random &rnd)
 
 inline __device__ bool sampleVolume(const Volume &vol, vec3f pos, float &value)
 {
-  // simple homogeneous volume:
+  // sample nvdb volume:
   auto acc = vol.handle->getAccessor();
+  nanovdb::math::Vec3<float> nvdbPos(pos.x,pos.y,pos.z);
   if (!vol.filterLinear) {
     auto smp = nanovdb::math::createSampler<0>(acc);
-    value = smp(nanovdb::math::Vec3<float>(pos.x,pos.y,pos.z));
+    value = smp(vol.handle->worldToIndexF(nvdbPos));
     return true;
   } else {
     auto smp = nanovdb::math::createSampler<1>(acc);
-    value = smp(nanovdb::math::Vec3<float>(pos.x,pos.y,pos.z));
+    value = smp(vol.handle->worldToIndexF(nvdbPos));
     return true;
   }
-  return true;
 }
 
 inline __device__ vec4f postClassify(Transfunc tf, float v)
