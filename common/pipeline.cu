@@ -19,6 +19,7 @@
 # define IMGUI_DISABLE_INCLUDE_IMCONFIG_H
 # include "imgui_impl_sdl3.h"
 # include "imgui_impl_sdlrenderer3.h"
+# include "tfe.h"
 #else
 // stb_image
 # define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -28,7 +29,6 @@
 #include "pipeline.h"
 #include "thread_pool.h"
 #include "for_each.h"
-#include "tfe.h"
 #include "dvr_course-common.h"
 #include "dvr_course-common.cuh"
 
@@ -257,7 +257,9 @@ Pipeline::~Pipeline() {}
 
 void Pipeline::setTransfunc(Transfunc &tf) {
   transfunc = &tf;
+#ifdef INTERACTIVE
   impl->tfe.setLookupTable(transfunc->rgbaLUT);
+#endif
 }
 
 void Pipeline::launch() {
@@ -278,10 +280,12 @@ void Pipeline::launch() {
   if (cameraUpdate)
     resetAccum = true;
 
+#ifdef INTERACTIVE
   if (transfunc && impl->tfe.updated()) {
     transfunc->rgbaLUT = impl->tfe.getUpdatedLookupTable();
     resetAccum = true;
   }
+#endif
 
   if (!func)
     return;

@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_library(${PROJECT_NAME})
-target_sources(${PROJECT_NAME} PRIVATE fb.cu pipeline.cu alpha_editor.cpp tfe.cpp)
+target_sources(${PROJECT_NAME} PRIVATE fb.cu pipeline.cu)
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE external)
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 configure_cuda_src(fb.cu)
@@ -66,6 +66,9 @@ if (DVR_COURSE_PIPELINE_INTERACTIVE)
     ${dvr_course_imgui_LOCATION}
     ${dvr_course_imgui_LOCATION}/backends
     ${dvr_course_imgui_LOCATION}/misc/cpp)
+
+  # UI sources
+  target_sources(${PROJECT_NAME} PRIVATE alpha_editor.cpp tfe.cpp)
 endif()
 
 add_subdirectory(3rdparty)
