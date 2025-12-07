@@ -95,7 +95,7 @@ RAYGEN_PROGRAM(simpleRayMarcher)()
   float transmittance = 1.f;
 
   // Main ray marching loop:
-  for (;t<ray.tmax&&alpha<0.99f;t+=dt) {
+  for (;t<=ray.tmax&&alpha<0.99f;t+=dt) {
     vec3f P = ray.org+ray.dir*t;
 
     float value{0.f};
