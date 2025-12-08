@@ -194,9 +194,6 @@ struct Pipeline::Impl
         }
       }
     }
-#else
-    // non-interactive pipeline: one shot
-    quit = true;
 #endif
   }
 
@@ -301,7 +298,11 @@ struct Pipeline::Impl
   int height{512};
   std::string name;
   vec3f bgcolor{0.1f, 0.1f, 0.1f};
+#ifdef INTERACTIVE
   int sampleLimit{INT_MAX};
+#else
+  int sampleLimit{1};
+#endif
   std::string xfFile;
   thread_pool pool{std::thread::hardware_concurrency()};
 };
@@ -344,6 +345,9 @@ void Pipeline::launch() {
   bool quit = false, cameraUpdate = false;
   impl->pollEvents(quit,cameraUpdate);
   running = !quit;
+#ifndef INTERACTIVE
+  running = (frameID < impl->sampleLimit-1);
+#endif
 
   bool resetAccum = false;
 
