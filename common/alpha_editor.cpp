@@ -26,6 +26,7 @@
 #define GL_SILENCE_DEPRECATION // for macOS
 #include "alpha_editor.h"
 #include "vecmath.h"
+#include "dvr_course-common.h"
 #include "dvr_course-common.cuh"
 
 using namespace vecmath;
@@ -203,32 +204,7 @@ namespace dvr_course {
   void AlphaEditor::resampleOriginalLUT()
   {
     rgbaLookupTable_.resize(canvasSize_.x);
-
-    int userDims = (int)userLookupTable_.size();
-    int actualDims = (int)rgbaLookupTable_.size();
-
-    // The user-provided colors
-    const vec4f *colors = userLookupTable_.data();
-
-    // Updated colors
-    vec4f *updated = rgbaLookupTable_.data();
-
-    // Lerp colors and alpha
-    for (int i = 0; i < actualDims; ++i) {
-      float indexf = i / (float)(actualDims) * (userDims-1);
-      int indexa = (int)indexf;
-      int indexb = std::min(indexa+1, userDims-1);
-      vec3f rgb1(colors[indexa].x, colors[indexa].y, colors[indexa].z);
-      float alpha1 = colors[indexa].w;
-      vec3f rgb2(colors[indexb].x, colors[indexb].y, colors[indexb].z);
-      float alpha2 = colors[indexb].w;
-      float frac = indexf-indexa;
-
-      vec3f rgb = lerp(rgb1, rgb2, 1.f-frac);
-      float alpha = lerp(alpha1, alpha2, 1.f-frac);
-
-      updated[i] = vec4f(rgb,alpha);
-    }
+    dvr_course::resampleLUT(rgbaLookupTable_, userLookupTable_);
   }
 
   void AlphaEditor::normalizeHistogram()

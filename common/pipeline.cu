@@ -323,6 +323,12 @@ void Pipeline::setTransfunc(Transfunc &tf) {
   impl->transfunc = transfunc;
 #ifdef INTERACTIVE
   impl->tfe.setLookupTable(transfunc->rgbaLUT);
+#else
+  if (transfunc->rgbaLUT.size() < 300) {
+    std::vector<vec4f> newLUT(300);
+    resampleLUT(newLUT,transfunc->rgbaLUT);
+    transfunc->rgbaLUT = newLUT;
+  }
 #endif
 }
 

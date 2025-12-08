@@ -23,6 +23,7 @@
 // std
 #include <iostream>
 #include <string>
+#include <vector>
 // ours
 #include "fb.h"
 #include "vecmath.h"
@@ -36,6 +37,34 @@ inline bool endsWith(const std::string &s, const std::string &suffix) {
     return false;
 
   return s.substr(s.size()-suffix.size(),suffix.size()) == suffix;
+}
+
+inline void resampleLUT(std::vector<vec4f> &dst, const std::vector<vec4f> &src) {
+  int srcDims = (int)src.size();
+  int dstDims = (int)dst.size();
+
+  // The user-provided colors
+  const vec4f *colors = src.data();
+
+  // Updated colors
+  vec4f *updated = dst.data();
+
+  // Lerp colors and alpha
+  for (int i = 0; i < dstDims; ++i) {
+    float indexf = i / (float)(dstDims) * (srcDims-1);
+    int indexa = (int)indexf;
+    int indexb = std::min(indexa+1, srcDims-1);
+    vec3f rgb1(colors[indexa].x, colors[indexa].y, colors[indexa].z);
+    float alpha1 = colors[indexa].w;
+    vec3f rgb2(colors[indexb].x, colors[indexb].y, colors[indexb].z);
+    float alpha2 = colors[indexb].w;
+    float frac = indexf-indexa;
+
+    vec3f rgb = lerp(rgb1, rgb2, 1.f-frac);
+    float alpha = lerp(alpha1, alpha2, 1.f-frac);
+
+    updated[i] = vec4f(rgb,alpha);
+  }
 }
 
 } // dvr_course
