@@ -10,6 +10,10 @@ using namespace dvr_course;
 
 DECL_LAUNCH_PARAMS(ex00_hello_dvr_course::LaunchParams)
 
+struct {
+  Transfunc transfunc;
+} g_appState;
+
 namespace ex00_hello_dvr_course {
 #ifndef RTCORE
 extern void simpleRayMarcher();
@@ -31,11 +35,11 @@ extern "C" int main(int argc, char *argv[]) {
   pl.setCamera(cam);
 
   if (pl.transfunc == nullptr) {
+    auto &tf = g_appState.transfunc;
     std::vector<vec4f> tfValues({
       {0.f,0.f,1.f,0.1f },
       {0.f,1.f,0.f,0.1f }
     });
-    dvr_course::Transfunc tf;
     tf.valueRange = {0.f,1.f};
     tf.rgbaLUT = tfValues;
     pl.setTransfunc(tf);

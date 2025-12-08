@@ -23,6 +23,7 @@ DECL_LAUNCH_PARAMS(ex01_let_there_be_voxels::LaunchParams)
 
 struct {
   std::string filepath;
+  Transfunc transfunc;
 } g_appState;
 
 namespace ex01_let_there_be_voxels {
@@ -92,7 +93,7 @@ extern "C" int main(int argc, char *argv[]) {
   pl.setCamera(cam);
 
   if (pl.transfunc == nullptr) {
-    dvr_course::Transfunc tf;
+    auto &tf = g_appState.transfunc;
     tf.valueRange = {gridHandle.grid<float>()->tree().root().minimum(),
                      gridHandle.grid<float>()->tree().root().maximum()};
 
