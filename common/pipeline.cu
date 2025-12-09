@@ -25,7 +25,7 @@
 #else
 // stb_image
 # define STB_IMAGE_WRITE_IMPLEMENTATION
-# include "stb_image_write.h"
+# include "stb/stb_image_write.h"
 #endif
 // ours
 #include "pipeline.h"

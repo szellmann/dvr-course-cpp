@@ -71,7 +71,7 @@ if (DVR_COURSE_PIPELINE_INTERACTIVE)
   target_sources(${PROJECT_NAME} PRIVATE alpha_editor.cpp tfe.cpp)
 endif()
 
-add_subdirectory(3rdparty)
+add_subdirectory(external)
 
 
 
