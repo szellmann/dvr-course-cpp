@@ -56,11 +56,9 @@ inline __device__ bool sampleVolume(const Volume &vol, vec3f pos, float &value)
   if (!vol.filterLinear) {
     auto smp = nanovdb::math::createSampler<0>(acc);
     value = smp(vol.handle->worldToIndexF(nvdbPos));
-    return true;
   } else {
     auto smp = nanovdb::math::createSampler<1>(acc);
     value = smp(vol.handle->worldToIndexF(nvdbPos));
-    return true;
   }
   return true;
 }
