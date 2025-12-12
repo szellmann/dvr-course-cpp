@@ -42,7 +42,7 @@ extern "C" int main(int argc, char *argv[]) {
     });
     tf.valueRange = {0.f,1.f};
     tf.rgbaLUT = tfValues;
-    pl.setTransfunc(tf);
+    pl.setTransfunc(&tf);
   }
 
 #ifdef RTCORE
@@ -86,9 +86,9 @@ extern "C" int main(int argc, char *argv[]) {
     parms.camera.dir_du = screen.horizontal / imgWidth;
     parms.camera.dir_dv = screen.vertical / imgHeight;
     // update transfunc:
-    parms.transfunc.valueRange = pl.getTransfunc().valueRange;
-    parms.transfunc.size = (int)pl.getTransfunc().rgbaLUT.size();
-    parms.transfunc.values = pl.getTransfunc().rgbaLUT.data();
+    parms.transfunc.valueRange = pl.getTransfunc()->valueRange;
+    parms.transfunc.size = (int)pl.getTransfunc()->rgbaLUT.size();
+    parms.transfunc.values = pl.getTransfunc()->rgbaLUT.data();
     // update accum:
     parms.accumID = pl.frameID;
 #endif

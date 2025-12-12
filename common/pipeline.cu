@@ -163,15 +163,15 @@ struct Pipeline::Impl
 #endif
   }
 
-  void setTransfunc(Transfunc &tf, int index)
+  void setTransfunc(Transfunc *tf, int index)
   {
     if (index >= transfuncs.size()) {
       transfuncs.resize(index+1);
     }
-    transfuncs[index] = &tf;
+    transfuncs[index] = tf;
     assert(transfuncs[index] != nullptr);
 #ifdef INTERACTIVE
-    tfe.setLookupTable(transfuncs[index]->rgbaLUT);
+    tfe.setLookupTable(transfuncs[0]->rgbaLUT);
 #else
     if (transfuncs[index]->rgbaLUT.size() < 300) {
       std::vector<vec4f> newLUT(300);
@@ -339,16 +339,12 @@ Pipeline::Pipeline(int argc, char *argv[], std::string name)
 
 Pipeline::~Pipeline() {}
 
-void Pipeline::setTransfunc(Transfunc &tf, int index) {
+void Pipeline::setTransfunc(Transfunc *tf, int index) {
   impl->setTransfunc(tf,index);
 }
 
-Transfunc Pipeline::getTransfunc(int index) const {
-  return *impl->transfuncs[index];
-}
-
-const Transfunc *Pipeline::getTransfuncs() const {
-  return nullptr;
+Transfunc *Pipeline::getTransfunc(int index) const {
+  return impl->transfuncs[index];
 }
 
 bool Pipeline::transfuncValid(int index) const {

@@ -42,11 +42,13 @@ struct Transfunc {
 };
 
 struct LaunchParams {
-  // volume:
-  Volume volume;
+  // N volumes:
+  Volume *volumes;
 
-  // transfunc:
-  Transfunc transfunc;
+  // N transfuncs (one per volume):
+  Transfunc *transfuncs;
+
+  int numVolumes;
 
   // camera:
   struct {

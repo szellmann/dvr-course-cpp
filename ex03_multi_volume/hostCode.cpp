@@ -21,14 +21,20 @@ using namespace dvr_course;
 
 DECL_LAUNCH_PARAMS(ex03_multi_volume::LaunchParams)
 
+struct NVDB {
+  uint8_t *gridData{nullptr};
+};
+
 struct {
-  std::string filepath;
-  Transfunc transfunc;
+  std::vector<std::string> filepaths;
+  std::vector<NVDB> nvdbVolumes;
+  std::vector<ex03_multi_volume::Volume> volumes;
+  std::vector<Transfunc> transfuncs;
 } g_appState;
 
 namespace ex03_multi_volume {
 #ifndef RTCORE
-extern void woodockTrackingAE();
+extern void multiVolumeWoodcock();
 #endif
 
 void printUsage() {
@@ -40,7 +46,7 @@ static void parseCommandLine(int argc, char *argv[]) {
   for (int i = 1; i < argc; ++i) {
     std::string arg = argv[i];
     if (arg[0] != '-' && endsWith(arg,".nvdb"))
-      g_appState.filepath = arg;
+      g_appState.filepaths.push_back(arg);
   }
 }
 
@@ -53,77 +59,106 @@ extern "C" int main(int argc, char *argv[]) {
 
   parseCommandLine(argc, argv);
 
-  if (g_appState.filepath.empty()) {
+  if (g_appState.filepaths.empty()) {
     printUsage();
     exit(-1);
   }
 
-  uint8_t *gridData{nullptr};
-  nanovdb::GridHandle<nanovdb::HostBuffer> gridHandle;
+  Pipeline pl(argc, argv, "ex03_multi_volume");
+
+  box3f worldBounds(
+    {INFINITY,INFINITY,INFINITY},
+    {-INFINITY,-INFINITY,-INFINITY}
+  );
 
   try {
+    // construct NVDB volumes:
 #ifdef RTCORE
-
 #else
-    auto grid = nanovdb::io::readGrid(g_appState.filepath);
-    gridData = (uint8_t *)std::malloc(grid.bufferSize() + NANOVDB_DATA_ALIGNMENT);
-    void *dataPtr = nanovdb::alignPtr(gridData);
-    std::memcpy(gridData, grid.data(), grid.bufferSize());
-    auto buffer = nanovdb::HostBuffer::createFull(grid.bufferSize(), dataPtr);
-    gridHandle = std::move(buffer);
+    for (int i=0; i<g_appState.filepaths.size(); ++i) {
+      NVDB nvdb;
+      // TODO: not sure about the lifetime of those handles.. need to check?!
+      nanovdb::GridHandle<nanovdb::HostBuffer> gridHandle;
+      auto grid = nanovdb::io::readGrid(g_appState.filepaths[i]);
+      nvdb.gridData = (uint8_t *)std::malloc(grid.bufferSize() + NANOVDB_DATA_ALIGNMENT);
+      void *dataPtr = nanovdb::alignPtr(nvdb.gridData);
+      std::memcpy(nvdb.gridData, grid.data(), grid.bufferSize());
+      auto buffer = nanovdb::HostBuffer::createFull(grid.bufferSize(), dataPtr);
+      gridHandle = std::move(buffer);
+      g_appState.nvdbVolumes.push_back(nvdb);
 #endif
+      // construct device-side volumes:
+      auto boundsMin = gridHandle.gridMetaData()->worldBBox().min();
+      auto boundsMax = gridHandle.gridMetaData()->worldBBox().max();
+      box3f volbounds({(float)boundsMin[0], (float)boundsMin[1], (float)boundsMin[2]},
+                      {(float)boundsMax[0], (float)boundsMax[1], (float)boundsMax[2]});
+
+      Volume volume;
+      volume.handle = gridHandle.grid<float>();
+      volume.filterLinear = true;
+      volume.bounds = volbounds;
+      g_appState.volumes.push_back(volume);
+
+      worldBounds.extend(volbounds);
+
+      // construct transfuncs:
+
+      // TODO: this won't allow us to load TFs from file anymore!!
+      // ...is this even a to-do?!
+      if (!pl.transfuncValid(i)) {
+        dvr_course::Transfunc tf;
+        tf.valueRange = {gridHandle.grid<float>()->tree().root().minimum(),
+                         gridHandle.grid<float>()->tree().root().maximum()};
+
+        tf.valueRange.lower
+          = fminf(tf.valueRange.lower, gridHandle.grid<float>()->tree().root().background());
+        tf.valueRange.upper
+          = fmaxf(tf.valueRange.upper, gridHandle.grid<float>()->tree().root().background());
+
+        vec3f rgb = 0.f;
+        rgb[i%3] = 1.f;
+        if (tf.valueRange.empty()) tf.valueRange = {0.f,1.f};
+        tf.rgbaLUT = std::vector<vec4f>({
+          {rgb.r,rgb.g,rgb.b,0.f },
+          {rgb.r,rgb.g,rgb.b,1.f }
+        });
+        g_appState.transfuncs.push_back(tf);
+      }
+    }
   } catch (...) {
     printUsage();
     exit(-1);
   }
-
-  auto boundsMin = gridHandle.gridMetaData()->worldBBox().min();
-  auto boundsMax = gridHandle.gridMetaData()->worldBBox().max();
-  box3f volbounds({(float)boundsMin[0], (float)boundsMin[1], (float)boundsMin[2]},
-                  {(float)boundsMax[0], (float)boundsMax[1], (float)boundsMax[2]});
-
-  Pipeline pl(argc, argv, "ex03_multi_volume");
 
   int imgWidth=512, imgHeight=512;
   Frame fb(imgWidth, imgHeight);
   pl.setFrame(fb);
 
   Camera cam;
-  cam.viewAll(volbounds);
+  cam.viewAll(worldBounds);
   pl.setCamera(cam);
 
-  if (pl.transfunc == nullptr) {
-    auto &tf = g_appState.transfunc;
-    tf.valueRange = {gridHandle.grid<float>()->tree().root().minimum(),
-                     gridHandle.grid<float>()->tree().root().maximum()};
+  Buffer volumeBuffer(
+      g_appState.volumes.size(), OWL_USER_TYPE(Volume), g_appState.volumes.data());
 
-    tf.valueRange.lower
-      = fminf(tf.valueRange.lower, gridHandle.grid<float>()->tree().root().background());
-    tf.valueRange.upper
-      = fmaxf(tf.valueRange.upper, gridHandle.grid<float>()->tree().root().background());
-
-    if (tf.valueRange.empty()) tf.valueRange = {0.f,1.f};
-    tf.rgbaLUT = std::vector<vec4f>({
-      {0.f,0.f,1.f,0.1f },
-      {0.f,1.f,0.f,0.1f }
-    });
-    pl.setTransfunc(tf);
+  std::vector<ex03_multi_volume::Transfunc> deviceTransfuncs(g_appState.transfuncs.size());
+  for (int i=0; i<g_appState.transfuncs.size(); ++i) {
+    pl.setTransfunc(&g_appState.transfuncs[i],i);
   }
 
 #ifdef RTCORE
-  pl.setRayGen("woodockTrackingAE");
+  pl.setRayGen("multiVolumeWoodcock");
   OWLParams lp = pl.createLaunchParams({
     { "camera.dir_00", OWL_FLOAT3, OWL_OFFSETOFF(LaunchParams,camera.dir_00) }
   });
   owlParamsSet3fv(lp,"camera.dir_00",(const float *)&camera.dir_00);
   // ... more owl setup
 #else
-  pl.setRayGen(woodockTrackingAE);
+  pl.setRayGen(multiVolumeWoodcock);
   LaunchParams parms;
-  // volume
-  parms.volume.handle = gridHandle.grid<float>();
-  parms.volume.filterLinear = true;
-  parms.volume.bounds = volbounds;
+  // volumes
+  parms.volumes = (Volume *)volumeBuffer.getPointer();
+  parms.numVolumes = volumeBuffer.getSize();
   // framebuffer
   parms.fbPointer   = fb.fbPointer;
   parms.fbDepth     = fb.fbDepth;
@@ -139,10 +174,21 @@ extern "C" int main(int argc, char *argv[]) {
   // For default (PNG image) pipeline this
   // loop returns immediately
   do {
+    // camera:
     struct {
       vec3f lower_left, horizontal, vertical;
     } screen;
     cam.getScreen(screen.lower_left,screen.horizontal,screen.vertical);
+    
+    // transfer functions on device:
+    for (int i=0; i<g_appState.transfuncs.size(); ++i) {
+      deviceTransfuncs[i].valueRange = pl.getTransfunc(i)->valueRange;
+      deviceTransfuncs[i].size = (int)pl.getTransfunc(i)->rgbaLUT.size();
+      deviceTransfuncs[i].values = pl.getTransfunc(i)->rgbaLUT.data();
+    }
+    Buffer transfuncBuffer(deviceTransfuncs.size(),
+                           OWL_USER_TYPE(ex03_multi_volume::Transfunc),
+                           deviceTransfuncs.data());
 #ifdef RTCORE
     owlParamsSet3fv(lp,"camera.dir_00",(const float *)&camera.dir_00);
     // ...
@@ -152,10 +198,8 @@ extern "C" int main(int argc, char *argv[]) {
     parms.camera.dir_00 = screen.lower_left;
     parms.camera.dir_du = screen.horizontal / imgWidth;
     parms.camera.dir_dv = screen.vertical / imgHeight;
-    // update transfunc:
-    parms.transfunc.valueRange = pl.transfunc->valueRange;
-    parms.transfunc.size = (int)pl.transfunc->rgbaLUT.size();
-    parms.transfunc.values = pl.transfunc->rgbaLUT.data();
+    // update transfuncs:
+    parms.transfuncs = (ex03_multi_volume::Transfunc *)transfuncBuffer.getPointer();
     // update accum:
     parms.accumID = pl.frameID;
 #endif

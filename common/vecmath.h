@@ -974,6 +974,13 @@ struct  box3f
         && lower.z<=p.z && p.z<=upper.z;
   }
 
+  inline __host__ __device__
+  box3f &extend(const box3f &other) {
+    lower = min(lower,other.lower);
+    upper = max(upper,other.upper);
+    return *this;
+  }
+
   vec3f lower, upper;
 };
 

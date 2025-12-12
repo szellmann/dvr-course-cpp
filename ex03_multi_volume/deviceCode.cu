@@ -73,31 +73,15 @@ inline __device__ vec4f postClassify(Transfunc tf, float v)
   return v1*frac+v2*(1.f-frac);
 }
 
-// ========================================================
-// Main ray gen prog (woodcock tracking, A+E)
-// ========================================================
-RAYGEN_PROGRAM(woodockTrackingAE)()
+inline __device__ float woodcockTracking(const Ray &ray,
+                                         Random &rnd,
+                                         float majorant,
+                                         int volumeID,
+                                         //output:
+                                         vec3f &albedo,
+                                         float &extinction)
 {
   auto &lp = optixLaunchParams;
-  const vec2i threadIndex = getLaunchIndex();
-  const vec2i launchDim = getLaunchDims();
-  const int pixelID = threadIndex.x + getLaunchDims().x * threadIndex.y;
-
-  Random rnd(lp.accumID*launchDim.x*launchDim.y+(unsigned)threadIndex.x,
-             (unsigned)threadIndex.y);
-
-  Ray ray = generateRay(vec2f(threadIndex)+vec2f(.5f), rnd);
-
-  float t0, t1;
-  if (!boxTest(ray, lp.volume.bounds, t0, t1))
-    return;
-
-  ray.tmin = t0, ray.tmax = t1;
-
-  vec3f albedo = 0.f;
-  float extinction = 0.f;
-
-  const float majorant = 1.f;
 
   float t=ray.tmin;
 
@@ -114,10 +98,10 @@ RAYGEN_PROGRAM(woodockTrackingAE)()
     vec3f P = ray.org+ray.dir*t;
 
     float value{0.f};
-    if (!sampleVolume(lp.volume, P, value))
+    if (!sampleVolume(lp.volumes[volumeID], P, value))
       continue;
 
-    vec4f sample = postClassify(lp.transfunc, value);
+    vec4f sample = postClassify(lp.transfuncs[volumeID], value);
     float u = rnd();
     if (sample.w >= u * majorant) {
       albedo = vec3f(sample.x,sample.y,sample.z);
@@ -126,8 +110,47 @@ RAYGEN_PROGRAM(woodockTrackingAE)()
     }
   }
 
-  vec3f color = albedo * lp.ambientColor * lp.ambientRadiance;
-  float alpha = extinction > 0.f ? 1.f : 0.f;
+  return fminf(t,ray.tmax);
+}
+
+// ========================================================
+// Main ray gen prog (multi volume woodcock tracking)
+// ========================================================
+RAYGEN_PROGRAM(multiVolumeWoodcock)()
+{
+  auto &lp = optixLaunchParams;
+  const vec2i threadIndex = getLaunchIndex();
+  const vec2i launchDim = getLaunchDims();
+  const int pixelID = threadIndex.x + getLaunchDims().x * threadIndex.y;
+
+  Random rnd(lp.accumID*launchDim.x*launchDim.y+(unsigned)threadIndex.x,
+             (unsigned)threadIndex.y);
+
+  Ray ray = generateRay(vec2f(threadIndex)+vec2f(.5f), rnd);
+
+  float hitT = INFINITY;
+  vec3f color = 0.f;
+  float alpha = 0.f;
+  for (int i=0; i<lp.numVolumes; ++i) {
+    float t0, t1;
+    if (!boxTest(ray, lp.volumes[i].bounds, t0, t1))
+      return;
+
+    ray.tmin = t0, ray.tmax = t1;
+
+    const float majorant = 1.f;
+
+    vec3f albedo = 0.f;
+    float extinction = 0.f;
+
+    float t =  woodcockTracking(ray, rnd, majorant, i, albedo, extinction);
+
+    if (t < hitT) {
+      color = albedo * lp.ambientColor * lp.ambientRadiance;
+      alpha = extinction > 0.f ? 1.f : 0.f;
+      hitT = t;
+    }
+  }
 
   float accum = 1.f/(lp.accumID+1);
   lp.accumBuffer[pixelID] = lerp(vec4f(color,alpha), lp.accumBuffer[pixelID], accum);
