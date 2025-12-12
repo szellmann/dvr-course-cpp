@@ -81,13 +81,14 @@ struct Pipeline::Impl
     parseCommandLine(argc,argv);
     if (!xfFile.empty()) {
       if (loadXF(xfFile,ourTransfunc)) {
-        transfunc = &ourTransfunc;
+        transfuncs.resize(1);
+        transfuncs[0] = &ourTransfunc;
       }
     }
 
 #ifdef INTERACTIVE
-    if (transfunc) {
-      tfe.setLookupTable(transfunc->rgbaLUT);
+    if (!transfuncs.empty()) {
+      tfe.setLookupTable(transfuncs[0]->rgbaLUT);
     }
 #endif
   }
@@ -162,17 +163,20 @@ struct Pipeline::Impl
 #endif
   }
 
-  void setTransfunc(Transfunc &tf)
+  void setTransfunc(Transfunc &tf, int index)
   {
-    transfunc = &tf;
-    assert(transfunc != nullptr);
+    if (index >= transfuncs.size()) {
+      transfuncs.resize(index+1);
+    }
+    transfuncs[index] = &tf;
+    assert(transfuncs[index] != nullptr);
 #ifdef INTERACTIVE
-    tfe.setLookupTable(transfunc->rgbaLUT);
+    tfe.setLookupTable(transfuncs[index]->rgbaLUT);
 #else
-    if (transfunc->rgbaLUT.size() < 300) {
+    if (transfuncs[index]->rgbaLUT.size() < 300) {
       std::vector<vec4f> newLUT(300);
-      resampleLUT(newLUT,transfunc->rgbaLUT);
-      transfunc->rgbaLUT = newLUT;
+      resampleLUT(newLUT,transfuncs[index]->rgbaLUT);
+      transfuncs[index]->rgbaLUT = newLUT;
     }
 #endif
   }
@@ -313,7 +317,7 @@ struct Pipeline::Impl
   TFE tfe;
 #endif
   Frame *fb{nullptr};
-  Transfunc *transfunc{nullptr};
+  std::vector<Transfunc *> transfuncs;
   Transfunc ourTransfunc;
   int width{512};
   int height{512};
@@ -336,11 +340,11 @@ Pipeline::Pipeline(int argc, char *argv[], std::string name)
 Pipeline::~Pipeline() {}
 
 void Pipeline::setTransfunc(Transfunc &tf, int index) {
-  impl->setTransfunc(tf);
+  impl->setTransfunc(tf,index);
 }
 
 Transfunc Pipeline::getTransfunc(int index) const {
-  return *impl->transfunc;
+  return *impl->transfuncs[index];
 }
 
 const Transfunc *Pipeline::getTransfuncs() const {
@@ -348,7 +352,7 @@ const Transfunc *Pipeline::getTransfuncs() const {
 }
 
 bool Pipeline::transfuncValid(int index) const {
-  return impl->transfunc != nullptr;
+  return impl->transfuncs.size() > index && impl->transfuncs[index] != nullptr;
 }
 
 void Pipeline::launch() {
@@ -373,8 +377,8 @@ void Pipeline::launch() {
     resetAccum = true;
 
 #ifdef INTERACTIVE
-  if (impl->transfunc && impl->tfe.updated()) {
-    impl->transfunc->rgbaLUT = impl->tfe.getUpdatedLookupTable();
+  if (transfuncValid(0) && impl->tfe.updated()) {
+    impl->transfuncs[0]->rgbaLUT = impl->tfe.getUpdatedLookupTable();
     resetAccum = true;
   }
 #endif
