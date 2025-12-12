@@ -84,6 +84,12 @@ struct Pipeline::Impl
         transfunc = &ourTransfunc;
       }
     }
+
+#ifdef INTERACTIVE
+    if (transfunc) {
+      tfe.setLookupTable(transfunc->rgbaLUT);
+    }
+#endif
   }
   ~Impl() = default;
 
@@ -153,6 +159,21 @@ struct Pipeline::Impl
 #ifdef INTERACTIVE
     if (fbTexture)
       SDL_DestroyTexture(fbTexture);
+#endif
+  }
+
+  void setTransfunc(Transfunc &tf)
+  {
+    transfunc = &tf;
+    assert(transfunc != nullptr);
+#ifdef INTERACTIVE
+    tfe.setLookupTable(transfunc->rgbaLUT);
+#else
+    if (transfunc->rgbaLUT.size() < 300) {
+      std::vector<vec4f> newLUT(300);
+      resampleLUT(newLUT,transfunc->rgbaLUT);
+      transfunc->rgbaLUT = newLUT;
+    }
 #endif
   }
 
@@ -310,35 +331,20 @@ struct Pipeline::Impl
 Pipeline::Pipeline(std::string name) : impl(new Impl(name)) {}
 Pipeline::Pipeline(int argc, char *argv[], std::string name)
   : impl(new Impl(argc,argv,name))
-{
-  transfunc = impl->transfunc;
-#ifdef INTERACTIVE
-  if (transfunc)
-    impl->tfe.setLookupTable(transfunc->rgbaLUT);
-#endif
-}
+{}
+
 Pipeline::~Pipeline() {}
 
 void Pipeline::setTransfunc(Transfunc &tf, int index) {
-  transfunc = &tf;
-  impl->transfunc = transfunc;
-#ifdef INTERACTIVE
-  impl->tfe.setLookupTable(transfunc->rgbaLUT);
-#else
-  if (transfunc->rgbaLUT.size() < 300) {
-    std::vector<vec4f> newLUT(300);
-    resampleLUT(newLUT,transfunc->rgbaLUT);
-    transfunc->rgbaLUT = newLUT;
-  }
-#endif
+  impl->setTransfunc(tf);
 }
 
 Transfunc Pipeline::getTransfunc(int index) const {
-  return *transfunc;
+  return *impl->transfunc;
 }
 
 bool Pipeline::transfuncValid(int index) const {
-  return transfunc != nullptr;
+  return impl->transfunc != nullptr;
 }
 
 void Pipeline::launch() {
@@ -363,8 +369,8 @@ void Pipeline::launch() {
     resetAccum = true;
 
 #ifdef INTERACTIVE
-  if (transfunc && impl->tfe.updated()) {
-    transfunc->rgbaLUT = impl->tfe.getUpdatedLookupTable();
+  if (impl->transfunc && impl->tfe.updated()) {
+    impl->transfunc->rgbaLUT = impl->tfe.getUpdatedLookupTable();
     resetAccum = true;
   }
 #endif

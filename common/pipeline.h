@@ -77,7 +77,6 @@ struct Pipeline {
   void setTransfunc(Transfunc &tf, int index=0);
   Transfunc getTransfunc(int index=0) const;
   bool transfuncValid(int index=0) const;
-  Transfunc *transfunc{nullptr};
 
   // Interface
   bool isRunning() const { return running; }
