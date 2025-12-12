@@ -34,7 +34,7 @@ extern "C" int main(int argc, char *argv[]) {
                      90.f*M_PI/180.f);
   pl.setCamera(cam);
 
-  if (pl.transfunc == nullptr) {
+  if (!pl.transfuncValid()) {
     auto &tf = g_appState.transfunc;
     std::vector<vec4f> tfValues({
       {0.f,0.f,1.f,0.1f },
@@ -86,9 +86,9 @@ extern "C" int main(int argc, char *argv[]) {
     parms.camera.dir_du = screen.horizontal / imgWidth;
     parms.camera.dir_dv = screen.vertical / imgHeight;
     // update transfunc:
-    parms.transfunc.valueRange = pl.transfunc->valueRange;
-    parms.transfunc.size = (int)pl.transfunc->rgbaLUT.size();
-    parms.transfunc.values = pl.transfunc->rgbaLUT.data();
+    parms.transfunc.valueRange = pl.getTransfunc().valueRange;
+    parms.transfunc.size = (int)pl.getTransfunc().rgbaLUT.size();
+    parms.transfunc.values = pl.getTransfunc().rgbaLUT.data();
     // update accum:
     parms.accumID = pl.frameID;
 #endif

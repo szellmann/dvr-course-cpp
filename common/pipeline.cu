@@ -319,7 +319,7 @@ Pipeline::Pipeline(int argc, char *argv[], std::string name)
 }
 Pipeline::~Pipeline() {}
 
-void Pipeline::setTransfunc(Transfunc &tf) {
+void Pipeline::setTransfunc(Transfunc &tf, int index) {
   transfunc = &tf;
   impl->transfunc = transfunc;
 #ifdef INTERACTIVE
@@ -331,6 +331,14 @@ void Pipeline::setTransfunc(Transfunc &tf) {
     transfunc->rgbaLUT = newLUT;
   }
 #endif
+}
+
+Transfunc Pipeline::getTransfunc(int index) const {
+  return *transfunc;
+}
+
+bool Pipeline::transfuncValid(int index) const {
+  return transfunc != nullptr;
 }
 
 void Pipeline::launch() {

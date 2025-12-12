@@ -92,7 +92,7 @@ extern "C" int main(int argc, char *argv[]) {
   cam.viewAll(volbounds);
   pl.setCamera(cam);
 
-  if (pl.transfunc == nullptr) {
+  if (!pl.transfuncValid()) {
     auto &tf = g_appState.transfunc;
     tf.valueRange = {gridHandle.grid<float>()->tree().root().minimum(),
                      gridHandle.grid<float>()->tree().root().maximum()};
@@ -154,9 +154,9 @@ extern "C" int main(int argc, char *argv[]) {
     parms.camera.dir_du = screen.horizontal / imgWidth;
     parms.camera.dir_dv = screen.vertical / imgHeight;
     // update transfunc:
-    parms.transfunc.valueRange = pl.transfunc->valueRange;
-    parms.transfunc.size = (int)pl.transfunc->rgbaLUT.size();
-    parms.transfunc.values = pl.transfunc->rgbaLUT.data();
+    parms.transfunc.valueRange = pl.getTransfunc().valueRange;
+    parms.transfunc.size = (int)pl.getTransfunc().rgbaLUT.size();
+    parms.transfunc.values = pl.getTransfunc().rgbaLUT.data();
     // update accum:
     parms.accumID = pl.frameID;
 #endif
