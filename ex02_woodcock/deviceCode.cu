@@ -24,7 +24,7 @@
 using namespace dvr_course;
 
 // ========================================================
-// device code for example 00: hello_dvr_course
+// device code for example 02: woodcock
 // ========================================================
 namespace ex02_woodcock {
 

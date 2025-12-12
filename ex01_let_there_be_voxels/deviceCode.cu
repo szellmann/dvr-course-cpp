@@ -24,7 +24,7 @@
 using namespace dvr_course;
 
 // ========================================================
-// device code for example 00: hello_dvr_course
+// device code for example 01: let_there_be_voxels
 // ========================================================
 namespace ex01_let_there_be_voxels {
 
