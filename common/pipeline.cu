@@ -343,6 +343,10 @@ Transfunc Pipeline::getTransfunc(int index) const {
   return *impl->transfunc;
 }
 
+const Transfunc *Pipeline::getTransfuncs() const {
+  return nullptr;
+}
+
 bool Pipeline::transfuncValid(int index) const {
   return impl->transfunc != nullptr;
 }

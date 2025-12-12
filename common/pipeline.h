@@ -76,6 +76,8 @@ struct Pipeline {
 
   void setTransfunc(Transfunc &tf, int index=0);
   Transfunc getTransfunc(int index=0) const;
+  // get *all* transfuncs:
+  const Transfunc *getTransfuncs() const;
   bool transfuncValid(int index=0) const;
 
   // Interface
