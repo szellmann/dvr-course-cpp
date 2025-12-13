@@ -83,6 +83,7 @@ struct Pipeline {
   bool isValid() const { return fb != nullptr && camera != nullptr; }
   void launch();
   void present() const;
+  void resetAccumulation();
 
   // Events
   typedef std::function<void(char)> KeyDownHandler;

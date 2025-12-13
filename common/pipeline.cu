@@ -442,6 +442,10 @@ void Pipeline::present() const {
   impl->present(fb->fbPointer, fb->width, fb->height);
 }
 
+void Pipeline::resetAccumulation() {
+  frameID = 0;
+}
+
 void Pipeline::setKeyDownHandler(KeyDownHandler kdh) {
   impl->keyDownHandler = kdh;
 }
