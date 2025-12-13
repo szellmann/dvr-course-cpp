@@ -84,6 +84,10 @@ struct Pipeline {
   void launch();
   void present() const;
 
+  // Events
+  typedef std::function<void(char)> KeyDownHandler;
+  void setKeyDownHandler(KeyDownHandler kdh);
+
  private:
 
   struct Impl;

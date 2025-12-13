@@ -195,6 +195,7 @@ struct Pipeline::Impl
     while (SDL_PollEvent(&event)) {
       // imgui:
       ImGui_ImplSDL3_ProcessEvent(&event);
+      ImGuiIO& io = ImGui::GetIO();
       // quit:
       if (event.type == SDL_EVENT_QUIT) {
         quit = true;
@@ -206,7 +207,6 @@ struct Pipeline::Impl
         return;
       }
       // mouse events
-      ImGuiIO& io = ImGui::GetIO();
       if (!io.WantCaptureMouse) {
         if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
           SDL_MouseButtonEvent button = event.button;
@@ -222,6 +222,15 @@ struct Pipeline::Impl
           SDL_MouseMotionEvent motion = event.motion;
           cameraUpdate = manip.handleMouseMove(motion.x,motion.y);
           return;
+        }
+      }
+      if (!io.WantCaptureKeyboard) {
+        if (event.type == SDL_EVENT_KEY_DOWN) {
+          SDL_KeyboardEvent key = event.key;
+          if (keyDownHandler) {
+            // TODO: check if in ascii range
+            keyDownHandler(key.key);
+          }
         }
       }
     }
@@ -331,6 +340,7 @@ struct Pipeline::Impl
   SDL_Renderer *sdl_renderer{nullptr};
   SDL_Texture *fbTexture{nullptr};
   CameraManip manip;
+  Pipeline::KeyDownHandler keyDownHandler = 0;
   std::vector<TFE> tfe;
   int tfID{0};
 #endif
@@ -430,6 +440,10 @@ void Pipeline::present() const {
   }
 
   impl->present(fb->fbPointer, fb->width, fb->height);
+}
+
+void Pipeline::setKeyDownHandler(KeyDownHandler kdh) {
+  impl->keyDownHandler = kdh;
 }
 
 } // namespace dvr_course
