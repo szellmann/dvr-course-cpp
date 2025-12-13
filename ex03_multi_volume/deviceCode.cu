@@ -114,7 +114,7 @@ inline __device__ float woodcockTracking(const Ray &ray,
 }
 
 // ========================================================
-// Main ray gen prog (multi volume woodcock tracking)
+// Ray gen prog using Woodcock as volume "depth test"
 // ========================================================
 RAYGEN_PROGRAM(multiVolumeWoodcock)()
 {
@@ -143,7 +143,7 @@ RAYGEN_PROGRAM(multiVolumeWoodcock)()
     vec3f albedo = 0.f;
     float extinction = 0.f;
 
-    float t =  woodcockTracking(ray, rnd, majorant, i, albedo, extinction);
+    float t = woodcockTracking(ray, rnd, majorant, i, albedo, extinction);
 
     if (t < hitT) {
       color = albedo * lp.ambientColor * lp.ambientRadiance;
@@ -151,6 +151,83 @@ RAYGEN_PROGRAM(multiVolumeWoodcock)()
       hitT = t;
     }
   }
+
+  float accum = 1.f/(lp.accumID+1);
+  lp.accumBuffer[pixelID] = lerp(vec4f(color,alpha), lp.accumBuffer[pixelID], accum);
+
+  vec4f accumColor = lp.accumBuffer[pixelID];
+  accumColor.r = linear_to_srgb(accumColor.r);
+  accumColor.g = linear_to_srgb(accumColor.g);
+  accumColor.b = linear_to_srgb(accumColor.b);
+  lp.fbPointer[pixelID] = make_rgba(accumColor);
+}
+
+
+
+// ========================================================
+// Ray gen prog blending volume samples together
+// ========================================================
+RAYGEN_PROGRAM(blendingWoodcock)()
+{
+  auto &lp = optixLaunchParams;
+  const vec2i threadIndex = getLaunchIndex();
+  const vec2i launchDim = getLaunchDims();
+  const int pixelID = threadIndex.x + getLaunchDims().x * threadIndex.y;
+
+  Random rnd(lp.accumID*launchDim.x*launchDim.y+(unsigned)threadIndex.x,
+             (unsigned)threadIndex.y);
+
+  Ray ray = generateRay(vec2f(threadIndex)+vec2f(.5f), rnd);
+
+  float t0, t1;
+  // TODO: here all boxes must be the same..
+  if (!boxTest(ray, lp.volumes[0].bounds, t0, t1))
+    return;
+
+  ray.tmin = t0, ray.tmax = t1;
+
+  vec3f albedo = 0.f;
+  float extinction = 0.f;
+
+  const float majorant = 1.f;
+
+  float t=ray.tmin;
+
+  while (1) {
+    // In later chapters majorants will vary in space:
+    if (majorant <= 0.f)
+      break;
+
+    t -= (logf(1.f - rnd()) / (majorant / lp.unitDistance));
+
+    if (t > ray.tmax)
+      break;
+
+    vec3f P = ray.org+ray.dir*t;
+
+    vec4f sample = 0.f;
+    for (int i=0; i<lp.numVolumes; ++i) {
+      float value{0.f};
+      if (!sampleVolume(lp.volumes[i], P, value))
+        continue;
+
+      vec4f c = postClassify(lp.transfuncs[i], value);
+      sample.r += c.r * c.a;
+      sample.g += c.g * c.a;
+      sample.b += c.b * c.a;
+      sample.a += c.a;
+    }
+
+    float u = rnd();
+    if (sample.w >= u * majorant) {
+      albedo = vec3f(sample.x,sample.y,sample.z);
+      extinction = sample.w;
+      break;
+    }
+  }
+
+  vec3f color = albedo * lp.ambientColor * lp.ambientRadiance;
+  float alpha = extinction > 0.f ? 1.f : 0.f;
 
   float accum = 1.f/(lp.accumID+1);
   lp.accumBuffer[pixelID] = lerp(vec4f(color,alpha), lp.accumBuffer[pixelID], accum);

@@ -35,6 +35,7 @@ struct {
 namespace ex03_multi_volume {
 #ifndef RTCORE
 extern void multiVolumeWoodcock();
+extern void blendingWoodcock();
 #endif
 
 void printUsage() {
@@ -165,6 +166,17 @@ extern "C" int main(int argc, char *argv[]) {
   // DVR
   parms.unitDistance = 1.0f;
 #endif
+
+  pl.setKeyDownHandler([&](char key) {
+    if (key == '1') {
+      pl.setRayGen(multiVolumeWoodcock);
+      pl.resetAccumulation();
+    }
+    if (key == '2') {
+      pl.setRayGen(blendingWoodcock);
+      pl.resetAccumulation();
+    }
+  });
 
   // Render and present...
   // For default (PNG image) pipeline this
