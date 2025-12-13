@@ -30,6 +30,8 @@ struct Frame
   Frame(int w, int h);
   ~Frame();
 
+  void resize(int w, int h);
+
   uint32_t *fbPointer{nullptr};
   float    *fbDepth{nullptr};
   vec4f    *accumBuffer{nullptr};

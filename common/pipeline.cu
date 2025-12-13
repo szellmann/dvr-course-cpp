@@ -206,6 +206,13 @@ struct Pipeline::Impl
         quit = true;
         return;
       }
+      // resize
+      if (event.type == SDL_EVENT_WINDOW_RESIZED) {
+        if (fb != nullptr) {
+          fb->resize(event.window.data1, event.window.data2);
+        }
+        return;
+      }
       // mouse events
       if (!io.WantCaptureMouse) {
         if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
@@ -224,6 +231,7 @@ struct Pipeline::Impl
           return;
         }
       }
+      // keyboard events
       if (!io.WantCaptureKeyboard) {
         if (event.type == SDL_EVENT_KEY_DOWN) {
           SDL_KeyboardEvent key = event.key;
@@ -231,6 +239,7 @@ struct Pipeline::Impl
             // TODO: check if in ascii range
             keyDownHandler(key.key);
           }
+          return;
         }
       }
     }

@@ -37,4 +37,18 @@ Frame::~Frame()
 #endif
 }
 
+void Frame::resize(int w, int h)
+{
+  width = w; height = h;
+#ifndef RTCORE
+  std::free(fbPointer);
+  std::free(fbDepth);
+  std::free(accumBuffer);
+  fbPointer   = (uint32_t *)std::malloc(w*h*sizeof(uint32_t));
+  fbDepth     = (float *)std::malloc(w*h*sizeof(float));
+  accumBuffer = (vec4f *)std::malloc(w*h*sizeof(vec4f));
+#endif
+
+}
+
 } // namespace dvr_course
