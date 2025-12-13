@@ -124,10 +124,6 @@ extern "C" int main(int argc, char *argv[]) {
   parms.volume.handle = gridHandle.grid<float>();
   parms.volume.filterLinear = true;
   parms.volume.bounds = volbounds;
-  // framebuffer
-  parms.fbPointer   = fb.fbPointer;
-  parms.fbDepth     = fb.fbDepth;
-  parms.accumBuffer = fb.accumBuffer;
   // lighting
   parms.ambientColor = vec3f(1.f);
   parms.ambientRadiance = 1.f;
@@ -157,6 +153,10 @@ extern "C" int main(int argc, char *argv[]) {
     parms.transfunc.valueRange = pl.getTransfunc()->valueRange;
     parms.transfunc.size = (int)pl.getTransfunc()->rgbaLUT.size();
     parms.transfunc.values = pl.getTransfunc()->rgbaLUT.data();
+    // update framebuffer:
+    parms.fbPointer   = fb.fbPointer;
+    parms.fbDepth     = fb.fbDepth;
+    parms.accumBuffer = fb.accumBuffer;
     // update accum:
     parms.accumID = pl.frameID;
 #endif

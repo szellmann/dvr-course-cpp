@@ -187,7 +187,7 @@ struct Pipeline::Impl
 #endif
   }
 
-  void pollEvents(bool &quit, bool &cameraUpdate)
+  void pollEvents(bool &quit, bool &cameraUpdate, bool &windowResize)
   {
 #ifdef INTERACTIVE
     quit = false;
@@ -210,6 +210,7 @@ struct Pipeline::Impl
       if (event.type == SDL_EVENT_WINDOW_RESIZED) {
         if (fb != nullptr) {
           fb->resize(event.window.data1, event.window.data2);
+          windowResize = true;
         }
         return;
       }
@@ -397,8 +398,8 @@ void Pipeline::launch() {
   if (!running)
     impl->init(fb, camera);
 
-  bool quit = false, cameraUpdate = false;
-  impl->pollEvents(quit,cameraUpdate);
+  bool quit = false, cameraUpdate = false, windowResize = false;
+  impl->pollEvents(quit,cameraUpdate,windowResize);
   running = !quit;
 #ifndef INTERACTIVE
   running = (frameID < impl->sampleLimit-1);
@@ -406,7 +407,7 @@ void Pipeline::launch() {
 
   bool resetAccum = false;
 
-  if (cameraUpdate)
+  if (cameraUpdate || windowResize)
     resetAccum = true;
 
 #ifdef INTERACTIVE

@@ -159,10 +159,6 @@ extern "C" int main(int argc, char *argv[]) {
   // volumes
   parms.volumes = (Volume *)volumeBuffer.getPointer();
   parms.numVolumes = volumeBuffer.getSize();
-  // framebuffer
-  parms.fbPointer   = fb.fbPointer;
-  parms.fbDepth     = fb.fbDepth;
-  parms.accumBuffer = fb.accumBuffer;
   // lighting
   parms.ambientColor = vec3f(1.f);
   parms.ambientRadiance = 1.f;
@@ -200,6 +196,10 @@ extern "C" int main(int argc, char *argv[]) {
     parms.camera.dir_dv = screen.vertical / imgHeight;
     // update transfuncs:
     parms.transfuncs = (ex03_multi_volume::Transfunc *)transfuncBuffer.getPointer();
+    // update framebuffer:
+    parms.fbPointer   = fb.fbPointer;
+    parms.fbDepth     = fb.fbDepth;
+    parms.accumBuffer = fb.accumBuffer;
     // update accum:
     parms.accumID = pl.frameID;
 #endif
