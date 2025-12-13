@@ -88,7 +88,8 @@ struct Pipeline::Impl
 
 #ifdef INTERACTIVE
     if (!transfuncs.empty()) {
-      tfe.setLookupTable(transfuncs[0]->rgbaLUT);
+      tfe.resize(1);
+      tfe[0].setLookupTable(transfuncs[0]->rgbaLUT);
     }
 #endif
   }
@@ -151,7 +152,9 @@ struct Pipeline::Impl
     ImGui_ImplSDL3_InitForSDLRenderer(sdl_window, sdl_renderer);
     ImGui_ImplSDLRenderer3_Init(sdl_renderer);
 
-    tfe.setSDL3Renderer(sdl_renderer);
+    for (int i=0; i<tfe.size(); ++i) {
+      tfe[i].setSDL3Renderer(sdl_renderer);
+    }
 #endif
   }
   
@@ -167,11 +170,14 @@ struct Pipeline::Impl
   {
     if (index >= transfuncs.size()) {
       transfuncs.resize(index+1);
+#ifdef INTERACTIVE
+      tfe.resize(index+1);
+#endif
     }
     transfuncs[index] = tf;
     assert(transfuncs[index] != nullptr);
 #ifdef INTERACTIVE
-    tfe.setLookupTable(transfuncs[0]->rgbaLUT);
+    tfe[index].setLookupTable(transfuncs[index]->rgbaLUT);
 #else
     if (transfuncs[index]->rgbaLUT.size() < 300) {
       std::vector<vec4f> newLUT(300);
@@ -257,11 +263,22 @@ struct Pipeline::Impl
     //    | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 
     ImGui::Begin("TFE");//, nullptr, window_flags);
-    tfe.drawImmediate();
-    //ImGui::Image((ImTextureID)fbTexture,
-    //    ImGui::GetContentRegionAvail(),
-    //    ImVec2(0, 1),
-    //    ImVec2(1, 0));
+    if (transfuncs.size() == 1) {
+      tfe[0].drawImmediate();
+    } else {
+      if (ImGui::BeginTabBar("Lookup Tables")) {
+        for (int i=0; i<transfuncs.size(); ++i) {
+          ImGui::PushID(i);
+          if (ImGui::BeginTabItem(std::to_string(i).c_str())) {
+            tfe[i].drawImmediate();
+            ImGui::EndTabItem();
+            tfID = i;
+          }
+          ImGui::PopID();
+        }
+        ImGui::EndTabBar();
+      }
+    }
 
     ImGui::End();
 
@@ -314,7 +331,8 @@ struct Pipeline::Impl
   SDL_Renderer *sdl_renderer{nullptr};
   SDL_Texture *fbTexture{nullptr};
   CameraManip manip;
-  TFE tfe;
+  std::vector<TFE> tfe;
+  int tfID{0};
 #endif
   Frame *fb{nullptr};
   std::vector<Transfunc *> transfuncs;
@@ -373,8 +391,9 @@ void Pipeline::launch() {
     resetAccum = true;
 
 #ifdef INTERACTIVE
-  if (transfuncValid(0) && impl->tfe.updated()) {
-    impl->transfuncs[0]->rgbaLUT = impl->tfe.getUpdatedLookupTable();
+  int tfID = impl->tfID;
+  if (transfuncValid(tfID) && impl->tfe[tfID].updated()) {
+    impl->transfuncs[tfID]->rgbaLUT = impl->tfe[tfID].getUpdatedLookupTable();
     resetAccum = true;
   }
 #endif
