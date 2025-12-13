@@ -86,11 +86,11 @@ extern "C" int main(int argc, char *argv[]) {
 
   int imgWidth=512, imgHeight=512;
   Frame fb(imgWidth, imgHeight);
-  pl.setFrame(fb);
+  pl.setFrame(&fb);
 
   Camera cam;
   cam.viewAll(volbounds);
-  pl.setCamera(cam);
+  pl.setCamera(&cam);
 
   if (!pl.transfuncValid()) {
     auto &tf = g_appState.transfunc;

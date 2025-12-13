@@ -132,11 +132,11 @@ extern "C" int main(int argc, char *argv[]) {
 
   int imgWidth=512, imgHeight=512;
   Frame fb(imgWidth, imgHeight);
-  pl.setFrame(fb);
+  pl.setFrame(&fb);
 
   Camera cam;
   cam.viewAll(worldBounds);
-  pl.setCamera(cam);
+  pl.setCamera(&cam);
 
   Buffer volumeBuffer(
       g_appState.volumes.size(), OWL_USER_TYPE(Volume), g_appState.volumes.data());

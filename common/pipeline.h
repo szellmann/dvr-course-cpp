@@ -65,13 +65,13 @@ struct Pipeline {
 #endif
 
   // Frame
-  void setFrame(Frame &f) { fb = &f; }
+  void setFrame(Frame *f) { fb = f; }
   Frame *fb{nullptr};
 
   int frameID{0};
 
   // Camera
-  void setCamera(Camera &cam) { camera = &cam; }
+  void setCamera(Camera *cam) { camera = cam; }
   Camera *camera{nullptr};
 
   void setTransfunc(Transfunc *tf, int index=0);

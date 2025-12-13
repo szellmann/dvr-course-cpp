@@ -25,14 +25,14 @@ extern "C" int main(int argc, char *argv[]) {
 
   int imgWidth=512, imgHeight=512;
   Frame fb(imgWidth, imgHeight);
-  pl.setFrame(fb);
+  pl.setFrame(&fb);
 
   Camera cam;
   cam.setOrientation(vec3f(0,0,-2.5),
                      vec3f(0,0,0),
                      vec3f(0,1,0),
                      90.f*M_PI/180.f);
-  pl.setCamera(cam);
+  pl.setCamera(&cam);
 
   if (!pl.transfuncValid()) {
     auto &tf = g_appState.transfunc;
