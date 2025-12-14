@@ -74,9 +74,13 @@ struct Pipeline {
   void setCamera(Camera *cam) { camera = cam; }
   Camera *camera{nullptr};
 
+  // Transfunc
   void setTransfunc(Transfunc *tf, int index=0);
   Transfunc *getTransfunc(int index=0) const;
   bool transfuncValid(int index=0) const;
+
+  // General params
+  void addParam(std::string name, float *f, float minf, float maxf);
 
   // Interface
   bool isRunning() const { return running; }

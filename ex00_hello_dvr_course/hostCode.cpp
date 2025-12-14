@@ -12,6 +12,8 @@ DECL_LAUNCH_PARAMS(ex00_hello_dvr_course::LaunchParams)
 
 struct {
   Transfunc transfunc;
+  float samplingRate;
+  float unitDistance;
 } g_appState;
 
 namespace ex00_hello_dvr_course {
@@ -45,6 +47,12 @@ extern "C" int main(int argc, char *argv[]) {
     pl.setTransfunc(&tf);
   }
 
+  g_appState.samplingRate = 2.f;
+  pl.addParam("Sampling rate", &g_appState.samplingRate, 0.001f, 5.f);
+
+  g_appState.unitDistance = 0.1f;
+  pl.addParam("Unit distance", &g_appState.unitDistance, 0.001f, 5.f);
+
 #ifdef RTCORE
   pl.setRayGen("simpleRayMarcher");
   OWLParams lp = pl.createLaunchParams({
@@ -59,9 +67,6 @@ extern "C" int main(int argc, char *argv[]) {
   // lighting
   parms.ambientColor = vec3f(1.f);
   parms.ambientRadiance = 1.f;
-  // DVR
-  parms.samplingRate = 2.f;
-  parms.unitDistance = 0.1f;
 #endif
 
   // Render and present...
@@ -89,6 +94,9 @@ extern "C" int main(int argc, char *argv[]) {
     parms.fbPointer   = fb.fbPointer;
     parms.fbDepth     = fb.fbDepth;
     parms.accumBuffer = fb.accumBuffer;
+    // update DVR params:
+    parms.samplingRate = g_appState.samplingRate;
+    parms.unitDistance = g_appState.unitDistance;
     // update accum:
     parms.accumID = pl.frameID;
 #endif

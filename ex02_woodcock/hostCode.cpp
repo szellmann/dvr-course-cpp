@@ -24,6 +24,7 @@ DECL_LAUNCH_PARAMS(ex02_woodcock::LaunchParams)
 struct {
   std::string filepath;
   Transfunc transfunc;
+  float unitDistance;
 } g_appState;
 
 namespace ex02_woodcock {
@@ -110,6 +111,9 @@ extern "C" int main(int argc, char *argv[]) {
     pl.setTransfunc(&tf);
   }
 
+  g_appState.unitDistance = 1.0f;
+  pl.addParam("Unit distance", &g_appState.unitDistance, 0.001f, 5.f);
+
 #ifdef RTCORE
   pl.setRayGen("woodockTrackingAE");
   OWLParams lp = pl.createLaunchParams({
@@ -127,8 +131,6 @@ extern "C" int main(int argc, char *argv[]) {
   // lighting
   parms.ambientColor = vec3f(1.f);
   parms.ambientRadiance = 1.f;
-  // DVR
-  parms.unitDistance = 1.0f;
 #endif
 
   // Render and present...
@@ -156,6 +158,8 @@ extern "C" int main(int argc, char *argv[]) {
     parms.fbPointer   = fb.fbPointer;
     parms.fbDepth     = fb.fbDepth;
     parms.accumBuffer = fb.accumBuffer;
+    // update DVR params:
+    parms.unitDistance = g_appState.unitDistance;
     // update accum:
     parms.accumID = pl.frameID;
 #endif

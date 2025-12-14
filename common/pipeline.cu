@@ -75,8 +75,9 @@ static bool loadXF(std::string xfFile, dvr_course::Transfunc &tf) {
 
 struct Pipeline::Impl
 {
-  Impl(std::string name) : name(name) {}
-  Impl(int argc, char *argv[], std::string name) : name(name)
+  Impl(Pipeline *parent, std::string name) : parent(parent), name(name) {}
+  Impl(int argc, char *argv[], Pipeline *parent, std::string name)
+    : parent(parent), name(name)
   {
     parseCommandLine(argc,argv);
     if (!xfFile.empty()) {
@@ -281,7 +282,8 @@ struct Pipeline::Impl
     //    | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove
     //    | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 
-    ImGui::Begin("TFE");//, nullptr, window_flags);
+    ImGui::Begin("Settings");//, nullptr, window_flags);
+    ImGui::LabelText("##TFE", "TFE");
     if (transfuncs.size() == 1) {
       tfe[0].drawImmediate();
     } else {
@@ -299,6 +301,16 @@ struct Pipeline::Impl
       }
     }
 
+    // App-side params
+    if (!paramf.empty()) {
+      ImGui::LabelText("##App", "App");
+      for (int i=0; i<paramf.size(); ++i) {
+        Paramf &p = paramf[i];
+        if (ImGui::SliderFloat(p.name.c_str(), p.f, p.minf, p.maxf)) {
+          parent->resetAccumulation();
+        }
+      }
+    }
     ImGui::End();
 
     ImGui::Render();
@@ -345,6 +357,7 @@ struct Pipeline::Impl
 #endif
   }
 
+  Pipeline *parent{nullptr};
 #ifdef INTERACTIVE
   SDL_Window *sdl_window{nullptr};
   SDL_Renderer *sdl_renderer{nullptr};
@@ -368,11 +381,23 @@ struct Pipeline::Impl
 #endif
   std::string xfFile;
   thread_pool pool{std::thread::hardware_concurrency()};
+
+  // app-side params:
+  struct Paramf
+  {
+    std::string name;
+    float *f;
+    float minf;
+    float maxf;
+  };
+  std::vector<Paramf> paramf;
+
+  void addParam(Paramf p) { paramf.push_back(p); }
 };
 
-Pipeline::Pipeline(std::string name) : impl(new Impl(name)) {}
+Pipeline::Pipeline(std::string name) : impl(new Impl(this,name)) {}
 Pipeline::Pipeline(int argc, char *argv[], std::string name)
-  : impl(new Impl(argc,argv,name))
+  : impl(new Impl(argc,argv,this,name))
 {}
 
 Pipeline::~Pipeline() {}
@@ -387,6 +412,10 @@ Transfunc *Pipeline::getTransfunc(int index) const {
 
 bool Pipeline::transfuncValid(int index) const {
   return impl->transfuncs.size() > index && impl->transfuncs[index] != nullptr;
+}
+
+void Pipeline::addParam(std::string name, float *f, float minf, float maxf) {
+  impl->addParam({name,f,minf,maxf});
 }
 
 void Pipeline::launch() {
