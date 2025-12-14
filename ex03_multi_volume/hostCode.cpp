@@ -165,6 +165,8 @@ extern "C" int main(int argc, char *argv[]) {
   parms.ambientRadiance = 1.f;
   // DVR
   parms.unitDistance = 1.0f;
+  // blending
+  parms.blendMode = BLEND_MODE_MIX;
 #endif
 
   pl.setKeyDownHandler([&](char key) {
@@ -174,6 +176,12 @@ extern "C" int main(int argc, char *argv[]) {
     }
     if (key == '2') {
       pl.setRayGen(blendingWoodcock);
+      parms.blendMode = BLEND_MODE_MIX;
+      pl.resetAccumulation();
+    }
+    if (key == '3') {
+      pl.setRayGen(blendingWoodcock);
+      parms.blendMode = BLEND_MODE_MAX_ALPHA;
       pl.resetAccumulation();
     }
   });

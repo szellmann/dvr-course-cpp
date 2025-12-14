@@ -23,6 +23,9 @@
 
 using namespace vecmath;
 
+#define BLEND_MODE_MIX       0
+#define BLEND_MODE_MAX_ALPHA 1
+
 // ========================================================
 // structs with trivial layout, no default init, etc.
 // to safely cross host/device borders
@@ -70,6 +73,9 @@ struct LaunchParams {
 
   // DVR:
   float unitDistance;
+
+  // blending:
+  int blendMode;
 };
 
 } // namespace ex03_multi_volume

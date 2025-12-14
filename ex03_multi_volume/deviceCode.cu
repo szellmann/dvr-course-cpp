@@ -206,16 +206,32 @@ RAYGEN_PROGRAM(blendingWoodcock)()
     vec3f P = ray.org+ray.dir*t;
 
     vec4f sample = 0.f;
-    for (int i=0; i<lp.numVolumes; ++i) {
-      float value{0.f};
-      if (!sampleVolume(lp.volumes[i], P, value))
-        continue;
 
-      vec4f c = postClassify(lp.transfuncs[i], value);
-      sample.r += c.r * c.a;
-      sample.g += c.g * c.a;
-      sample.b += c.b * c.a;
-      sample.a += c.a;
+    if (lp.blendMode == BLEND_MODE_MIX) {
+      vec3f blendColor = 0.f;
+      float maxAlpha = 0.f;
+      for (int i=0; i<lp.numVolumes; ++i) {
+        float value{0.f};
+        if (!sampleVolume(lp.volumes[i], P, value))
+          continue;
+
+        vec4f c = postClassify(lp.transfuncs[i], value);
+        blendColor += vec3f(c) * c.a;
+        maxAlpha = fmaxf(maxAlpha,c.a);
+      }
+      blendColor /= maxAlpha;
+      sample = vec4f(blendColor,maxAlpha);
+    } else if (lp.blendMode == BLEND_MODE_MAX_ALPHA) {
+      for (int i=0; i<lp.numVolumes; ++i) {
+        float value{0.f};
+        if (!sampleVolume(lp.volumes[i], P, value))
+          continue;
+
+        vec4f c = postClassify(lp.transfuncs[i], value);
+        if (c.a > sample.a) {
+          sample = c;
+        }
+      }
     }
 
     float u = rnd();
