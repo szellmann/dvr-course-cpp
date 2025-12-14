@@ -31,6 +31,14 @@
 #endif
 
 namespace vecmath {
+
+struct vec2i;
+struct vec3i;
+struct vec4i;
+struct vec2f;
+struct vec3f;
+struct vec4f;
+
 struct vec2i
 {
   vec2i() = default;
@@ -355,6 +363,7 @@ struct vec3f
   __host__ __device__ vec3f(float s) : x(s), y(s), z(s) {}
   __host__ __device__ vec3f(float x, float y, float z) : x(x), y(y), z(z) {}
   __host__ __device__ vec3f(const vec3i &v) : x(v.x), y(v.y), z(v.z) {}
+  __host__ __device__ vec3f(const vec4f &v); // below
   __host__ __device__ float &operator[](int i) { return ((float*)this)[i]; }
   __host__ __device__ const float &operator[](int i) const { return ((float*)this)[i]; }
   union {
@@ -521,10 +530,8 @@ struct vec4f
   };
 };
 
-inline __host__ __device__
-vec4f operator+(vec4f v, float a) {
-  return {v.x+a,v.y+a,v.z+a,v.w+a};
-}
+// vec3f from vec4f
+inline vec3f::vec3f(const vec4f &v) : x(v.x), y(v.y), z(v.z) {}
 
 inline __host__ __device__
 vec4f operator+(vec4f u, vec4f v) {
@@ -544,6 +551,26 @@ vec4f operator*(vec4f u, vec4f v) {
 inline __host__ __device__
 vec4f operator/(vec4f u, vec4f v) {
   return {u.x/v.x,u.y/v.y,u.z/v.z,u.w/v.w};
+}
+
+inline __host__ __device__
+vec4f operator+(vec4f v, float a) {
+  return {v.x+a,v.y+a,v.z+a,v.w+a};
+}
+
+inline __host__ __device__
+vec4f operator-(vec4f v, float a) {
+  return {v.x-a,v.y-a,v.z-a,v.w-a};
+}
+
+inline __host__ __device__
+vec4f operator*(vec4f v, float a) {
+  return {v.x*a,v.y*a,v.z*a,v.w*a};
+}
+
+inline __host__ __device__
+vec4f operator/(vec4f v, float a) {
+  return {v.x/a,v.y/a,v.z/a,v.w/a};
 }
 
 inline __host__ __device__
