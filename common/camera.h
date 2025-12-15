@@ -71,6 +71,10 @@ struct Camera
     return position-frame.vz*distance;
   }
 
+  vec3f getUp() const {
+    return upVector;
+  }
+
   void getScreen(vec3f &lower_left, vec3f &horizontal, vec3f &vertical) const {
     float screen_height = 2.f*tanf(0.5f*fovy);
     vertical   = screen_height * frame.vy;
@@ -107,23 +111,31 @@ struct Camera
 //=============================================================================
 struct CameraManip
 {
+  enum MouseButton { Left, Middle, Right, None, };
+
   CameraManip() = default;
 
   CameraManip(Camera *cam, int w, int h)
     : camera(cam), vpWidth(w), vpHeight(h) {}
 
-  bool handleMouseDown(int x, int y) {
+  bool handleMouseDown(int x, int y, MouseButton button) {
     if (!camera) return false;
     dragging = true;
+    lastPos = {x,y};
 
-    arcball.downPos = ballProject(x,y);
-    arcball.downRotation = arcball.currRotation;
+    if (button == Left) {
+      arcball.downPos = ballProject(x,y);
+      arcball.downRotation = arcball.currRotation;
+    }
+
+    mouseButton = button;
     return true;
   }
 
-  bool handleMouseUp(int x, int y) {
+  bool handleMouseUp(int x, int y, MouseButton /*button*/) {
     if (!camera) return false;
     dragging = false;
+    mouseButton = None;
     return true;
   }
 
@@ -131,24 +143,36 @@ struct CameraManip
     if (!camera || !dragging)
       return false;
 
-    vec3f currPos = ballProject(x,y);
-    arcball.currRotation
-      = quatf::rotation(arcball.downPos, currPos) * arcball.downRotation;
+    if (mouseButton == Left) {
+      vec3f currPos = ballProject(x,y);
+      arcball.currRotation
+        = quatf::rotation(arcball.downPos, currPos) * arcball.downRotation;
 
-    // update camera:
-    mat4f rotmat = rotationMatrix(conjugate(arcball.currRotation));
+      // update camera:
+      mat4f rotmat = rotationMatrix(conjugate(arcball.currRotation));
 
-    vec3f poi = camera->getPOI();
+      vec3f poi = camera->getPOI();
 
-    vec4f eye4(0.f,0.f,camera->distance,1.f);
-    eye4 = rotmat * eye4;
-    vec3f eye(eye4.x,eye4.y,eye4.z);
-    eye += poi;
+      vec4f eye4(0.f,0.f,camera->distance,1.f);
+      eye4 = rotmat * eye4;
+      vec3f eye(eye4.x,eye4.y,eye4.z);
+      eye += poi;
 
-    vec4f up4 = rotmat(1);
-    vec3f up(up4.x,up4.y,up4.z);
+      vec4f up4 = rotmat(1);
+      vec3f up(up4.x,up4.y,up4.z);
 
-    camera->setOrientation(eye, poi, up, camera->fovy);
+      camera->setOrientation(eye, poi, up, camera->fovy);
+    }
+    else if (mouseButton == Right) {
+      vec2i currPos{x,y};
+      float dy = -float(lastPos.y - currPos.y) / vpHeight;
+      float s = 2.f * camera->distance * dy;
+      vec3f dir = normalize(camera->getPosition() - camera->getPOI());
+      vec3f eye = camera->getPosition() - dir * s;
+      camera->setOrientation(eye, camera->getPOI(), camera->getUp(), camera->fovy);
+    }
+
+    lastPos = {x,y};
     return true;
   }
 
@@ -171,6 +195,8 @@ struct CameraManip
 
   Camera *camera{nullptr};
   bool dragging{false};
+  MouseButton mouseButton{None};
+  vec2i lastPos{0,0};
   int vpWidth{0}, vpHeight{0};
 
   struct {

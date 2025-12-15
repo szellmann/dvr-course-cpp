@@ -219,12 +219,20 @@ struct Pipeline::Impl
       if (!io.WantCaptureMouse) {
         if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
           SDL_MouseButtonEvent button = event.button;
-          cameraUpdate = manip.handleMouseDown(button.x,button.y);
+          CameraManip::MouseButton ourButton{CameraManip::Left};
+          if (button.button == SDL_BUTTON_LEFT) ourButton = CameraManip::Left;
+          if (button.button == SDL_BUTTON_MIDDLE) ourButton = CameraManip::Middle;
+          if (button.button == SDL_BUTTON_RIGHT) ourButton = CameraManip::Right;
+          cameraUpdate = manip.handleMouseDown(button.x,button.y,ourButton);
           return;
         }
         if (event.type == SDL_EVENT_MOUSE_BUTTON_UP) {
           SDL_MouseButtonEvent button = event.button;
-          cameraUpdate = manip.handleMouseUp(button.x,button.y);
+          CameraManip::MouseButton ourButton{CameraManip::Left};
+          if (button.button == SDL_BUTTON_LEFT) ourButton = CameraManip::Left;
+          if (button.button == SDL_BUTTON_MIDDLE) ourButton = CameraManip::Middle;
+          if (button.button == SDL_BUTTON_RIGHT) ourButton = CameraManip::Right;
+          cameraUpdate = manip.handleMouseUp(button.x,button.y,ourButton);
           return;
         }
         if (event.type == SDL_EVENT_MOUSE_MOTION) {
