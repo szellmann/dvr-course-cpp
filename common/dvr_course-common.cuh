@@ -23,6 +23,7 @@
 #ifndef RTCORE
 #include <iostream>
 #endif
+#include <cstdint>
 #include "vecmath.h"
 
 namespace dvr_course {

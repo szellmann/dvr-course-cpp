@@ -18,6 +18,7 @@
 
 // std
 #include <functional>
+#include <memory>
 #include <string>
 // ours
 #include "camera.h"

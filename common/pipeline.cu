@@ -494,7 +494,9 @@ void Pipeline::resetAccumulation() {
 }
 
 void Pipeline::setKeyDownHandler(KeyDownHandler kdh) {
+#ifdef INTERACTIVE
   impl->keyDownHandler = kdh;
+#endif
 }
 
 } // namespace dvr_course
