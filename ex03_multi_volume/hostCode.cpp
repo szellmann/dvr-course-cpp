@@ -149,27 +149,24 @@ extern "C" int main(int argc, char *argv[]) {
   }
 
   g_appState.unitDistance = 1.0f;
-  pl.addParam("Unit distance", &g_appState.unitDistance, 0.001f, 5.f);
+  pl.uiParam("Unit distance", &g_appState.unitDistance, 0.001f, 5.f);
 
 #ifdef RTCORE
   pl.setRayGen("multiVolumeWoodcock");
-  OWLParams lp = pl.createLaunchParams({
-    { "camera.dir_00", OWL_FLOAT3, OWL_OFFSETOFF(LaunchParams,camera.dir_00) }
-  });
-  owlParamsSet3fv(lp,"camera.dir_00",(const float *)&camera.dir_00);
-  // ... more owl setup
 #else
   pl.setRayGen(multiVolumeWoodcock);
-  LaunchParams parms;
-  // volumes
-  parms.volumes = (Volume *)volumeBuffer.getPointer();
-  parms.numVolumes = volumeBuffer.getSize();
-  // lighting
-  parms.ambientColor = vec3f(1.f);
-  parms.ambientRadiance = 1.f;
-  // blending
-  parms.blendMode = BLEND_MODE_MIX;
 #endif
+
+  LaunchParams parms;
+
+  // volumes
+  pl.launchParam("volumes", (RawPointer &)parms.volumes) = (Volume *)volumeBuffer.getPointer();
+  pl.launchParam("numVolumes", parms.numVolumes) = volumeBuffer.getSize();
+  // lighting
+  pl.launchParam("ambientColor", parms.ambientColor) = vec3f(1.f);
+  pl.launchParam("ambientRadiance", parms.ambientRadiance) = 1.f;
+  // blending
+  pl.launchParam("blendMode", parms.blendMode) = BLEND_MODE_MIX;
 
   pl.setKeyDownHandler([&](char key) {
     if (key == '1') {
@@ -178,12 +175,12 @@ extern "C" int main(int argc, char *argv[]) {
     }
     if (key == '2') {
       pl.setRayGen(blendingWoodcock);
-      parms.blendMode = BLEND_MODE_MIX;
+      pl.launchParam("blendMode", parms.blendMode) = BLEND_MODE_MIX;
       pl.resetAccumulation();
     }
     if (key == '3') {
       pl.setRayGen(blendingWoodcock);
-      parms.blendMode = BLEND_MODE_MAX_ALPHA;
+      pl.launchParam("blendMode", parms.blendMode) = BLEND_MODE_MAX_ALPHA;
       pl.resetAccumulation();
     }
   });
@@ -207,26 +204,23 @@ extern "C" int main(int argc, char *argv[]) {
     Buffer transfuncBuffer(deviceTransfuncs.size(),
                            OWL_USER_TYPE(ex03_multi_volume::Transfunc),
                            deviceTransfuncs.data());
-#ifdef RTCORE
-    owlParamsSet3fv(lp,"camera.dir_00",(const float *)&camera.dir_00);
-    // ...
-#else
+
     // update camera:
-    parms.camera.org = cam.getPosition();
-    parms.camera.dir_00 = screen.lower_left;
-    parms.camera.dir_du = screen.horizontal / imgWidth;
-    parms.camera.dir_dv = screen.vertical / imgHeight;
+    pl.launchParam("camera.org", parms.camera.org) = cam.getPosition();
+    pl.launchParam("camera.dir_00", parms.camera.dir_00) = screen.lower_left;
+    pl.launchParam("camera.dir_du", parms.camera.dir_du) = screen.horizontal / imgWidth;
+    pl.launchParam("camera.dir_dv", parms.camera.dir_dv) = screen.vertical / imgHeight;
     // update transfuncs:
-    parms.transfuncs = (ex03_multi_volume::Transfunc *)transfuncBuffer.getPointer();
+    pl.launchParam("transfuncs", (RawPointer &)parms.transfuncs)
+        = (ex03_multi_volume::Transfunc *)transfuncBuffer.getPointer();
     // update framebuffer:
-    parms.fbPointer   = fb.fbPointer;
-    parms.fbDepth     = fb.fbDepth;
-    parms.accumBuffer = fb.accumBuffer;
+    pl.launchParam("fbPointer", (RawPointer &)parms.fbPointer) = fb.fbPointer;
+    pl.launchParam("fbDepth", (RawPointer &)parms.fbDepth) = fb.fbDepth;
+    pl.launchParam("accumBuffer", (RawPointer &)parms.accumBuffer) = fb.accumBuffer;
     // update DVR params:
-    parms.unitDistance = g_appState.unitDistance;
+    pl.launchParam("unitDistance", parms.unitDistance) = g_appState.unitDistance;
     // update accum:
-    parms.accumID = pl.frameID;
-#endif
+    pl.launchParam("accumID", parms.accumID) = pl.frameID;
 
     // set params:
     SET_LAUNCH_PARAMS(parms);

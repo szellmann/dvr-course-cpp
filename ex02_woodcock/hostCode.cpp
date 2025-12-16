@@ -112,26 +112,23 @@ extern "C" int main(int argc, char *argv[]) {
   }
 
   g_appState.unitDistance = 1.0f;
-  pl.addParam("Unit distance", &g_appState.unitDistance, 0.001f, 5.f);
+  pl.uiParam("Unit distance", &g_appState.unitDistance, 0.001f, 5.f);
 
 #ifdef RTCORE
   pl.setRayGen("woodockTrackingAE");
-  OWLParams lp = pl.createLaunchParams({
-    { "camera.dir_00", OWL_FLOAT3, OWL_OFFSETOFF(LaunchParams,camera.dir_00) }
-  });
-  owlParamsSet3fv(lp,"camera.dir_00",(const float *)&camera.dir_00);
-  // ... more owl setup
 #else
   pl.setRayGen(woodockTrackingAE);
-  LaunchParams parms;
-  // volume
-  parms.volume.handle = gridHandle.grid<float>();
-  parms.volume.filterLinear = true;
-  parms.volume.bounds = volbounds;
-  // lighting
-  parms.ambientColor = vec3f(1.f);
-  parms.ambientRadiance = 1.f;
 #endif
+
+  LaunchParams parms;
+
+  // volume
+  pl.launchParam("volume.handle", (RawPointer &)parms.volume.handle) = gridHandle.grid<float>();
+  pl.launchParam("volume.filterLinear", parms.volume.filterLinear) = true;
+  pl.launchParam("volume.bounds", parms.volume.bounds) = volbounds;
+  // lighting
+  pl.launchParam("ambientColor", parms.ambientColor) = vec3f(1.f);
+  pl.launchParam("ambientRadiance", parms.ambientRadiance) = 1.f;
 
   // Render and present...
   // For default (PNG image) pipeline this
@@ -141,28 +138,24 @@ extern "C" int main(int argc, char *argv[]) {
       vec3f lower_left, horizontal, vertical;
     } screen;
     cam.getScreen(screen.lower_left,screen.horizontal,screen.vertical);
-#ifdef RTCORE
-    owlParamsSet3fv(lp,"camera.dir_00",(const float *)&camera.dir_00);
-    // ...
-#else
+
     // update camera:
-    parms.camera.org = cam.getPosition();
-    parms.camera.dir_00 = screen.lower_left;
-    parms.camera.dir_du = screen.horizontal / imgWidth;
-    parms.camera.dir_dv = screen.vertical / imgHeight;
+    pl.launchParam("camera.org", parms.camera.org) = cam.getPosition();
+    pl.launchParam("camera.dir_00", parms.camera.dir_00) = screen.lower_left;
+    pl.launchParam("camera.dir_du", parms.camera.dir_du) = screen.horizontal / imgWidth;
+    pl.launchParam("camera.dir_dv", parms.camera.dir_dv) = screen.vertical / imgHeight;
     // update transfunc:
-    parms.transfunc.valueRange = pl.getTransfunc()->valueRange;
-    parms.transfunc.size = (int)pl.getTransfunc()->rgbaLUT.size();
-    parms.transfunc.values = pl.getTransfunc()->rgbaLUT.data();
+    pl.launchParam("transfunc.valueRange", parms.transfunc.valueRange) = pl.getTransfunc()->valueRange;
+    pl.launchParam("transfunc.size", parms.transfunc.size) = (int)pl.getTransfunc()->rgbaLUT.size();
+    pl.launchParam("transfunc.values", (RawPointer &)parms.transfunc.values) = pl.getTransfunc()->rgbaLUT.data();
     // update framebuffer:
-    parms.fbPointer   = fb.fbPointer;
-    parms.fbDepth     = fb.fbDepth;
-    parms.accumBuffer = fb.accumBuffer;
+    pl.launchParam("fbPointer", (RawPointer &)parms.fbPointer) = fb.fbPointer;
+    pl.launchParam("fbDepth", (RawPointer &)parms.fbDepth) = fb.fbDepth;
+    pl.launchParam("accumBuffer", (RawPointer &)parms.accumBuffer) = fb.accumBuffer;
     // update DVR params:
-    parms.unitDistance = g_appState.unitDistance;
+    pl.launchParam("unitDistance", parms.unitDistance) = g_appState.unitDistance;
     // update accum:
-    parms.accumID = pl.frameID;
-#endif
+    pl.launchParam("accumID", parms.accumID) = pl.frameID;
 
     // set params:
     SET_LAUNCH_PARAMS(parms);

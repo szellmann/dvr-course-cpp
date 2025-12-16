@@ -14,6 +14,14 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 configure_cuda_src(fb.cu)
 configure_cuda_src(pipeline.cu)
 
+option(DVR_COURSE_WITH_OWL "Use OWL as ray tracing API (for hardware ray tracing)" OFF)
+if (DVR_COURSE_WITH_OWL)
+  find_package(owl REQUIRED)
+  # public define "RTCORE", also used by example programs:
+  target_compile_definitions(${PROJECT_NAME} PUBLIC RTCORE=1)
+  target_link_libraries(${PROJECT_NAME} PUBLIC owl::owl)
+endif()
+
 option(DVR_COURSE_PIPELINE_INTERACTIVE "Use interactive viewer instead of png output" OFF)
 if (DVR_COURSE_PIPELINE_INTERACTIVE)
   target_compile_definitions(${PROJECT_NAME} PRIVATE INTERACTIVE=1)

@@ -400,7 +400,7 @@ struct Pipeline::Impl
   };
   std::vector<Paramf> paramf;
 
-  void addParam(Paramf p) { paramf.push_back(p); }
+  void uiParam(Paramf p) { paramf.push_back(p); }
 };
 
 Pipeline::Pipeline(std::string name) : impl(new Impl(this,name)) {}
@@ -410,6 +410,27 @@ Pipeline::Pipeline(int argc, char *argv[], std::string name)
 
 Pipeline::~Pipeline() {}
 
+/*
+  launch param interface:
+*/
+#define DEF_LAUNCH_PARM_FUNC(T)                               \
+T &Pipeline::launchParam(std::string name, T &value) {        \
+  return value;                                               \
+}
+
+DEF_LAUNCH_PARM_FUNC(bool)
+DEF_LAUNCH_PARM_FUNC(int)
+DEF_LAUNCH_PARM_FUNC(float)
+DEF_LAUNCH_PARM_FUNC(vec2f)
+DEF_LAUNCH_PARM_FUNC(vec3f)
+DEF_LAUNCH_PARM_FUNC(vec4f)
+DEF_LAUNCH_PARM_FUNC(box1f)
+DEF_LAUNCH_PARM_FUNC(box3f)
+DEF_LAUNCH_PARM_FUNC(RawPointer)
+
+/*
+  transfuncs:
+*/
 void Pipeline::setTransfunc(Transfunc *tf, int index) {
   impl->setTransfunc(tf,index);
 }
@@ -422,8 +443,9 @@ bool Pipeline::transfuncValid(int index) const {
   return impl->transfuncs.size() > index && impl->transfuncs[index] != nullptr;
 }
 
-void Pipeline::addParam(std::string name, float *f, float minf, float maxf) {
-  impl->addParam({name,f,minf,maxf});
+// ui params:
+void Pipeline::uiParam(std::string name, float *f, float minf, float maxf) {
+  impl->uiParam({name,f,minf,maxf});
 }
 
 void Pipeline::launch() {

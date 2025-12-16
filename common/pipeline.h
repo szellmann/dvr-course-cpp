@@ -33,6 +33,8 @@
 # define SET_LAUNCH_PARAMS(p)
 #endif
 
+typedef void *RawPointer;
+
 // ========================================================
 // Common render pipeline class for DVR
 // ========================================================
@@ -49,12 +51,6 @@ struct Pipeline {
 
   //   ray-gen
   void setRayGen(const char *name);
-
-  //   launch-params
-  std::vector<Param> launchParams;
-  void setLaunchParams(const std::vector<OWLVarDecl> &params)
-  { launchParams = params; }
-
 #else
   // for use with non-RTCORE (set as function pointer)
 
@@ -64,6 +60,19 @@ struct Pipeline {
 
   std::function<void()> func;
 #endif
+
+  //   launch-params
+#define DECL_LAUNCH_PARM_FUNC(T) T &launchParam(std::string name, T &value);
+
+  DECL_LAUNCH_PARM_FUNC(bool)
+  DECL_LAUNCH_PARM_FUNC(int)
+  DECL_LAUNCH_PARM_FUNC(float)
+  DECL_LAUNCH_PARM_FUNC(vec2f)
+  DECL_LAUNCH_PARM_FUNC(vec3f)
+  DECL_LAUNCH_PARM_FUNC(vec4f)
+  DECL_LAUNCH_PARM_FUNC(box1f)
+  DECL_LAUNCH_PARM_FUNC(box3f)
+  DECL_LAUNCH_PARM_FUNC(RawPointer)
 
   // Frame
   void setFrame(Frame *f) { fb = f; }
@@ -80,8 +89,8 @@ struct Pipeline {
   Transfunc *getTransfunc(int index=0) const;
   bool transfuncValid(int index=0) const;
 
-  // General params
-  void addParam(std::string name, float *f, float minf, float maxf);
+  // UI params
+  void uiParam(std::string name, float *f, float minf, float maxf);
 
   // Interface
   bool isRunning() const { return running; }

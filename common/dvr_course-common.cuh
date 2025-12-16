@@ -35,7 +35,6 @@ using namespace vecmath;
 #define __shared__
 #endif
 
-
 #ifndef RTCORE
 namespace dvr_course {
 const vec2i getLaunchIndex(void);
