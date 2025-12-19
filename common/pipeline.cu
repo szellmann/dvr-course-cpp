@@ -414,9 +414,11 @@ Pipeline::Pipeline(int argc, char *argv[], std::string name)
 
 Pipeline::~Pipeline() {}
 
+#ifdef RTCORE
 void Pipeline::setRayGen(const char *name) {
 
 }
+#endif
 
 /*
   launch param interface:
