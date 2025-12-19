@@ -7,6 +7,13 @@ project(dvr_course-common LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+option(DVR_COURSE_WITH_OWL "Use OWL as ray tracing API (for hardware ray tracing)" OFF)
+if (DVR_COURSE_WITH_OWL)
+  find_package(owl REQUIRED)
+  set(DVR_COURSE_WITH_CUDA ON BOOL CACHED "Compile with CUDA")
+  enable_language(CUDA)
+endif()
+
 add_library(${PROJECT_NAME})
 target_sources(${PROJECT_NAME} PRIVATE fb.cu pipeline.cu)
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE external)
@@ -14,9 +21,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 configure_cuda_src(fb.cu)
 configure_cuda_src(pipeline.cu)
 
-option(DVR_COURSE_WITH_OWL "Use OWL as ray tracing API (for hardware ray tracing)" OFF)
 if (DVR_COURSE_WITH_OWL)
-  find_package(owl REQUIRED)
   # public define "RTCORE", also used by example programs:
   target_compile_definitions(${PROJECT_NAME} PUBLIC RTCORE=1)
   target_link_libraries(${PROJECT_NAME} PUBLIC owl::owl)

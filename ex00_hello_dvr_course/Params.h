@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <dvr_course-common.cuh>
+#include <vecmath.h>
 
 using namespace vecmath;
 

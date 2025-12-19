@@ -34,11 +34,14 @@
 #include "dvr_course-common.h"
 #include "dvr_course-common.cuh"
 
+#ifndef RTCORE
 static thread_local vecmath::vec2i launchIndex;
 static thread_local vecmath::vec2i launchDims;
+#endif
 
 namespace dvr_course {
 
+#ifndef RTCORE
 const vec2i getLaunchIndex(void)
 { return launchIndex; }
 
@@ -48,6 +51,7 @@ const vec2i getLaunchDims(void)
 const bool debug(void) {
   return launchIndex.x == launchDims.x/2 && launchIndex.y == launchDims.y/2;
 }
+#endif
 
 static bool loadXF(std::string xfFile, dvr_course::Transfunc &tf) {
   std::ifstream in(xfFile);
@@ -410,6 +414,10 @@ Pipeline::Pipeline(int argc, char *argv[], std::string name)
 
 Pipeline::~Pipeline() {}
 
+void Pipeline::setRayGen(const char *name) {
+
+}
+
 /*
   launch param interface:
 */
@@ -477,8 +485,12 @@ void Pipeline::launch() {
   }
 #endif
 
+#ifdef RTCORE
+
+#else
   if (!func)
     return;
+#endif
 
   if (frameID == 0)
     impl->clearFramebuffer();

@@ -22,6 +22,8 @@
 
 #ifndef RTCORE
 #include <iostream>
+#else
+#include <owl/owl_device.h>
 #endif
 #include <cstdint>
 #include "vecmath.h"
@@ -35,12 +37,30 @@ using namespace vecmath;
 #define __shared__
 #endif
 
-#ifndef RTCORE
 namespace dvr_course {
+#ifdef RTCORE
+inline __device__ const vec2i getLaunchIndex(void) {
+  auto li = owl::getLaunchIndex();
+  return {li.x,li.y};
+}
+
+inline __device__ const vec2i getLaunchDims(void) {
+  auto ld = owl::getLaunchDims();
+  return {ld.x,ld.y};
+}
+
+inline __device__ bool debug(void) {
+  const auto launchIndex = getLaunchIndex();
+  const auto launchDims = getLaunchDims();
+  return launchIndex.x == launchDims.x/2 && launchIndex.y == launchDims.y/2;
+}
+#define RAYGEN_PROGRAM OPTIX_RAYGEN_PROGRAM
+#else
 const vec2i getLaunchIndex(void);
 const vec2i getLaunchDims(void);
 const bool debug(void);
 #define RAYGEN_PROGRAM(name) void name
+#endif
 
 inline __device__ float linear_to_srgb(float x) {
   if (x <= 0.0031308f) {
@@ -125,7 +145,5 @@ inline __device__ uint32_t make_rgba(const vecmath::vec4f color)
 }
 
 } // dvr_course
-
-#endif
 
 

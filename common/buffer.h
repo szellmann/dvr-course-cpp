@@ -22,7 +22,9 @@
 #include <cstdio>
 #include <cstring>
 // ours
-#ifndef RTCORE
+#ifdef RTCORE
+# include <owl/owl.h>
+#else
 # include "owl-interop.h"
 #endif
 
@@ -37,19 +39,14 @@ struct Buffer {
   Buffer(size_t size, OWLDataType owlType, const T *ptr)
     : size(size), owlType(owlType)
   {
-#ifdef RTCORE
-
-#else
     data = new T[size];
     std::memcpy(data,ptr,size*sizeof(T));
-#endif
   }
 
   ~Buffer() {
     delete[] data;
   }
-#ifdef RTCORE
-#else
+
   T *getPointer() const {
     return data;
   }
@@ -66,7 +63,6 @@ struct Buffer {
     that simple, at the same time, OWL does just that, so
     this is that... */
   OWLDataType owlType{OWL_INVALID_TYPE};
-#endif
 };
 
 } // dvr_course

@@ -75,8 +75,8 @@ extern "C" int main(int argc, char *argv[]) {
 
   try {
     // construct NVDB volumes:
-#ifdef RTCORE
-#else
+//#ifdef RTCORE
+//#else
     for (int i=0; i<g_appState.filepaths.size(); ++i) {
       NVDB nvdb;
       // TODO: not sure about the lifetime of those handles.. need to check?!
@@ -88,7 +88,7 @@ extern "C" int main(int argc, char *argv[]) {
       auto buffer = nanovdb::HostBuffer::createFull(grid.bufferSize(), dataPtr);
       gridHandle = std::move(buffer);
       g_appState.nvdbVolumes.push_back(nvdb);
-#endif
+//#endif
       // construct device-side volumes:
       auto boundsMin = gridHandle.gridMetaData()->worldBBox().min();
       auto boundsMax = gridHandle.gridMetaData()->worldBBox().max();
@@ -170,16 +170,28 @@ extern "C" int main(int argc, char *argv[]) {
 
   pl.setKeyDownHandler([&](char key) {
     if (key == '1') {
+#ifdef RTCORE
+      pl.setRayGen("multiVolumeWoodcock");
+#else
       pl.setRayGen(multiVolumeWoodcock);
+#endif
       pl.resetAccumulation();
     }
     if (key == '2') {
+#ifdef RTCORE
+      pl.setRayGen("blendingWoodcock");
+#else
       pl.setRayGen(blendingWoodcock);
+#endif
       pl.launchParam("blendMode", parms.blendMode) = BLEND_MODE_MIX;
       pl.resetAccumulation();
     }
     if (key == '3') {
+#ifdef RTCORE
+      pl.setRayGen("blendingWoodcock");
+#else
       pl.setRayGen(blendingWoodcock);
+#endif
       pl.launchParam("blendMode", parms.blendMode) = BLEND_MODE_MAX_ALPHA;
       pl.resetAccumulation();
     }

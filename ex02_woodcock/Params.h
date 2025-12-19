@@ -19,7 +19,7 @@
 // nanovdb
 #include <nanovdb/GridHandle.h>
 // common
-#include <dvr_course-common.cuh>
+#include <vecmath.h>
 
 using namespace vecmath;
 
