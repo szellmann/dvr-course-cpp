@@ -566,7 +566,7 @@ void Pipeline::present() const {
 
 #ifdef RTCORE
   std::vector<uint32_t> hostData(fb->width*fb->height);
-  cudaMemcpy(hostData.data(), fb->fbPointer, fb->width*fbHeight*sizeof(uint32_t),
+  cudaMemcpy(hostData.data(), fb->fbPointer, fb->width*fb->height*sizeof(uint32_t),
              cudaMemcpyDeviceToHost);
   impl->present(hostData.data(), fb->width, fb->height);
 #else
