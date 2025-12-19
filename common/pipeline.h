@@ -49,6 +49,9 @@ struct Pipeline {
 #ifdef RTCORE
   // for use with RTCORE (load from module)
 
+  // ptx code
+  void setPTXCode(const char *ptx);
+
   //   ray-gen
   void setRayGen(const char *name);
 #else

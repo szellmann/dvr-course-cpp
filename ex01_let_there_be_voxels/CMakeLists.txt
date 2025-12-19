@@ -18,6 +18,7 @@ if (DVR_COURSE_WITH_OWL)
   embed_ptx(
     OUTPUT_TARGET ex01_deviceCode-ptx
     PTX_LINK_LIBRARIES dvr_course-common $<BUILD_INTERFACE:nanovdb>
+    EMBEDDED_SYMBOL_NAMES ptxCode
     SOURCES deviceCode.cu
   )
   target_link_libraries(${PROJECT_NAME} PRIVATE ex01_deviceCode-ptx)

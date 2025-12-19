@@ -29,7 +29,9 @@ struct {
 } g_appState;
 
 namespace ex01_let_there_be_voxels {
-#ifndef RTCORE
+#ifdef RTCORE
+extern "C" char ptxCode[];
+#else
 extern void simpleRayMarcher();
 #endif
 
@@ -119,6 +121,7 @@ extern "C" int main(int argc, char *argv[]) {
   pl.uiParam("Unit distance", &g_appState.unitDistance, 0.001f, 5.f);
 
 #ifdef RTCORE
+  pl.setPTXCode(ptxCode);
   pl.setRayGen("simpleRayMarcher");
 #else
   pl.setRayGen(simpleRayMarcher);

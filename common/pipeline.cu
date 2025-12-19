@@ -39,6 +39,16 @@ static thread_local vecmath::vec2i launchIndex;
 static thread_local vecmath::vec2i launchDims;
 #endif
 
+#ifdef RTCORE
+// dummy ray-gen data (we pass all data through launch parms!)
+struct RayGenData {};
+OWLVarDecl rayGenVars[]
+= {
+   { nullptr /* sentinel to mark end of list */ }
+};
+
+#endif
+
 namespace dvr_course {
 
 #ifndef RTCORE
@@ -161,8 +171,26 @@ struct Pipeline::Impl
       tfe[i].setSDL3Renderer(sdl_renderer);
     }
 #endif
+
+#ifdef RTCORE
+    initOWL();
+#endif
   }
-  
+
+#ifdef RTCORE
+  void initOWL()
+  {
+    owl.context = owlContextCreate(nullptr,1);
+    owl.module = owlModuleCreate(owl.context,owl.ptxCode);
+    owl.rayGen = owlRayGenCreate(owl.context,
+                                 owl.module,
+                                 owl.rayGenName,
+                                 sizeof(RayGenData),
+                                 rayGenVars,-1);
+    owlBuildPrograms(owl.context);
+  }
+#endif
+
   void cleanup()
   {
 #ifdef INTERACTIVE
@@ -405,6 +433,16 @@ struct Pipeline::Impl
   std::vector<Paramf> paramf;
 
   void uiParam(Paramf p) { paramf.push_back(p); }
+
+#ifdef RTCORE
+  struct {
+    OWLContext  context;
+    OWLModule   module;
+    OWLRayGen   rayGen;
+    const char *rayGenName;
+    const char *ptxCode;
+  } owl;
+#endif
 };
 
 Pipeline::Pipeline(std::string name) : impl(new Impl(this,name)) {}
@@ -415,8 +453,12 @@ Pipeline::Pipeline(int argc, char *argv[], std::string name)
 Pipeline::~Pipeline() {}
 
 #ifdef RTCORE
-void Pipeline::setRayGen(const char *name) {
+void Pipeline::setPTXCode(const char *ptx) {
+  impl->owl.ptxCode = ptx;
+}
 
+void Pipeline::setRayGen(const char *name) {
+  impl->owl.rayGenName = name;
 }
 #endif
 

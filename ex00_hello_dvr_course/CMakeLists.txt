@@ -16,6 +16,7 @@ if (DVR_COURSE_WITH_OWL)
   embed_ptx(
     OUTPUT_TARGET ex00_deviceCode-ptx
     PTX_LINK_LIBRARIES dvr_course-common
+    EMBEDDED_SYMBOL_NAMES ptxCode
     SOURCES deviceCode.cu
   )
   target_link_libraries(${PROJECT_NAME} PRIVATE ex00_deviceCode-ptx)
