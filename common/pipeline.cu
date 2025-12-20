@@ -81,8 +81,9 @@ static bool loadXF(std::string xfFile, dvr_course::Transfunc &tf) {
     return false;
   }
 
-  tf.rgbaLUT.resize(numValues);
-  in.read((char *)tf.rgbaLUT.data(), sizeof(tf.rgbaLUT[0]) * tf.rgbaLUT.size());
+  std::vector<vec4f> rgbaLUT(numValues);
+  in.read((char *)rgbaLUT.data(), sizeof(rgbaLUT[0]) * rgbaLUT.size());
+  tf.setLUT(rgbaLUT);
 
   return true;
 }
@@ -104,7 +105,7 @@ struct Pipeline::Impl
 #ifdef INTERACTIVE
     if (!transfuncs.empty()) {
       tfe.resize(1);
-      tfe[0].setLookupTable(transfuncs[0]->rgbaLUT);
+      tfe[0].setLookupTable(transfuncs[0]->getLUT());
     }
 #endif
   }
@@ -188,6 +189,8 @@ struct Pipeline::Impl
                                  sizeof(RayGenData),
                                  rayGenVars,-1);
     owlBuildPrograms(owl.context);
+    owlBuildPipeline(owl.context);
+    owlBuildSBT(owl.context);
   }
 #endif
 
@@ -196,6 +199,12 @@ struct Pipeline::Impl
 #ifdef INTERACTIVE
     if (fbTexture)
       SDL_DestroyTexture(fbTexture);
+#endif
+
+#ifdef RTCORE
+    owlModuleRelease(owl.module);
+    owlRayGenRelease(owl.rayGen);
+    owlContextDestroy(owl.context);
 #endif
   }
 
@@ -210,12 +219,12 @@ struct Pipeline::Impl
     transfuncs[index] = tf;
     assert(transfuncs[index] != nullptr);
 #ifdef INTERACTIVE
-    tfe[index].setLookupTable(transfuncs[index]->rgbaLUT);
+    tfe[index].setLookupTable(transfuncs[index]->getLUT());
 #else
-    if (transfuncs[index]->rgbaLUT.size() < 300) {
+    if (transfuncs[index]->size < 300) {
       std::vector<vec4f> newLUT(300);
-      resampleLUT(newLUT,transfuncs[index]->rgbaLUT);
-      transfuncs[index]->rgbaLUT = newLUT;
+      resampleLUT(newLUT,transfuncs[index]->getLUT());
+      transfuncs[index]->setLUT(newLUT);
     }
 #endif
   }
@@ -450,7 +459,9 @@ Pipeline::Pipeline(int argc, char *argv[], std::string name)
   : impl(new Impl(argc,argv,this,name))
 {}
 
-Pipeline::~Pipeline() {}
+Pipeline::~Pipeline() {
+  impl->cleanup();
+}
 
 #ifdef RTCORE
 void Pipeline::setRayGen(const char *name) {
@@ -525,7 +536,7 @@ void Pipeline::launch() {
 #ifdef INTERACTIVE
   int tfID = impl->tfID;
   if (transfuncValid(tfID) && impl->tfe[tfID].updated()) {
-    impl->transfuncs[tfID]->rgbaLUT = impl->tfe[tfID].getUpdatedLookupTable();
+    impl->transfuncs[tfID]->setLUT(impl->tfe[tfID].getUpdatedLookupTable());
     resetAccum = true;
   }
 #endif
@@ -542,7 +553,7 @@ void Pipeline::launch() {
 
   if (frameID < impl->sampleLimit) {
 #ifdef RTCORE
-
+    owlRayGenLaunch2D(impl->owl.rayGen, fb->width, fb->height);
 #else
     parallel::for_each(impl->pool, 0, fb->width, 0, fb->height,
       [&](int x, int y) {

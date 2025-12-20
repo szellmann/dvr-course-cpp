@@ -45,7 +45,7 @@ extern "C" int main(int argc, char *argv[]) {
       {0.f,1.f,0.f,0.1f }
     });
     tf.valueRange = {0.f,1.f};
-    tf.rgbaLUT = tfValues;
+    tf.setLUT(tfValues);
     pl.setTransfunc(&tf);
   }
 
@@ -85,8 +85,8 @@ extern "C" int main(int argc, char *argv[]) {
     pl.launchParam("camera.dir_dv", parms.camera.dir_dv) = screen.vertical / imgHeight;
     // update transfunc:
     pl.launchParam("transfunc.valueRange", parms.transfunc.valueRange) = pl.getTransfunc()->valueRange;
-    pl.launchParam("transfunc.size", parms.transfunc.size) = (int)pl.getTransfunc()->rgbaLUT.size();
-    pl.launchParam("transfunc.values", (RawPointer &)parms.transfunc.values) = pl.getTransfunc()->rgbaLUT.data();
+    pl.launchParam("transfunc.size", parms.transfunc.size) = pl.getTransfunc()->size;
+    pl.launchParam("transfunc.values", (RawPointer &)parms.transfunc.values) = pl.getTransfunc()->rgbaLUT;
     // update framebuffer:
     pl.launchParam("fbPointer", (RawPointer &)parms.fbPointer) = fb.fbPointer;
     pl.launchParam("fbDepth", (RawPointer &)parms.fbDepth) = fb.fbDepth;

@@ -14,32 +14,45 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-#pragma once
-
-// std
-#include <vector>
-// ours
-#include <vecmath.h>
+#include "transfunc.h"
 
 namespace dvr_course {
 
-// import into "dvr_course":
-using namespace vecmath;
+Transfunc::~Transfunc() {
+#ifdef RTCORE
+  cudaFree(rgbaLUT);
+#else
+  std::free(rgbaLUT);
+#endif
+}
 
-struct Transfunc
-{
-  float opacity{1.f};
-  box1f valueRange{0.1,1.f};
-  box1f relRange{0.1,1.f};
-  // data:
-  vec4f *rgbaLUT{nullptr};
-  int size{0};
+void Transfunc::setLUT(const std::vector<vec4f> &lut) {
+  if (lut.size() != size) {
+#ifdef RTCORE
+    cudaFree(rgbaLUT);
+    cudaMalloc(&rgbaLUT,sizeof(lut[0])*lut.size());
+#else
+    std::free(rgbaLUT);
+    rgbaLUT = std::malloc(sizeof(lut[0])*lut.size());
+#endif
+    size = (int)lut.size();
+  }
 
-  ~Transfunc();
-  // set LUT (device upload)
-  void setLUT(const std::vector<vec4f> &lut);
-  // get LUT (download from device)
-  std::vector<vec4f> getLUT() const;
-};
+#ifdef RTCORE
+  cudaMemcpy(rgbaLUT,lut.data(),sizeof(lut[0])*lut.size(),
+             cudaMemcpyHostToDevice);
+#else
+  memcpy(rgbaLUT,lut.data(),sizeof(lut[0])*lut.size());
+#endif
+}
+
+std::vector<vec4f> Transfunc::getLUT() const {
+  if (size <= 0) return {};
+
+  std::vector<vec4f> lut(size);
+  cudaMemcpy(lut.data(),rgbaLUT,sizeof(lut[0])*size,
+             cudaMemcpyDeviceToHost);
+  return lut;
+}
 
 } // namespace dvr_course

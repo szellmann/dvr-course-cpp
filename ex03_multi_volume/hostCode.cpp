@@ -122,10 +122,10 @@ extern "C" int main(int argc, char *argv[]) {
         vec3f rgb = 0.f;
         rgb[i%3] = 1.f;
         if (tf.valueRange.empty()) tf.valueRange = {0.f,1.f};
-        tf.rgbaLUT = std::vector<vec4f>({
+        tf.setLUT(std::vector<vec4f>({
           {rgb.r,rgb.g,rgb.b,0.f },
           {rgb.r,rgb.g,rgb.b,1.f }
-        });
+        }));
         g_appState.transfuncs.push_back(tf);
       }
     }
@@ -212,8 +212,8 @@ extern "C" int main(int argc, char *argv[]) {
     // transfer functions on device:
     for (int i=0; i<g_appState.transfuncs.size(); ++i) {
       deviceTransfuncs[i].valueRange = pl.getTransfunc(i)->valueRange;
-      deviceTransfuncs[i].size = (int)pl.getTransfunc(i)->rgbaLUT.size();
-      deviceTransfuncs[i].values = pl.getTransfunc(i)->rgbaLUT.data();
+      deviceTransfuncs[i].size = pl.getTransfunc(i)->size;
+      deviceTransfuncs[i].values = pl.getTransfunc(i)->rgbaLUT;
     }
     Buffer transfuncBuffer(deviceTransfuncs.size(),
                            OWL_USER_TYPE(ex03_multi_volume::Transfunc),

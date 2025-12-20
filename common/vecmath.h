@@ -21,7 +21,7 @@
 #include <cstddef>
 #include <ostream>
 
-#ifndef __CUDACC__
+#if !defined(__CUDACC__) && !defined(CUDA_VERSION)
 #define __host__
 #define __device__
 #endif
