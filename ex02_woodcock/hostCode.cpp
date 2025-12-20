@@ -28,7 +28,9 @@ struct {
 } g_appState;
 
 namespace ex02_woodcock {
-#ifndef RTCORE
+#ifdef RTCORE
+extern "C" char ptxCode[];
+#else
 extern void woodockTrackingAE();
 #endif
 
@@ -115,7 +117,7 @@ extern "C" int main(int argc, char *argv[]) {
   pl.uiParam("Unit distance", &g_appState.unitDistance, 0.001f, 5.f);
 
 #ifdef RTCORE
-  pl.setRayGen("woodockTrackingAE");
+  pl.setRayGen(ptxCode, "woodockTrackingAE");
 #else
   pl.setRayGen(woodockTrackingAE);
 #endif

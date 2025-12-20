@@ -121,8 +121,7 @@ extern "C" int main(int argc, char *argv[]) {
   pl.uiParam("Unit distance", &g_appState.unitDistance, 0.001f, 5.f);
 
 #ifdef RTCORE
-  pl.setPTXCode(ptxCode);
-  pl.setRayGen("simpleRayMarcher");
+  pl.setRayGen(ptxCode, "simpleRayMarcher");
 #else
   pl.setRayGen(simpleRayMarcher);
 #endif

@@ -34,7 +34,9 @@ struct {
 } g_appState;
 
 namespace ex03_multi_volume {
-#ifndef RTCORE
+#ifdef RTCORE
+extern "C" char ptxCode[];
+#else
 extern void multiVolumeWoodcock();
 extern void blendingWoodcock();
 #endif
@@ -152,7 +154,7 @@ extern "C" int main(int argc, char *argv[]) {
   pl.uiParam("Unit distance", &g_appState.unitDistance, 0.001f, 5.f);
 
 #ifdef RTCORE
-  pl.setRayGen("multiVolumeWoodcock");
+  pl.setRayGen(ptxCode, "multiVolumeWoodcock");
 #else
   pl.setRayGen(multiVolumeWoodcock);
 #endif

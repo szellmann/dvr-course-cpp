@@ -453,12 +453,13 @@ Pipeline::Pipeline(int argc, char *argv[], std::string name)
 Pipeline::~Pipeline() {}
 
 #ifdef RTCORE
-void Pipeline::setPTXCode(const char *ptx) {
-  impl->owl.ptxCode = ptx;
-}
-
 void Pipeline::setRayGen(const char *name) {
   impl->owl.rayGenName = name;
+}
+
+void Pipeline::setRayGen(const char *ptxCode, const char *name) {
+  impl->owl.ptxCode = ptxCode;
+  setRayGen(name);
 }
 #endif
 
