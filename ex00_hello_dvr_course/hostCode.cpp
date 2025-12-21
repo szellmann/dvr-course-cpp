@@ -3,6 +3,9 @@
 
 // ex00:
 #include "Params.h"
+#ifdef RTCORE
+#include "Params-owl.h"
+#endif
 
 // common namespace for helper classes:
 // Camera, FB, wrappers for RTX execution model, etc. etc.
@@ -57,6 +60,7 @@ extern "C" int main(int argc, char *argv[]) {
 
 #ifdef RTCORE
   pl.setRayGen(ptxCode, "simpleRayMarcher");
+  pl.setLaunchParamsDecl(launchParams_owl);
 #else
   pl.setRayGen(simpleRayMarcher);
 #endif

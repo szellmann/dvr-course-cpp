@@ -35,6 +35,9 @@
 
 typedef void *RawPointer;
 
+struct _OWLVarDecl;
+typedef _OWLVarDecl OWLVarDecl;
+
 // ========================================================
 // Common render pipeline class for DVR
 // ========================================================
@@ -52,6 +55,9 @@ struct Pipeline {
   //   ray-gen
   void setRayGen(const char *name);
   void setRayGen(const char *ptxCode, const char *name);
+
+  // lp-decl
+  void setLaunchParamsDecl(OWLVarDecl *decl);
 #else
   // for use with non-RTCORE (set as function pointer)
 

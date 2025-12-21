@@ -188,6 +188,10 @@ struct Pipeline::Impl
                                  owl.rayGenName,
                                  sizeof(RayGenData),
                                  rayGenVars,-1);
+    owl.launchParams = owlParamsCreate(owl.context,
+                                       owl.numLaunchParams*sizeof(OWLVarDecl),
+                                       owl.launchParamsDecl,
+                                       -1);
     owlBuildPrograms(owl.context);
     owlBuildPipeline(owl.context);
     owlBuildSBT(owl.context);
@@ -448,8 +452,11 @@ struct Pipeline::Impl
     OWLContext  context;
     OWLModule   module;
     OWLRayGen   rayGen;
-    const char *rayGenName;
-    const char *ptxCode;
+    OWLParams   launchParams;
+    const char *rayGenName{nullptr};
+    const char *ptxCode{nullptr};
+    OWLVarDecl *launchParamsDecl{nullptr};
+    size_t      numLaunchParams{0ull};
   } owl;
 #endif
 };
@@ -471,6 +478,16 @@ void Pipeline::setRayGen(const char *name) {
 void Pipeline::setRayGen(const char *ptxCode, const char *name) {
   impl->owl.ptxCode = ptxCode;
   setRayGen(name);
+}
+
+void Pipeline::setLaunchParamsDecl(OWLVarDecl *decl) {
+  impl->owl.launchParamsDecl = decl;
+  impl->owl.numLaunchParams = 0;
+  for (;;) {
+    auto d = *decl++;
+    if (!d.name) break;
+    impl->owl.numLaunchParams++;
+  }
 }
 #endif
 
@@ -553,7 +570,7 @@ void Pipeline::launch() {
 
   if (frameID < impl->sampleLimit) {
 #ifdef RTCORE
-    owlRayGenLaunch2D(impl->owl.rayGen, fb->width, fb->height);
+    owlLaunch2D(impl->owl.rayGen, fb->width, fb->height, impl->owl.launchParams);
 #else
     parallel::for_each(impl->pool, 0, fb->width, 0, fb->height,
       [&](int x, int y) {
