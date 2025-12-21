@@ -23,6 +23,8 @@ configure_cuda_src(pipeline.cu)
 configure_cuda_src(transfunc.cu)
 
 if (DVR_COURSE_WITH_OWL)
+  set_source_files_properties(pipeline.cu
+    PROPERTIES COMPILE_FLAGS "--extended-lambda --expt-relaxed-constexpr")
   # public define "RTCORE", also used by example programs:
   target_compile_definitions(${PROJECT_NAME} PUBLIC RTCORE=1)
   target_link_libraries(${PROJECT_NAME} PUBLIC owl::owl)

@@ -16,6 +16,7 @@
 
 // std
 #include <fstream>
+#include <map>
 #ifdef INTERACTIVE
 # include <SDL3/SDL.h>
 # define IMGUI_DISABLE_INCLUDE_IMCONFIG_H
@@ -47,6 +48,16 @@ OWLVarDecl rayGenVars[]
    { nullptr /* sentinel to mark end of list */ }
 };
 
+// map C++ to owl types:
+template<typename T>
+OWLDataType mapOwlType(const T &t) { return OWL_USER_TYPE(t); }
+OWLDataType mapOwlType(RawPointer) { return OWL_RAW_POINTER; }
+OWLDataType mapOwlType(float) { return OWL_FLOAT; }
+OWLDataType mapOwlType(vecmath::vec2f) { return OWL_FLOAT2; }
+OWLDataType mapOwlType(vecmath::vec3f) { return OWL_FLOAT3; }
+OWLDataType mapOwlType(vecmath::vec4f) { return OWL_FLOAT4; }
+OWLDataType mapOwlType(int) { return OWL_INT; }
+// ... TODO
 #endif
 
 namespace dvr_course {
@@ -86,6 +97,33 @@ static bool loadXF(std::string xfFile, dvr_course::Transfunc &tf) {
   tf.setLUT(rgbaLUT);
 
   return true;
+}
+
+void clearFramebuffer(const Frame *fb,
+                      thread_pool &pool,
+                      const vec4f &rgba = vec4f(0.f),
+                      float depth = 0.f)
+{
+  int width = fb->width; int height = fb->height;
+#ifdef RTCORE
+  cuda::for_each(/*TODO: stream*/0, 0, width, 0, height,
+#else
+  parallel::for_each(pool, 0, width, 0, height,
+#endif
+    [=] __device__ (int x, int y) {
+      int pixelID = x+y*width;
+      if (fb->fbPointer) {
+        fb->fbPointer[pixelID] = make_rgba(rgba);
+      }
+
+      if (fb->fbDepth) {
+        fb->fbDepth[pixelID] = depth;
+      }
+
+      if (fb->accumBuffer) {
+        fb->accumBuffer[pixelID] = vec4f(0.f);
+      }
+    });
 }
 
 struct Pipeline::Impl
@@ -195,6 +233,41 @@ struct Pipeline::Impl
     owlBuildPrograms(owl.context);
     owlBuildPipeline(owl.context);
     owlBuildSBT(owl.context);
+  }
+
+  void updateLaunchParams()
+  {
+    for (auto &it : owl.lpMap) {
+      std::string name = it.first;
+      const LP &lp = it.second;
+      if (lp.type == OWL_FLOAT) {
+        float f1 = *(float *)lp.value;
+        owlParamsSet1f(owl.launchParams, name.c_str(), f1);
+      }
+      else if (lp.type == OWL_FLOAT2) {
+        vec2f f2 = *(vec2f *)lp.value;
+        owlParamsSet2f(owl.launchParams, name.c_str(), f2.x, f2.y);
+      }
+      else if (lp.type == OWL_FLOAT3) {
+        vec3f f3 = *(vec3f *)lp.value;
+        owlParamsSet3f(owl.launchParams, name.c_str(), f3.x, f3.y, f3.z);
+      }
+      else if (lp.type == OWL_FLOAT4) {
+        vec4f f4 = *(vec4f *)lp.value;
+        owlParamsSet4f(owl.launchParams, name.c_str(), f4.x, f4.y, f4.z, f4.w);
+      }
+      else if (lp.type == OWL_INT) {
+        int i1 = *(int *)lp.value;
+        owlParamsSet1i(owl.launchParams, name.c_str(), i1);
+      }
+      else if (lp.type == OWL_RAW_POINTER) {
+        char **raw = (char **)lp.value;
+        owlParamsSetPointer(owl.launchParams, name.c_str(), *raw);
+      }
+      else if (lp.type >= OWL_USER_TYPE_BEGIN) {
+        owlParamsSetRaw(owl.launchParams, name.c_str(), lp.value);
+      }
+    }
   }
 #endif
 
@@ -389,27 +462,6 @@ struct Pipeline::Impl
 #endif
   }
 
-  void clearFramebuffer(const vec4f &rgba = vec4f(0.f), float depth = 0.f)
-  {
-#ifndef RTCORE
-    parallel::for_each(pool, 0, width, 0, height,
-      [=](int x, int y) {
-        int pixelID = x+y*width;
-        if (fb->fbPointer) {
-          fb->fbPointer[pixelID] = make_rgba(rgba);
-        }
-
-        if (fb->fbDepth) {
-          fb->fbDepth[pixelID] = depth;
-        }
-
-        if (fb->accumBuffer) {
-          fb->accumBuffer[pixelID] = vec4f(0.f);
-        }
-      });
-#endif
-  }
-
   Pipeline *parent{nullptr};
 #ifdef INTERACTIVE
   SDL_Window *sdl_window{nullptr};
@@ -448,6 +500,12 @@ struct Pipeline::Impl
   void uiParam(Paramf p) { paramf.push_back(p); }
 
 #ifdef RTCORE
+  struct LP
+  {
+    OWLDataType type;
+    void *value;
+  };
+
   struct {
     OWLContext  context;
     OWLModule   module;
@@ -457,6 +515,7 @@ struct Pipeline::Impl
     const char *ptxCode{nullptr};
     OWLVarDecl *launchParamsDecl{nullptr};
     size_t      sizeOfLaunchParamsStruct{0ull};
+    std::map<std::string,LP> lpMap;
   } owl;
 #endif
 };
@@ -489,10 +548,18 @@ void Pipeline::setLaunchParamsDecl(OWLVarDecl *decl, size_t sizeOfStruct) {
 /*
   launch param interface:
 */
+#ifdef RTCORE
+#define DEF_LAUNCH_PARM_FUNC(T)                               \
+T &Pipeline::launchParam(std::string name, T &value) {        \
+  impl->owl.lpMap[name] = {mapOwlType(T{}),(void *)&value};   \
+  return value;                                               \
+}
+#else
 #define DEF_LAUNCH_PARM_FUNC(T)                               \
 T &Pipeline::launchParam(std::string name, T &value) {        \
   return value;                                               \
 }
+#endif
 
 DEF_LAUNCH_PARM_FUNC(bool)
 DEF_LAUNCH_PARM_FUNC(int)
@@ -554,14 +621,14 @@ void Pipeline::launch() {
 #endif
 
 #ifdef RTCORE
-
+  impl->updateLaunchParams();
 #else
   if (!func)
     return;
 #endif
 
   if (frameID == 0)
-    impl->clearFramebuffer();
+    clearFramebuffer(fb,impl->pool);
 
   if (frameID < impl->sampleLimit) {
 #ifdef RTCORE

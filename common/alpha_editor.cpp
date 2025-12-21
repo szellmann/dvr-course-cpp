@@ -27,7 +27,6 @@
 #include "alpha_editor.h"
 #include "vecmath.h"
 #include "dvr_course-common.h"
-#include "dvr_course-common.cuh"
 
 using namespace vecmath;
 

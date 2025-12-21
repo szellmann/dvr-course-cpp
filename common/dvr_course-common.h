@@ -25,6 +25,7 @@
 #include <string>
 #include <vector>
 // ours
+#include "dvr_course-common-both.h"
 #include "buffer.h"
 #include "fb.h"
 #include "vecmath.h"
