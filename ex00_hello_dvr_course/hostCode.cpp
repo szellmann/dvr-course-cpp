@@ -60,7 +60,7 @@ extern "C" int main(int argc, char *argv[]) {
 
 #ifdef RTCORE
   pl.setRayGen(ptxCode, "simpleRayMarcher");
-  pl.setLaunchParamsDecl(launchParams_owl);
+  pl.setLaunchParamsDecl(launchParams_owl, sizeof(LaunchParams));
 #else
   pl.setRayGen(simpleRayMarcher);
 #endif

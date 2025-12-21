@@ -57,7 +57,7 @@ struct Pipeline {
   void setRayGen(const char *ptxCode, const char *name);
 
   // lp-decl
-  void setLaunchParamsDecl(OWLVarDecl *decl);
+  void setLaunchParamsDecl(OWLVarDecl *decl, size_t sizeOfLaunchParamsStruct);
 #else
   // for use with non-RTCORE (set as function pointer)
 

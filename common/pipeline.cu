@@ -189,7 +189,7 @@ struct Pipeline::Impl
                                  sizeof(RayGenData),
                                  rayGenVars,-1);
     owl.launchParams = owlParamsCreate(owl.context,
-                                       owl.numLaunchParams*sizeof(OWLVarDecl),
+                                       owl.sizeOfLaunchParamsStruct,
                                        owl.launchParamsDecl,
                                        -1);
     owlBuildPrograms(owl.context);
@@ -456,7 +456,7 @@ struct Pipeline::Impl
     const char *rayGenName{nullptr};
     const char *ptxCode{nullptr};
     OWLVarDecl *launchParamsDecl{nullptr};
-    size_t      numLaunchParams{0ull};
+    size_t      sizeOfLaunchParamsStruct{0ull};
   } owl;
 #endif
 };
@@ -480,14 +480,9 @@ void Pipeline::setRayGen(const char *ptxCode, const char *name) {
   setRayGen(name);
 }
 
-void Pipeline::setLaunchParamsDecl(OWLVarDecl *decl) {
+void Pipeline::setLaunchParamsDecl(OWLVarDecl *decl, size_t sizeOfStruct) {
   impl->owl.launchParamsDecl = decl;
-  impl->owl.numLaunchParams = 0;
-  for (;;) {
-    auto d = *decl++;
-    if (!d.name) break;
-    impl->owl.numLaunchParams++;
-  }
+  impl->owl.sizeOfLaunchParamsStruct = sizeOfStruct;
 }
 #endif
 
