@@ -14,6 +14,9 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
+// std
+#include <cstring> // memcpy
+// ours
 #include "transfunc.h"
 
 namespace dvr_course {
@@ -33,7 +36,7 @@ void Transfunc::setLUT(const std::vector<vec4f> &lut) {
     cudaMalloc(&rgbaLUT,sizeof(lut[0])*lut.size());
 #else
     std::free(rgbaLUT);
-    rgbaLUT = std::malloc(sizeof(lut[0])*lut.size());
+    rgbaLUT = (vec4f *)std::malloc(sizeof(lut[0])*lut.size());
 #endif
     size = (int)lut.size();
   }
@@ -50,8 +53,12 @@ std::vector<vec4f> Transfunc::getLUT() const {
   if (size <= 0) return {};
 
   std::vector<vec4f> lut(size);
+#ifdef RTCORE
   cudaMemcpy(lut.data(),rgbaLUT,sizeof(lut[0])*size,
              cudaMemcpyDeviceToHost);
+#else
+  std::memcpy(lut.data(),rgbaLUT,sizeof(lut[0])*size);
+#endif
   return lut;
 }
 
