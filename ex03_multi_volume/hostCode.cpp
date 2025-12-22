@@ -21,13 +21,8 @@ using namespace dvr_course;
 
 DECL_LAUNCH_PARAMS(ex03_multi_volume::LaunchParams)
 
-struct NVDB {
-  uint8_t *gridData{nullptr};
-};
-
 struct {
   std::vector<std::string> filepaths;
-  std::vector<NVDB> nvdbVolumes;
   std::vector<ex03_multi_volume::Volume> volumes;
   std::vector<Transfunc> transfuncs;
   float unitDistance;
@@ -80,16 +75,15 @@ extern "C" int main(int argc, char *argv[]) {
 //#ifdef RTCORE
 //#else
     for (int i=0; i<g_appState.filepaths.size(); ++i) {
-      NVDB nvdb;
       // TODO: not sure about the lifetime of those handles.. need to check?!
       nanovdb::GridHandle<nanovdb::HostBuffer> gridHandle;
       auto grid = nanovdb::io::readGrid(g_appState.filepaths[i]);
-      nvdb.gridData = (uint8_t *)std::malloc(grid.bufferSize() + NANOVDB_DATA_ALIGNMENT);
-      void *dataPtr = nanovdb::alignPtr(nvdb.gridData);
-      std::memcpy(nvdb.gridData, grid.data(), grid.bufferSize());
+      auto *gridData = (uint8_t *)std::malloc(grid.bufferSize() + NANOVDB_DATA_ALIGNMENT);
+      void *dataPtr = nanovdb::alignPtr(gridData);
+      std::memcpy(gridData, grid.data(), grid.bufferSize());
       auto buffer = nanovdb::HostBuffer::createFull(grid.bufferSize(), dataPtr);
       gridHandle = std::move(buffer);
-      g_appState.nvdbVolumes.push_back(nvdb);
+      std::free(gridData);
 //#endif
       // construct device-side volumes:
       auto boundsMin = gridHandle.gridMetaData()->worldBBox().min();

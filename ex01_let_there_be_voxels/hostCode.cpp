@@ -62,7 +62,6 @@ extern "C" int main(int argc, char *argv[]) {
     exit(-1);
   }
 
-  uint8_t *gridData{nullptr};
   nanovdb::GridHandle<nanovdb::HostBuffer> gridHandle;
 
   try {
@@ -70,11 +69,12 @@ extern "C" int main(int argc, char *argv[]) {
 
 #else
     auto grid = nanovdb::io::readGrid(g_appState.filepath);
-    gridData = (uint8_t *)std::malloc(grid.bufferSize() + NANOVDB_DATA_ALIGNMENT);
+    auto *gridData = (uint8_t *)std::malloc(grid.bufferSize() + NANOVDB_DATA_ALIGNMENT);
     void *dataPtr = nanovdb::alignPtr(gridData);
     std::memcpy(gridData, grid.data(), grid.bufferSize());
     auto buffer = nanovdb::HostBuffer::createFull(grid.bufferSize(), dataPtr);
     gridHandle = std::move(buffer);
+    std::free(gridData);
 #endif
   } catch (...) {
     printUsage();
