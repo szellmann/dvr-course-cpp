@@ -24,6 +24,7 @@ DECL_LAUNCH_PARAMS(ex03_multi_volume::LaunchParams)
 struct {
   std::vector<std::string> filepaths;
   std::vector<ex03_multi_volume::Volume> volumes;
+  std::vector<Buffer<uint8_t>> deviceGrids;
   std::vector<Transfunc> transfuncs;
   float unitDistance;
 } g_appState;
@@ -70,62 +71,61 @@ extern "C" int main(int argc, char *argv[]) {
     {-INFINITY,-INFINITY,-INFINITY}
   );
 
-  try {
-    // construct NVDB volumes:
-//#ifdef RTCORE
-//#else
-    for (int i=0; i<g_appState.filepaths.size(); ++i) {
-      // TODO: not sure about the lifetime of those handles.. need to check?!
-      nanovdb::GridHandle<nanovdb::HostBuffer> gridHandle;
+  // construct NVDB volumes:
+  for (int i=0; i<g_appState.filepaths.size(); ++i) {
+    nanovdb::GridHandle<nanovdb::HostBuffer> gridHandle;
+
+    try {
       auto grid = nanovdb::io::readGrid(g_appState.filepaths[i]);
-      auto *gridData = (uint8_t *)std::malloc(grid.bufferSize() + NANOVDB_DATA_ALIGNMENT);
-      void *dataPtr = nanovdb::alignPtr(gridData);
-      std::memcpy(gridData, grid.data(), grid.bufferSize());
-      auto buffer = nanovdb::HostBuffer::createFull(grid.bufferSize(), dataPtr);
-      gridHandle = std::move(buffer);
-      std::free(gridData);
-//#endif
-      // construct device-side volumes:
-      auto boundsMin = gridHandle.gridMetaData()->worldBBox().min();
-      auto boundsMax = gridHandle.gridMetaData()->worldBBox().max();
-      box3f volbounds({(float)boundsMin[0], (float)boundsMin[1], (float)boundsMin[2]},
-                      {(float)boundsMax[0], (float)boundsMax[1], (float)boundsMax[2]});
-
-      Volume volume;
-      volume.handle = gridHandle.grid<float>();
-      volume.filterLinear = true;
-      volume.bounds = volbounds;
-      g_appState.volumes.push_back(volume);
-
-      worldBounds.extend(volbounds);
-
-      // construct transfuncs:
-
-      // TODO: this won't allow us to load TFs from file anymore!!
-      // ...is this even a to-do?!
-      if (!pl.transfuncValid(i)) {
-        dvr_course::Transfunc tf;
-        tf.valueRange = {gridHandle.grid<float>()->tree().root().minimum(),
-                         gridHandle.grid<float>()->tree().root().maximum()};
-
-        tf.valueRange.lower
-          = fminf(tf.valueRange.lower, gridHandle.grid<float>()->tree().root().background());
-        tf.valueRange.upper
-          = fmaxf(tf.valueRange.upper, gridHandle.grid<float>()->tree().root().background());
-
-        vec3f rgb = 0.f;
-        rgb[i%3] = 1.f;
-        if (tf.valueRange.empty()) tf.valueRange = {0.f,1.f};
-        tf.setLUT(std::vector<vec4f>({
-          {rgb.r,rgb.g,rgb.b,0.f },
-          {rgb.r,rgb.g,rgb.b,1.f }
-        }));
-        g_appState.transfuncs.push_back(tf);
-      }
+      auto hostbuffer = nanovdb::HostBuffer::create(grid.bufferSize());
+      std::memcpy(hostbuffer.data(), grid.data(), grid.bufferSize());
+      gridHandle = std::move(hostbuffer);
+    } catch (const std::exception &e) {
+      std::cerr << e.what() << '\n';
+      printUsage();
+      exit(-1);
     }
-  } catch (...) {
-    printUsage();
-    exit(-1);
+
+    Buffer deviceGrid(gridHandle.bufferSize(), (uint8_t *)gridHandle.data());
+    g_appState.deviceGrids.push_back(deviceGrid);
+
+    // construct device-side volumes:
+    auto boundsMin = gridHandle.gridMetaData()->worldBBox().min();
+    auto boundsMax = gridHandle.gridMetaData()->worldBBox().max();
+    box3f volbounds({(float)boundsMin[0], (float)boundsMin[1], (float)boundsMin[2]},
+                    {(float)boundsMax[0], (float)boundsMax[1], (float)boundsMax[2]});
+
+    Volume volume;
+    volume.handle = (nanovdb::NanoGrid<float> *)deviceGrid.data();
+    volume.filterLinear = true;
+    volume.bounds = volbounds;
+    g_appState.volumes.push_back(volume);
+
+    worldBounds.extend(volbounds);
+
+    // construct transfuncs:
+
+    // TODO: this won't allow us to load TFs from file anymore!!
+    // ...is this even a to-do?!
+    if (!pl.transfuncValid(i)) {
+      dvr_course::Transfunc tf;
+      tf.valueRange = {gridHandle.grid<float>()->tree().root().minimum(),
+                       gridHandle.grid<float>()->tree().root().maximum()};
+
+      tf.valueRange.lower
+        = fminf(tf.valueRange.lower, gridHandle.grid<float>()->tree().root().background());
+      tf.valueRange.upper
+        = fmaxf(tf.valueRange.upper, gridHandle.grid<float>()->tree().root().background());
+
+      vec3f rgb = 0.f;
+      rgb[i%3] = 1.f;
+      if (tf.valueRange.empty()) tf.valueRange = {0.f,1.f};
+      tf.setLUT(std::vector<vec4f>({
+        {rgb.r,rgb.g,rgb.b,0.f },
+        {rgb.r,rgb.g,rgb.b,1.f }
+      }));
+      g_appState.transfuncs.push_back(tf);
+    }
   }
 
   int imgWidth=512, imgHeight=512;
