@@ -22,7 +22,9 @@
 #include <cstdio>
 #include <cstring>
 // cuda
+#ifdef RTCORE
 #include <cuda_runtime.h>
+#endif
 
 namespace dvr_course {
 
@@ -48,6 +50,66 @@ struct Buffer {
 #else
     std::free(data_);
 #endif
+  }
+
+  Buffer(const Buffer &other) : size_(other.size_)
+  {
+    if (&other != this) {
+#ifdef RTCORE
+      cudaMalloc(&data_,size_*sizeof(T));
+      cudaMemcpy(data_,other.data_,size_*sizeof(T),cudaMemcpyDefault);
+#else
+      data_ = (T *)std::malloc(size_*sizeof(T));
+      std::memcpy(data_,other.data_,size_*sizeof(T));
+#endif
+    }
+  }
+
+  Buffer(Buffer &&other) : size_(other.size_)
+  {
+    if (&other != this) {
+#ifdef RTCORE
+      cudaMalloc(&data_,size_*sizeof(T));
+      cudaMemcpy(data_,other.data_,size_*sizeof(T),cudaMemcpyDefault);
+#else
+      data_ = (T *)std::malloc(size_*sizeof(T));
+      std::memcpy(data_,other.data_,size_*sizeof(T));
+#endif
+      other.data_ = nullptr;
+      other.size_ = 0;
+    }
+  }
+
+  Buffer &operator=(const Buffer &other)
+  {
+    if (&other != this) {
+      size_ = other.size_;
+#ifdef RTCORE
+      cudaMalloc(&data_,size_*sizeof(T));
+      cudaMemcpy(data_,other.data_,size_*sizeof(T),cudaMemcpyDefault);
+#else
+      data_ = (T *)std::malloc(size_*sizeof(T));
+      std::memcpy(data_,other.data_,size_*sizeof(T));
+#endif
+    }
+    return *this;
+  }
+
+  Buffer &operator=(Buffer &&other)
+  {
+    if (&other != this) {
+      size_ = other.size_;
+#ifdef RTCORE
+      cudaMalloc(&data_,size_*sizeof(T));
+      cudaMemcpy(data_,other.data_,size_*sizeof(T),cudaMemcpyDefault);
+#else
+      data_ = (T *)std::malloc(size_*sizeof(T));
+      std::memcpy(data_,other.data_,size_*sizeof(T));
+#endif
+      other.data_ = nullptr;
+      other.size_ = 0;
+    }
+    return *this;
   }
 
   T *data() const {

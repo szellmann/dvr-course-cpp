@@ -30,6 +30,15 @@ struct Frame
   Frame(int w, int h);
   ~Frame();
 
+  // not copyable:
+  // (the frame could be copyable, but for now we ensure
+  //  it's not copied to avoid having to deal with it
+  //  in the first place..)
+  Frame(const Frame &) = delete;
+  Frame(Frame &&) = delete;
+  Frame &operator=(const Frame &) = delete;
+  Frame &operator=(Frame &&) = delete;
+
   void resize(int w, int h);
 
   uint32_t *fbPointer{nullptr};

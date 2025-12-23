@@ -21,6 +21,80 @@
 
 namespace dvr_course {
 
+Transfunc::Transfunc(const Transfunc &other)
+  : opacity(other.opacity),
+    valueRange(other.valueRange),
+    relRange(other.relRange),
+    size(other.size) {
+  if (&other != this) {
+#ifdef RTCORE
+    cudaMalloc(&rgbaLUT,sizeof(rgbaLUT[0])*size);
+    cudaMemcpy(rgbaLUT,other.rgbaLUT,sizeof(rgbaLUT[0])*size,cudaMemcpyDefault);
+#else
+    rgbaLUT = (vec4f *)std::malloc(sizeof(rgbaLUT[0])*size);
+    std::memcpy(rgbaLUT,other.rgbaLUT,sizeof(rgbaLUT[0])*size);
+#endif
+  }
+}
+
+Transfunc::Transfunc(Transfunc &&other)
+  : opacity(other.opacity),
+    valueRange(other.valueRange),
+    relRange(other.relRange),
+    size(other.size) {
+  if (&other != this) {
+#ifdef RTCORE
+    cudaMalloc(&rgbaLUT,sizeof(rgbaLUT[0])*size);
+    cudaMemcpy(rgbaLUT,other.rgbaLUT,sizeof(rgbaLUT[0])*size,cudaMemcpyDefault);
+#else
+    rgbaLUT = (vec4f *)std::malloc(sizeof(rgbaLUT[0])*size);
+    std::memcpy(rgbaLUT,other.rgbaLUT,sizeof(rgbaLUT[0])*size);
+#endif
+    other.opacity = 0.f;
+    other.valueRange = {0.f,0.f};
+    other.rgbaLUT = nullptr;
+    other.size = 0;
+  }
+}
+
+Transfunc &Transfunc::operator=(const Transfunc &other) {
+  if (&other != this) {
+    opacity = other.opacity;
+    valueRange = other.valueRange;
+    relRange = other.relRange;
+    size = other.size;
+#ifdef RTCORE
+    cudaMalloc(&rgbaLUT,sizeof(rgbaLUT[0])*size);
+    cudaMemcpy(rgbaLUT,other.rgbaLUT,sizeof(rgbaLUT[0])*size,cudaMemcpyDefault);
+#else
+    rgbaLUT = (vec4f *)std::malloc(sizeof(rgbaLUT[0])*size);
+    std::memcpy(rgbaLUT,other.rgbaLUT,sizeof(rgbaLUT[0])*size);
+#endif
+  }
+  return *this;
+}
+
+Transfunc &Transfunc::operator=(Transfunc &&other) {
+  if (&other != this) {
+    opacity = other.opacity;
+    valueRange = other.valueRange;
+    relRange = other.relRange;
+    size = other.size;
+#ifdef RTCORE
+    cudaMalloc(&rgbaLUT,sizeof(rgbaLUT[0])*size);
+    cudaMemcpy(rgbaLUT,other.rgbaLUT,sizeof(rgbaLUT[0])*size,cudaMemcpyDefault);
+#else
+    rgbaLUT = (vec4f *)std::malloc(sizeof(rgbaLUT[0])*size);
+    std::memcpy(rgbaLUT,other.rgbaLUT,sizeof(rgbaLUT[0])*size);
+#endif
+    other.opacity = 0.f;
+    other.valueRange = {0.f,0.f};
+    other.rgbaLUT = nullptr;
+    other.size = 0;
+  }
+  return *this;
+}
+
 Transfunc::~Transfunc() {
 #ifdef RTCORE
   cudaFree(rgbaLUT);

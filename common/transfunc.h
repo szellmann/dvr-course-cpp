@@ -29,13 +29,19 @@ using namespace vecmath;
 struct Transfunc
 {
   float opacity{1.f};
-  box1f valueRange{0.1,1.f};
-  box1f relRange{0.1,1.f};
+  box1f valueRange{0.f,1.f};
+  box1f relRange{0.f,1.f};
   // data:
   vec4f *rgbaLUT{nullptr};
   int size{0};
 
+  Transfunc() = default;
+  Transfunc(const Transfunc &other);
+  Transfunc(Transfunc &&other);
   ~Transfunc();
+  Transfunc &operator=(const Transfunc &other);
+  Transfunc &operator=(Transfunc &&other);
+
   // set LUT (device upload)
   void setLUT(const std::vector<vec4f> &lut);
   // get LUT (download from device)
