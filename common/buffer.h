@@ -39,12 +39,21 @@ struct Buffer {
   Buffer(size_t size, OWLDataType owlType, const T *ptr)
     : size(size), owlType(owlType)
   {
-    data = new T[size];
+#ifdef RTCORE
+    cudaMalloc(&data,size*sizeof(T));
+    cudaMemcpy(data,ptr,size*sizeof(T),cudaMemcpyDefault);
+#else
+    data = (T *)std::malloc(size*sizeof(T));
     std::memcpy(data,ptr,size*sizeof(T));
+#endif
   }
 
   ~Buffer() {
-    delete[] data;
+#ifdef RTCORE
+    cudaFree(data);
+#else
+    std::free(data);
+#endif
   }
 
   T *getPointer() const {

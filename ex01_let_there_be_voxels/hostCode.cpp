@@ -14,6 +14,9 @@
 
 // ex01:
 #include "Params.h"
+#ifdef RTCORE
+#include "Params-owl.h"
+#endif
 
 // common namespace for helper classes:
 // Camera, FB, wrappers for RTX execution model, etc. etc.
@@ -65,21 +68,19 @@ extern "C" int main(int argc, char *argv[]) {
   nanovdb::GridHandle<nanovdb::HostBuffer> gridHandle;
 
   try {
-#ifdef RTCORE
-
-#else
     auto grid = nanovdb::io::readGrid(g_appState.filepath);
-    auto *gridData = (uint8_t *)std::malloc(grid.bufferSize() + NANOVDB_DATA_ALIGNMENT);
-    void *dataPtr = nanovdb::alignPtr(gridData);
-    std::memcpy(gridData, grid.data(), grid.bufferSize());
-    auto buffer = nanovdb::HostBuffer::createFull(grid.bufferSize(), dataPtr);
-    gridHandle = std::move(buffer);
-    std::free(gridData);
-#endif
-  } catch (...) {
+    auto hostbuffer = nanovdb::HostBuffer::create(grid.bufferSize());
+    std::memcpy(hostbuffer.data(), grid.data(), grid.bufferSize());
+    gridHandle = std::move(hostbuffer);
+  } catch (const std::exception &e) {
+    std::cerr << e.what() << '\n';
     printUsage();
     exit(-1);
   }
+
+  Buffer deviceGrid(gridHandle.bufferSize(),
+                    OWL_RAW_POINTER,
+                    (uint8_t *)gridHandle.data());
 
   auto boundsMin = gridHandle.gridMetaData()->worldBBox().min();
   auto boundsMax = gridHandle.gridMetaData()->worldBBox().max();
@@ -122,6 +123,7 @@ extern "C" int main(int argc, char *argv[]) {
 
 #ifdef RTCORE
   pl.setRayGen(ptxCode, "simpleRayMarcher");
+  pl.setLaunchParamsDecl(launchParams_owl, sizeof(LaunchParams));
 #else
   pl.setRayGen(simpleRayMarcher);
 #endif
@@ -129,7 +131,7 @@ extern "C" int main(int argc, char *argv[]) {
   LaunchParams parms;
 
   // volume
-  pl.launchParam("volume.handle", (RawPointer &)parms.volume.handle) = gridHandle.grid<float>();
+  pl.launchParam("volume.handle", (RawPointer &)parms.volume.handle) = (nanovdb::NanoGrid<float> *)deviceGrid.getPointer();
   pl.launchParam("volume.filterLinear", parms.volume.filterLinear) = true;
   pl.launchParam("volume.bounds", parms.volume.bounds) = volbounds;
   // lighting

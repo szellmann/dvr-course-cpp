@@ -52,6 +52,7 @@ OWLVarDecl rayGenVars[]
 template<typename T>
 OWLDataType mapOwlType(const T &t) { return OWL_USER_TYPE(t); }
 OWLDataType mapOwlType(RawPointer) { return OWL_RAW_POINTER; }
+OWLDataType mapOwlType(bool) { return OWL_BOOL; }
 OWLDataType mapOwlType(float) { return OWL_FLOAT; }
 OWLDataType mapOwlType(vecmath::vec2f) { return OWL_FLOAT2; }
 OWLDataType mapOwlType(vecmath::vec3f) { return OWL_FLOAT3; }
@@ -259,6 +260,10 @@ struct Pipeline::Impl
       else if (lp.type == OWL_INT) {
         int i1 = *(int *)lp.value;
         owlParamsSet1i(owl.launchParams, name.c_str(), i1);
+      }
+      else if (lp.type == OWL_BOOL) {
+        bool b1 = *(bool *)lp.value;
+        owlParamsSet1b(owl.launchParams, name.c_str(), b1);
       }
       else if (lp.type == OWL_RAW_POINTER) {
         char **raw = (char **)lp.value;
