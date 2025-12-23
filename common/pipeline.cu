@@ -28,6 +28,10 @@
 # define STB_IMAGE_WRITE_IMPLEMENTATION
 # include "stb/stb_image_write.h"
 #endif
+// owl
+#ifdef RTCORE
+#include <owl/owl.h>
+#endif
 // ours
 #include "pipeline.h"
 #include "thread_pool.h"

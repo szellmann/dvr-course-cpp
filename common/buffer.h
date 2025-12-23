@@ -21,57 +21,45 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
-// ours
-#ifdef RTCORE
-# include <owl/owl.h>
-#else
-# include "owl-interop.h"
-#endif
+// cuda
+#include <cuda_runtime.h>
 
 namespace dvr_course {
 
 // ========================================================
 // Wrapper to pass arrays between host and device code
-// TODO: also meant to wrap owl buffers later!
 // ========================================================
 template <typename T>
 struct Buffer {
-  Buffer(size_t size, OWLDataType owlType, const T *ptr)
-    : size(size), owlType(owlType)
+  Buffer(size_t size, const T *ptr) : size_(size)
   {
 #ifdef RTCORE
-    cudaMalloc(&data,size*sizeof(T));
-    cudaMemcpy(data,ptr,size*sizeof(T),cudaMemcpyDefault);
+    cudaMalloc(&data_,size_*sizeof(T));
+    cudaMemcpy(data_,ptr,size_*sizeof(T),cudaMemcpyDefault);
 #else
-    data = (T *)std::malloc(size*sizeof(T));
-    std::memcpy(data,ptr,size*sizeof(T));
+    data_ = (T *)std::malloc(size_*sizeof(T));
+    std::memcpy(data_,ptr,size_*sizeof(T));
 #endif
   }
 
   ~Buffer() {
 #ifdef RTCORE
-    cudaFree(data);
+    cudaFree(data_);
 #else
-    std::free(data);
+    std::free(data_);
 #endif
   }
 
-  T *getPointer() const {
-    return data;
+  T *data() const {
+    return data_;
   }
 
-  size_t getSize() const
-  { return size; }
+  size_t size() const
+  { return size_; }
 
-  T *data{nullptr};
-  size_t size{0ull};
-  /* we want the type as tempalte _and_ as owl type:
-    plain memory buffers are too hard to deal with in
-    terms of alignment issues, e.g., making sure to store
-    a nvdb grid with proper alignment in a byte array isn't
-    that simple, at the same time, OWL does just that, so
-    this is that... */
-  OWLDataType owlType{OWL_INVALID_TYPE};
+ private:
+  T *data_{nullptr};
+  size_t size_{0ull};
 };
 
 } // dvr_course

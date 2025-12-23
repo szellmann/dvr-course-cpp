@@ -136,8 +136,7 @@ extern "C" int main(int argc, char *argv[]) {
   cam.viewAll(worldBounds);
   pl.setCamera(&cam);
 
-  Buffer volumeBuffer(
-      g_appState.volumes.size(), OWL_USER_TYPE(Volume), g_appState.volumes.data());
+  Buffer volumeBuffer(g_appState.volumes.size(), g_appState.volumes.data());
 
   std::vector<ex03_multi_volume::Transfunc> deviceTransfuncs(g_appState.transfuncs.size());
   for (int i=0; i<g_appState.transfuncs.size(); ++i) {
@@ -156,8 +155,8 @@ extern "C" int main(int argc, char *argv[]) {
   LaunchParams parms;
 
   // volumes
-  pl.launchParam("volumes", (RawPointer &)parms.volumes) = (Volume *)volumeBuffer.getPointer();
-  pl.launchParam("numVolumes", parms.numVolumes) = volumeBuffer.getSize();
+  pl.launchParam("volumes", (RawPointer &)parms.volumes) = (Volume *)volumeBuffer.data();
+  pl.launchParam("numVolumes", parms.numVolumes) = volumeBuffer.size();
   // lighting
   pl.launchParam("ambientColor", parms.ambientColor) = vec3f(1.f);
   pl.launchParam("ambientRadiance", parms.ambientRadiance) = 1.f;
@@ -209,9 +208,7 @@ extern "C" int main(int argc, char *argv[]) {
       deviceTransfuncs[i].size = pl.getTransfunc(i)->size;
       deviceTransfuncs[i].values = pl.getTransfunc(i)->rgbaLUT;
     }
-    Buffer transfuncBuffer(deviceTransfuncs.size(),
-                           OWL_USER_TYPE(ex03_multi_volume::Transfunc),
-                           deviceTransfuncs.data());
+    Buffer transfuncBuffer(deviceTransfuncs.size(), deviceTransfuncs.data());
 
     // update camera:
     pl.launchParam("camera.org", parms.camera.org) = cam.getPosition();
@@ -220,7 +217,7 @@ extern "C" int main(int argc, char *argv[]) {
     pl.launchParam("camera.dir_dv", parms.camera.dir_dv) = screen.vertical / imgHeight;
     // update transfuncs:
     pl.launchParam("transfuncs", (RawPointer &)parms.transfuncs)
-        = (ex03_multi_volume::Transfunc *)transfuncBuffer.getPointer();
+        = (ex03_multi_volume::Transfunc *)transfuncBuffer.data();
     // update framebuffer:
     pl.launchParam("fbPointer", (RawPointer &)parms.fbPointer) = fb.fbPointer;
     pl.launchParam("fbDepth", (RawPointer &)parms.fbDepth) = fb.fbDepth;

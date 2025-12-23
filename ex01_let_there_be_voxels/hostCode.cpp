@@ -78,9 +78,7 @@ extern "C" int main(int argc, char *argv[]) {
     exit(-1);
   }
 
-  Buffer deviceGrid(gridHandle.bufferSize(),
-                    OWL_RAW_POINTER,
-                    (uint8_t *)gridHandle.data());
+  Buffer deviceGrid(gridHandle.bufferSize(), (uint8_t *)gridHandle.data());
 
   auto boundsMin = gridHandle.gridMetaData()->worldBBox().min();
   auto boundsMax = gridHandle.gridMetaData()->worldBBox().max();
@@ -131,7 +129,7 @@ extern "C" int main(int argc, char *argv[]) {
   LaunchParams parms;
 
   // volume
-  pl.launchParam("volume.handle", (RawPointer &)parms.volume.handle) = (nanovdb::NanoGrid<float> *)deviceGrid.getPointer();
+  pl.launchParam("volume.handle", (RawPointer &)parms.volume.handle) = (nanovdb::NanoGrid<float> *)deviceGrid.data();
   pl.launchParam("volume.filterLinear", parms.volume.filterLinear) = true;
   pl.launchParam("volume.bounds", parms.volume.bounds) = volbounds;
   // lighting

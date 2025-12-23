@@ -20,7 +20,9 @@
 // ours
 #include "vecmath.h"
 
+#ifndef __both__
 #define __both__ __host__ __device__
+#endif
 
 namespace dvr_course {
 
