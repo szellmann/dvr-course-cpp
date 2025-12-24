@@ -148,7 +148,7 @@ struct Pipeline::Impl
 #ifdef INTERACTIVE
     if (!transfuncs.empty()) {
       tfe.resize(1);
-      tfe[0].setLookupTable(transfuncs[0]->getLUT());
+      tfe[0].init(*transfuncs[0]);
     }
 #endif
   }
@@ -305,7 +305,7 @@ struct Pipeline::Impl
     transfuncs[index] = tf;
     assert(transfuncs[index] != nullptr);
 #ifdef INTERACTIVE
-    tfe[index].setLookupTable(transfuncs[index]->getLUT());
+    tfe[index].init(*transfuncs[index]);
 #else
     if (transfuncs[index]->size < 300) {
       std::vector<vec4f> newLUT(300);
@@ -623,9 +623,15 @@ void Pipeline::launch() {
 
 #ifdef INTERACTIVE
   int tfID = impl->tfID;
-  if (transfuncValid(tfID) && impl->tfe[tfID].updated()) {
-    impl->transfuncs[tfID]->setLUT(impl->tfe[tfID].getUpdatedLookupTable());
-    resetAccum = true;
+  if (transfuncValid(tfID)) {
+    if (impl->tfe[tfID].lutUpdated()) {
+      impl->transfuncs[tfID]->setLUT(impl->tfe[tfID].getLUT());
+      resetAccum = true;
+    }
+    if (impl->tfe[tfID].rangeUpdated()) {
+      impl->transfuncs[tfID]->valueRange = impl->tfe[tfID].getRange();
+      resetAccum = true;
+    }
   }
 #endif
 
