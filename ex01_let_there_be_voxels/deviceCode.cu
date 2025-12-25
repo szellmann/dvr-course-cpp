@@ -42,9 +42,9 @@ inline  __device__ Ray generateRay(const vec2f screen, Random &rnd)
     + (screen.u+rnd()) * lp.camera.dir_du
     + (screen.v+rnd()) * lp.camera.dir_dv;
   dir = normalize(dir);
-  if (fabs(dir.x) < 1e-5f) dir.x = 1e-5f;
-  if (fabs(dir.y) < 1e-5f) dir.y = 1e-5f;
-  if (fabs(dir.z) < 1e-5f) dir.z = 1e-5f;
+  if (fabsf(dir.x) < 1e-5f) dir.x = 1e-5f;
+  if (fabsf(dir.y) < 1e-5f) dir.y = 1e-5f;
+  if (fabsf(dir.z) < 1e-5f) dir.z = 1e-5f;
   return Ray(org,dir,0.f,1e10f);
 }
 
