@@ -600,14 +600,11 @@ void Pipeline::uiParam(std::string name, float *f, float minf, float maxf) {
   impl->uiParam({name,f,minf,maxf});
 }
 
-void Pipeline::launch() {
+bool Pipeline::isRunning() {
   if (!isValid()) {
     fprintf(stderr,"Pipeline invalid, aborting...\n");
     abort();
   }
-
-  if (!running)
-    impl->init(fb, camera);
 
   bool quit = false, cameraUpdate = false, windowResize = false;
   impl->pollEvents(quit,cameraUpdate,windowResize);
@@ -615,6 +612,9 @@ void Pipeline::launch() {
 #ifndef INTERACTIVE
   running = (frameID < impl->sampleLimit-1);
 #endif
+
+  if (!running)
+    return false;
 
   bool resetAccum = false;
 
@@ -634,6 +634,27 @@ void Pipeline::launch() {
     }
   }
 #endif
+
+  if (resetAccum)
+    frameID = 0;
+  else
+    frameID++;
+
+  return running;
+}
+
+void Pipeline::launch() {
+  if (!isValid()) {
+    fprintf(stderr,"Pipeline invalid, aborting...\n");
+    abort();
+  }
+
+  if (!running) {
+    impl->init(fb, camera);
+    // as side effect, isRunning() polls events for the first time:
+    isRunning();
+    // fall-through (first time is always running):
+  }
 
 #ifdef RTCORE
   impl->updateLaunchParams();
@@ -657,11 +678,6 @@ void Pipeline::launch() {
       });
 #endif
   }
-
-  if (resetAccum)
-    frameID = 0;
-  else
-    frameID++;
 }
 
 void Pipeline::present() const {

@@ -100,8 +100,8 @@ struct Pipeline {
   void uiParam(std::string name, float *f, float minf, float maxf);
 
   // Interface
-  bool isRunning() const { return running; }
   bool isValid() const { return fb != nullptr && camera != nullptr; }
+  bool isRunning();
   void launch();
   void present() const;
   void resetAccumulation();
