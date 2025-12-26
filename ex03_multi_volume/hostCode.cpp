@@ -96,7 +96,6 @@ extern "C" int main(int argc, char *argv[]) {
                     {(float)boundsMax[0], (float)boundsMax[1], (float)boundsMax[2]});
 
     Volume volume;
-    volume.handle = (nanovdb::NanoGrid<float> *)deviceGrid.data();
     volume.filterLinear = true;
     volume.bounds = volbounds;
     g_appState.volumes.push_back(volume);
@@ -126,6 +125,12 @@ extern "C" int main(int argc, char *argv[]) {
       }));
       g_appState.transfuncs.push_back(tf);
     }
+  }
+
+  // assign volume handles:
+  for (int i=0; i<g_appState.deviceGrids.size(); ++i) {
+    Volume &volume = g_appState.volumes[i];
+    volume.handle = (nanovdb::NanoGrid<float> *)g_appState.deviceGrids[i].data();
   }
 
   int imgWidth=512, imgHeight=512;
