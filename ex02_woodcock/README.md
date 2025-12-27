@@ -10,4 +10,4 @@ interpret RGB as albedo and alpha as extinction coefficient.
 
 ## TODOs:
 - [x] Implement CPU code path (first light)
-- [ ] Implement OWL code path
+- [x] Implement OWL code path

@@ -9,7 +9,7 @@ shaders.
 ## TODOs:
 - [x] Lay out simple host/device architecture, marcher in ray gen prog
 - [x] Implement CPU code path
-- [ ] Implement OWL code path
+- [x] Implement OWL code path
 - [x] Common: allow for building with an interactive pipeline (optional)
       that has a viewing window and ImGui TFE
 - [x] Common: named pipelines, used as basename for PNGs

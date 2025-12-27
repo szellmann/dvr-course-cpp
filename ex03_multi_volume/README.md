@@ -5,5 +5,5 @@ tracking.
 
 ## TODOs:
 - [x] Implement CPU code path (first light)
-- [ ] Implement OWL code path
+- [x] Implement OWL code path
 - [ ] Decide whether we keep the "blending" mode or not; not sure if it adds to the story
