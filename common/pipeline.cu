@@ -15,6 +15,7 @@
 // ======================================================================== //
 
 // std
+#include <climits>
 #include <fstream>
 #include <map>
 #ifdef INTERACTIVE
