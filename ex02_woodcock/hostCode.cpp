@@ -12,7 +12,7 @@
 // Header with common resources; .h: host, .cuh: device
 #include <dvr_course-common.h>
 
-// ex01:
+// ex02:
 #include "Params.h"
 #ifdef RTCORE
 #include "Params-owl.h"

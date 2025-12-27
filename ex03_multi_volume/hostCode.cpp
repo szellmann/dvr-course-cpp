@@ -12,8 +12,11 @@
 // Header with common resources; .h: host, .cuh: device
 #include <dvr_course-common.h>
 
-// ex01:
+// ex03:
 #include "Params.h"
+#ifdef RTCORE
+#include "Params-owl.h"
+#endif
 
 // common namespace for helper classes:
 // Camera, FB, wrappers for RTX execution model, etc. etc.
@@ -153,6 +156,7 @@ extern "C" int main(int argc, char *argv[]) {
 
 #ifdef RTCORE
   pl.setRayGen(ptxCode, "multiVolumeWoodcock");
+  pl.setLaunchParamsDecl(launchParams_owl, sizeof(LaunchParams));
 #else
   pl.setRayGen(multiVolumeWoodcock);
 #endif
