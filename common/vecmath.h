@@ -1002,6 +1002,13 @@ struct  box3f
   }
 
   inline __host__ __device__
+  box3f &extend(const vec3f &v) {
+    lower = min(lower,v);
+    upper = max(upper,v);
+    return *this;
+  }
+
+  inline __host__ __device__
   box3f &extend(const box3f &other) {
     lower = min(lower,other.lower);
     upper = max(upper,other.upper);
