@@ -18,7 +18,7 @@
 #include <nanovdb/math/SampleFromVoxels.h>
 // common
 #include <dvr_course-common.cuh>
-// ex01
+// ex03
 #include "Params.h"
 
 using namespace dvr_course;

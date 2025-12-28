@@ -18,13 +18,13 @@
 #include <nanovdb/math/SampleFromVoxels.h>
 // common
 #include <dvr_course-common.cuh>
-// ex01
+// ex05
 #include "Params.h"
 
 using namespace dvr_course;
 
 // ========================================================
-// device code for example 02: woodcock
+// device code for example 05: hey_icon
 // ========================================================
 namespace ex05_hey_icon {
 
