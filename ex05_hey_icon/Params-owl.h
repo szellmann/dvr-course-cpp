@@ -26,7 +26,7 @@ namespace ex05_hey_icon {
 OWLVarDecl launchParams_owl[]
 = {
    // volume
-   { "volume.handle",  OWL_RAW_POINTER, OWL_OFFSETOF(LaunchParams,volume.handle) },
+   { "volume.handle",  OWL_GROUP, OWL_OFFSETOF(LaunchParams,volume.handle) },
    { "volume.bounds", OWL_USER_TYPE(box3f), OWL_OFFSETOF(LaunchParams,volume.bounds) },
    // xf data
    { "transfunc.valueRange", OWL_USER_TYPE(box1f), OWL_OFFSETOF(LaunchParams,transfunc.valueRange) },

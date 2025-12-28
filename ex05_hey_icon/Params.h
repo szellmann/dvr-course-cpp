@@ -30,7 +30,11 @@ using namespace vecmath;
 namespace ex05_hey_icon {
 
 struct Volume {
+#ifdef RTCORE
+  OptixTraversableHandle handle;
+#else
   ICONGrid *handle;
+#endif
   box3f bounds;
 };
 

@@ -48,13 +48,38 @@ inline  __device__ Ray generateRay(const vec2f screen, Random &rnd)
   return Ray(org,dir,0.f,1e10f);
 }
 
+#ifdef RTCORE
+struct PRD {
+  float value;
+  unsigned primID;
+};
+#endif
+
 inline __device__ bool sampleVolume(const Volume &vol, vec3f pos, float &value)
 {
-  // sample ICON grid
+#ifdef RTCORE
+  PRD prd;
+  prd.value = 0.f;
+  prd.primID = ~0u;
+  owl::Ray ray;
+  ray.origin = owl::vec3f(pos.x,pos.y,pos.z);
+  ray.direction = owl::vec3f(1.f);
+  ray.tmin = ray.tmax = 0.f;
+  owl::traceRay(vol.handle,ray,prd,OPTIX_RAY_FLAG_DISABLE_ANYHIT);
+  if (prd.primID != ~0u) {
+    value = prd.value;
+    return true;
+  } else {
+    return false;
+  }
+#else
+  // on non-RT hardware we resort to just linearly
+  // iterating over all primitives (veeeryy slow...)
   for (unsigned i=0; i<vol.handle->numCells; ++i) {
     if (sample(vol.handle->cells[i],pos,value))
       return true;
   }
+#endif
   return false;
 }
 
@@ -67,6 +92,47 @@ inline __device__ vec4f postClassify(Transfunc tf, float v)
   vec4f v2 = tf.values[clamp(idx+1,0,tf.size-1)];
   return v1*frac+v2*(1.f-frac);
 }
+
+// ========================================================
+// OptiX ICON geometry (only when using OWL!)
+// ========================================================
+#ifdef RTCORE
+OPTIX_BOUNDS_PROGRAM(ICONCellBounds)(const void *geomData,
+                                     owl::box3f &result, // mind the owl:: namespace!
+                                     int leafID)
+{
+  const ICONGrid &self = *(const ICONGrid *)geomData;
+  //result = ...[leafID];
+  auto b = self.cells[leafID].getBounds();
+  result = owl::box3f({b.lower.x,b.lower.y,b.lower.z},
+                      {b.upper.x,b.upper.y,b.upper.z});
+}
+
+OPTIX_INTERSECT_PROGRAM(ICONCellIntersect)()
+{
+  const ICONGrid &self = owl::getProgramData<ICONGrid>();
+  int leafID = optixGetPrimitiveIndex();
+  owl::Ray ray(optixGetObjectRayOrigin(),
+               optixGetObjectRayDirection(),
+               optixGetRayTmin(),
+               optixGetRayTmax());
+
+  vec3f pos(ray.origin.x,ray.origin.y,ray.origin.z);
+  float value{0.f};
+  if (sample(self.cells[leafID],pos,value)) {
+    if (optixReportIntersection(ray.tmin, 0)) {
+      PRD &prd = owl::getPRD<PRD>();
+      prd.value = value;
+      prd.primID = leafID;
+    }
+  }
+}
+
+OPTIX_CLOSEST_HIT_PROGRAM(ICONCellClosestHit)()
+{
+  // empty
+}
+#endif
 
 // ========================================================
 // Main ray gen prog (woodcock tracking, A+E)

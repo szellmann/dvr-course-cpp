@@ -23,6 +23,32 @@ using namespace vecmath;
 
 namespace ex05_hey_icon {
 
+inline __host__ __device__ float deg2rad(float d)
+{
+  return d*float(M_PI)/180.f;
+}
+
+inline __host__ __device__ vec3f toSpherical(const vec3f cartesian)
+{
+  float r = length(cartesian);
+  float lat = asinf(cartesian.z/r);
+  float lon = atan2f(cartesian.y, cartesian.x);
+  return {r,lat,lon};
+}
+
+inline __host__ __device__ vec3f toCartesian(const vec3f spherical)
+{
+  const float r = spherical.x;
+  const float lat = spherical.y;
+  const float lon = spherical.z;
+
+  float x = r * cosf(lat) * cosf(lon);
+  float y = r * cosf(lat) * sinf(lon);
+  float z = r * sinf(lat);
+  return {x,y,z};
+}
+
+
 #define MAX_LAYERS 32
 
 struct ICONCell {
@@ -43,32 +69,39 @@ struct ICONCell {
 
   // Value per layer
   float value[MAX_LAYERS];
+
+  inline __host__ __device__
+  box3f getBounds() const {
+
+    // TODO: implement this using midpoint slerp!!
+
+    float r = 0.f;//height[numLayers-1]-height[0];
+
+    // bottom triangle vertices
+    vec3f bv1 = toCartesian({height[0],lat.x,lon.x});
+    vec3f bv2 = toCartesian({height[0],lat.y,lon.y});
+    vec3f bv3 = toCartesian({height[0],lat.z,lon.z});
+
+    // top triangle vertices
+    vec3f tv1 = toCartesian({height[numLayers-1],lat.x,lon.x});
+    vec3f tv2 = toCartesian({height[numLayers-1],lat.y,lon.y});
+    vec3f tv3 = toCartesian({height[numLayers-1],lat.z,lon.z});
+
+    box3f bounds(
+      {INFINITY,INFINITY,INFINITY},
+      {-INFINITY,-INFINITY,-INFINITY}
+    );
+
+    bounds.extend(bv1-r); bounds.extend(bv1+r);
+    bounds.extend(bv2-r); bounds.extend(bv2+r);
+    bounds.extend(bv3-r); bounds.extend(bv3+r);
+    bounds.extend(tv1-r); bounds.extend(tv1+r);
+    bounds.extend(tv2-r); bounds.extend(tv2+r);
+    bounds.extend(tv3-r); bounds.extend(tv3+r);
+
+    return bounds;
+  }
 };
-
-inline __host__ __device__ float deg2rad(float d)
-{
-  return d*float(M_PI)/180.f;
-}
-
-inline __device__ vec3f toSpherical(const vec3f cartesian)
-{
-  float r = length(cartesian);
-  float lat = asinf(cartesian.z/r);
-  float lon = atan2f(cartesian.y, cartesian.x);
-  return {r,lat,lon};
-}
-
-inline __device__ vec3f toCartesian(const vec3f spherical)
-{
-  const float r = spherical.x;
-  const float lat = spherical.y;
-  const float lon = spherical.z;
-
-  float x = r * cosf(lat) * cosf(lon);
-  float y = r * cosf(lat) * sinf(lon);
-  float z = r * sinf(lat);
-  return {x,y,z};
-}
 
 typedef vec4f Plane;
 

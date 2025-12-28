@@ -75,9 +75,6 @@ extern "C" int main(int argc, char *argv[]) {
   numCells = in.tellg()/sizeof(ICONCell);
   in.seekg(0,in.beg);
 
-  numCells = 8;
-  std::cout << "Momentarily ownly loading " << numCells << " cells.. stay tuned!\n";
-
   std::vector<ICONCell> cells(numCells);
   in.read((char *)cells.data(),sizeof(ICONCell)*numCells);
 
@@ -103,24 +100,7 @@ extern "C" int main(int argc, char *argv[]) {
     cell.height[3] = 6.372829f;
     cell.height[4] = 6.372929f;
 
-    float r = cell.height[cell.numLayers-1]-cell.height[0];
-
-    // bottom triangle vertices
-    vec3f bv1 = toCartesian({cell.height[0],cell.lat.x,cell.lon.x});
-    vec3f bv2 = toCartesian({cell.height[0],cell.lat.y,cell.lon.y});
-    vec3f bv3 = toCartesian({cell.height[0],cell.lat.z,cell.lon.z});
-
-    // top triangle vertices
-    vec3f tv1 = toCartesian({cell.height[cell.numLayers-1],cell.lat.x,cell.lon.x});
-    vec3f tv2 = toCartesian({cell.height[cell.numLayers-1],cell.lat.y,cell.lon.y});
-    vec3f tv3 = toCartesian({cell.height[cell.numLayers-1],cell.lat.z,cell.lon.z});
-
-    volbounds.extend(bv1-r); volbounds.extend(bv1+r);
-    volbounds.extend(bv2-r); volbounds.extend(bv2+r);
-    volbounds.extend(bv3-r); volbounds.extend(bv3+r);
-    volbounds.extend(tv1-r); volbounds.extend(tv1+r);
-    volbounds.extend(tv2-r); volbounds.extend(tv2+r);
-    volbounds.extend(tv3-r); volbounds.extend(tv3+r);
+    volbounds.extend(cell.getBounds());
   }
 
   Buffer deviceCells(cells.size(), cells.data());
@@ -151,7 +131,7 @@ extern "C" int main(int argc, char *argv[]) {
     pl.setTransfunc(&tf);
   }
 
-  g_appState.unitDistance = 1.0f;
+  g_appState.unitDistance = 0.02f;
   pl.uiParam("Unit distance", &g_appState.unitDistance, 0.001f, 5.f);
 
 #ifdef RTCORE
@@ -163,8 +143,49 @@ extern "C" int main(int argc, char *argv[]) {
 
   LaunchParams parms;
 
+#ifdef RTCORE
+  OWLVarDecl iconGeomVars[]
+  = {
+     { "cells",  OWL_BUFPTR, OWL_OFFSETOF(ICONGrid,cells)},
+     { "numCells",  OWL_UINT, OWL_OFFSETOF(ICONGrid,numCells)},
+     { nullptr /* sentinel to mark end of list */ }
+  };
+  OWLGeomType geomType = owlGeomTypeCreate(pl.owlContext(),
+                                           OWL_GEOM_USER,
+                                           sizeof(ICONGrid),
+                                           iconGeomVars, -1);
+  owlGeomTypeSetBoundsProg(geomType, pl.owlModule(), "ICONCellBounds");
+  owlGeomTypeSetIntersectProg(geomType, 0, pl.owlModule(), "ICONCellIntersect");
+  owlGeomTypeSetClosestHit(geomType, 0, pl.owlModule(), "ICONCellClosestHit");
+
+  OWLGeom geom = owlGeomCreate(pl.owlContext(), geomType);
+  owlGeomSetPrimCount(geom, cells.size());
+
+  OWLBuffer cellBuffer = owlDeviceBufferCreate(pl.owlContext(),
+                                               OWL_USER_TYPE(ICONCell{}),
+                                               cells.size(),
+                                               cells.data());
+  owlGeomSetBuffer(geom, "cells", cellBuffer);
+  owlGeomSet1ui(geom, "numCells", (unsigned)cells.size());
+
+  owlBuildPrograms(pl.owlContext());
+
+  OWLGroup blas = owlUserGeomGroupCreate(pl.owlContext(), 1, &geom);
+  owlGroupBuildAccel(blas);
+
+  OWLGroup tlas = owlInstanceGroupCreate(pl.owlContext(), 1);
+  owlInstanceGroupSetChild(tlas, 0, blas);
+
+  owlGroupBuildAccel(tlas);
+#endif
+
   // volume
+#ifdef RTCORE
+  //pl.launchParam("volume.handle", parms.volume.handle) = tlas;
+  owlParamsSetGroup(pl.owlLaunchParams(), "volume.handle", tlas);
+#else
   pl.launchParam("volume.handle", (RawPointer &)parms.volume.handle) = &deviceGrid;
+#endif
   pl.launchParam("volume.bounds", parms.volume.bounds) = volbounds;
   // lighting
   pl.launchParam("ambientColor", parms.ambientColor) = vec3f(1.f);

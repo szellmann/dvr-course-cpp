@@ -57,6 +57,7 @@ OWLVarDecl rayGenVars[]
 template<typename T>
 OWLDataType mapOwlType(const T &t) { return OWL_USER_TYPE(t); }
 OWLDataType mapOwlType(RawPointer) { return OWL_RAW_POINTER; }
+OWLDataType mapOwlType(OptixTraversableHandle) { return OWL_GROUP; }
 OWLDataType mapOwlType(bool) { return OWL_BOOL; }
 OWLDataType mapOwlType(float) { return OWL_FLOAT; }
 OWLDataType mapOwlType(vecmath::vec2f) { return OWL_FLOAT2; }
@@ -223,19 +224,47 @@ struct Pipeline::Impl
   }
 
 #ifdef RTCORE
+  void initOWLContext()
+  {
+    if (!owl.context) {
+      owl.context = owlContextCreate(nullptr,1);
+    }
+  }
+
+  void initOWLModule()
+  {
+    if (!owl.module && owl.ptxCode!=nullptr) {
+      owl.module = owlModuleCreate(owl.context,owl.ptxCode);
+    }
+  }
+
+  void initOWLRayGen()
+  {
+    if (!owl.rayGen && owl.module && owl.rayGenName) {
+      owl.rayGen = owlRayGenCreate(owl.context,
+                                   owl.module,
+                                   owl.rayGenName,
+                                   sizeof(RayGenData),
+                                   rayGenVars,-1);
+    }
+  }
+
+  void initOWLLaunchParams()
+  {
+    if (!owl.launchParams && owl.context && owl.launchParamsDecl) {
+      owl.launchParams = owlParamsCreate(owl.context,
+                                         owl.sizeOfLaunchParamsStruct,
+                                         owl.launchParamsDecl,
+                                         -1);
+    }
+  }
+
   void initOWL()
   {
-    owl.context = owlContextCreate(nullptr,1);
-    owl.module = owlModuleCreate(owl.context,owl.ptxCode);
-    owl.rayGen = owlRayGenCreate(owl.context,
-                                 owl.module,
-                                 owl.rayGenName,
-                                 sizeof(RayGenData),
-                                 rayGenVars,-1);
-    owl.launchParams = owlParamsCreate(owl.context,
-                                       owl.sizeOfLaunchParamsStruct,
-                                       owl.launchParamsDecl,
-                                       -1);
+    initOWLContext();
+    initOWLModule();
+    initOWLRayGen();
+    initOWLLaunchParams();
     owlBuildPrograms(owl.context);
     owlBuildPipeline(owl.context);
     owlBuildSBT(owl.context);
@@ -273,6 +302,10 @@ struct Pipeline::Impl
       else if (lp.type == OWL_RAW_POINTER) {
         char **raw = (char **)lp.value;
         owlParamsSetPointer(owl.launchParams, name.c_str(), *raw);
+      }
+      else if (lp.type == OWL_GROUP) {
+        OWLGroup group = (OWLGroup)lp.value;
+        owlParamsSetGroup(owl.launchParams, name.c_str(), group);
       }
       else if (lp.type >= OWL_USER_TYPE_BEGIN) {
         owlParamsSetRaw(owl.launchParams, name.c_str(), lp.value);
@@ -517,10 +550,10 @@ struct Pipeline::Impl
   };
 
   struct {
-    OWLContext  context;
-    OWLModule   module;
-    OWLRayGen   rayGen;
-    OWLParams   launchParams;
+    OWLContext  context{nullptr};
+    OWLModule   module{nullptr};
+    OWLRayGen   rayGen{nullptr};
+    OWLParams   launchParams{nullptr};
     const char *rayGenName{nullptr};
     const char *ptxCode{nullptr};
     OWLVarDecl *launchParamsDecl{nullptr};
@@ -553,6 +586,34 @@ void Pipeline::setLaunchParamsDecl(OWLVarDecl *decl, size_t sizeOfStruct) {
   impl->owl.launchParamsDecl = decl;
   impl->owl.sizeOfLaunchParamsStruct = sizeOfStruct;
 }
+
+OWLContext Pipeline::owlContext() {
+  impl->initOWLContext();
+  if (!impl->owl.context) {
+    fprintf(stderr,"%s\n","WARNING: owl.context null and cannot call initOWLContext()");
+    return 0;
+  }
+  return impl->owl.context;
+}
+
+OWLModule Pipeline::owlModule() {
+  impl->initOWLModule();
+  if (!impl->owl.module) {
+    fprintf(stderr,"%s\n","WARNING: owl.module null and cannot call initOWLModule()");
+    return 0;
+  }
+  return impl->owl.module;
+}
+
+OWLParams Pipeline::owlLaunchParams() {
+  impl->initOWLLaunchParams();
+  if (!impl->owl.launchParams) {
+    fprintf(stderr,"%s\n",
+        "WARNING: owl.launchParams null and cannot call initOWLLaunchParams()");
+    return 0;
+  }
+  return impl->owl.launchParams;
+}
 #endif
 
 /*
@@ -580,6 +641,9 @@ DEF_LAUNCH_PARM_FUNC(vec4f)
 DEF_LAUNCH_PARM_FUNC(box1f)
 DEF_LAUNCH_PARM_FUNC(box3f)
 DEF_LAUNCH_PARM_FUNC(RawPointer)
+#ifdef RTCORE
+DEF_LAUNCH_PARM_FUNC(OptixTraversableHandle)
+#endif
 
 /*
   transfuncs:

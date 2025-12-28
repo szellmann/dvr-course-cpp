@@ -35,8 +35,15 @@
 
 typedef void *RawPointer;
 
+struct _OWLContext;
+struct _OWLModule;
 struct _OWLVarDecl;
+typedef _OWLContext *OWLContext;
+typedef struct _OWLLaunchParams *OWLLaunchParams, *OWLParams, *OWLGlobals;
+typedef _OWLModule *OWLModule;
 typedef _OWLVarDecl OWLVarDecl;
+
+typedef unsigned long long OptixTraversableHandle;
 
 // ========================================================
 // Common render pipeline class for DVR
@@ -58,6 +65,15 @@ struct Pipeline {
 
   // lp-decl
   void setLaunchParamsDecl(OWLVarDecl *decl, size_t sizeOfLaunchParamsStruct);
+
+  // get OWL context
+  OWLContext owlContext();
+
+  // get OWL module
+  OWLModule owlModule();
+
+  // get OWL params
+  OWLParams owlLaunchParams();
 #else
   // for use with non-RTCORE (set as function pointer)
 
@@ -80,6 +96,9 @@ struct Pipeline {
   DECL_LAUNCH_PARM_FUNC(box1f)
   DECL_LAUNCH_PARM_FUNC(box3f)
   DECL_LAUNCH_PARM_FUNC(RawPointer)
+#ifdef RTCORE
+  DECL_LAUNCH_PARM_FUNC(OptixTraversableHandle)
+#endif
 
   // Frame
   void setFrame(Frame *f) { fb = f; }
