@@ -45,70 +45,82 @@ static void parseCommandLine(int argc, char *argv[]) {
 
   for (int i = 1; i < argc; ++i) {
     std::string arg = argv[i];
-    if (arg[0] != '-' && endsWith(arg,".nvdb"))
+    if (arg[0] != '-')
       g_appState.filepath = arg;
   }
 }
 
 extern "C" int main(int argc, char *argv[]) {
 
-  // if (argc < 2) {
-  //   printUsage();
-  //   exit(-1);
-  // }
+  if (argc < 2) {
+    printUsage();
+    exit(-1);
+  }
 
   parseCommandLine(argc, argv);
 
-  // if (g_appState.filepath.empty()) {
-  //   printUsage();
-  //   exit(-1);
-  // }
+  if (g_appState.filepath.empty()) {
+    printUsage();
+    exit(-1);
+  }
+
+  std::ifstream in(g_appState.filepath);
+  if (!in.good()) {
+    printUsage();
+    exit(-1);
+  }
+
+  size_t numCells{0};
+  in.seekg(0,in.end);
+  numCells = in.tellg()/sizeof(ICONCell);
+  in.seekg(0,in.beg);
+
+  numCells = 8;
+  std::cout << "Momentarily ownly loading " << numCells << " cells.. stay tuned!\n";
+
+  std::vector<ICONCell> cells(numCells);
+  in.read((char *)cells.data(),sizeof(ICONCell)*numCells);
 
   box3f volbounds(
     {INFINITY,INFINITY,INFINITY},
     {-INFINITY,-INFINITY,-INFINITY}
   );
 
-  Random rnd;
-  std::vector<ICONCell> cells;
-  for (int lon=0; lon<90; lon+=30) {
-    for (int lat=0; lat<90.f; lat+=90) {
-      ICONCell cell;
-      cell.lon.x = deg2rad(-lon);
-      cell.lat.x = deg2rad(lat);
+  for (int i=0; i<cells.size(); ++i) {
+    ICONCell &cell = cells[i];
 
-      cell.lon.y = deg2rad(-lon-15);
-      cell.lat.y = deg2rad(lat+90.f);
+    cell.numLayers = 5;
 
-      cell.lon.z = deg2rad(-lon-30.f);
-      cell.lat.z = deg2rad(lat);
+    cell.value[0] = 1.f;
+    cell.value[1] = 0.f;
+    cell.value[2] = 0.5f;
+    cell.value[3] = 0.1f;
+    cell.value[4] = 0.25f;
 
-      cell.numLayers = 2;
-      //cell.height[0] = 6371.f;
-      cell.height[0] = 100.f;
-      cell.height[1] = 120.f + 50*rnd();
+    cell.height[0] = 6.371229f;
+    cell.height[1] = 6.372229f;
+    cell.height[2] = 6.372529f;
+    cell.height[3] = 6.372829f;
+    cell.height[4] = 6.372929f;
 
-      float r = cell.height[cell.numLayers-1]-cell.height[0];
+    float r = cell.height[cell.numLayers-1]-cell.height[0];
 
-      // bottom triangle vertices
-      vec3f bv1 = toCartesian({cell.height[0],cell.lat.x,cell.lon.x});
-      vec3f bv2 = toCartesian({cell.height[0],cell.lat.y,cell.lon.y});
-      vec3f bv3 = toCartesian({cell.height[0],cell.lat.z,cell.lon.z});
+    // bottom triangle vertices
+    vec3f bv1 = toCartesian({cell.height[0],cell.lat.x,cell.lon.x});
+    vec3f bv2 = toCartesian({cell.height[0],cell.lat.y,cell.lon.y});
+    vec3f bv3 = toCartesian({cell.height[0],cell.lat.z,cell.lon.z});
 
-      // top triangle vertices
-      vec3f tv1 = toCartesian({cell.height[cell.numLayers-1],cell.lat.x,cell.lon.x});
-      vec3f tv2 = toCartesian({cell.height[cell.numLayers-1],cell.lat.y,cell.lon.y});
-      vec3f tv3 = toCartesian({cell.height[cell.numLayers-1],cell.lat.z,cell.lon.z});
+    // top triangle vertices
+    vec3f tv1 = toCartesian({cell.height[cell.numLayers-1],cell.lat.x,cell.lon.x});
+    vec3f tv2 = toCartesian({cell.height[cell.numLayers-1],cell.lat.y,cell.lon.y});
+    vec3f tv3 = toCartesian({cell.height[cell.numLayers-1],cell.lat.z,cell.lon.z});
 
-      volbounds.extend(bv1-r); volbounds.extend(bv1+r);
-      volbounds.extend(bv2-r); volbounds.extend(bv2+r);
-      volbounds.extend(bv3-r); volbounds.extend(bv3+r);
-      volbounds.extend(tv1-r); volbounds.extend(tv1+r);
-      volbounds.extend(tv2-r); volbounds.extend(tv2+r);
-      volbounds.extend(tv3-r); volbounds.extend(tv3+r);
-
-      cells.push_back(cell);
-    }
+    volbounds.extend(bv1-r); volbounds.extend(bv1+r);
+    volbounds.extend(bv2-r); volbounds.extend(bv2+r);
+    volbounds.extend(bv3-r); volbounds.extend(bv3+r);
+    volbounds.extend(tv1-r); volbounds.extend(tv1+r);
+    volbounds.extend(tv2-r); volbounds.extend(tv2+r);
+    volbounds.extend(tv3-r); volbounds.extend(tv3+r);
   }
 
   Buffer deviceCells(cells.size(), cells.data());
