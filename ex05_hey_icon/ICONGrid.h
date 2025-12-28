@@ -107,12 +107,20 @@ inline __device__ bool sample(const ICONCell &cell, vec3f pos, float &value)
   if (evalPlane(p2,pos) > 0.f) return false; /* ccw */
   if (evalPlane(p3,pos) > 0.f) return false; /* ccw */
 
-  if (length(pos-bv1)<length(pos-bv2) && length(pos-bv1)<length(pos-bv3))
-    value = 0.f;
-  else if (length(pos-bv2)<length(pos-bv1) && length(pos-bv2)<length(pos-bv3))
-    value = 0.5f;
-  else
-    value = 1.f;
+  // interpolate value
+  float h = spherical.x;
+  for (int i=0; i<cell.numLayers-1; ++i) {
+    float h0 = cell.height[i];
+    float h1 = cell.height[i+1];
+
+    if (h >= h0 && h<= h1) {
+      float v0 = cell.value[i];
+      float v1 = cell.value[i+1];
+      float f = (h-h0)/(h1-h0);
+      value = v0*(1.f-f) + v1*f;
+      break;
+    }
+  }
 
   return true;
 }
