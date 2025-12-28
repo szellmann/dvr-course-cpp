@@ -16,12 +16,12 @@ if (DVR_COURSE_WITH_OWL)
   set_source_files_properties(deviceCode.cu
     PROPERTIES COMPILE_FLAGS "--extended-lambda --expt-relaxed-constexpr")
   embed_ptx(
-    OUTPUT_TARGET ex02_deviceCode-ptx
+    OUTPUT_TARGET ex05_deviceCode-ptx
     PTX_LINK_LIBRARIES dvr_course-common $<BUILD_INTERFACE:nanovdb>
     EMBEDDED_SYMBOL_NAMES ptxCode
     SOURCES deviceCode.cu
   )
-  target_link_libraries(${PROJECT_NAME} PRIVATE ex02_deviceCode-ptx)
+  target_link_libraries(${PROJECT_NAME} PRIVATE ex05_deviceCode-ptx)
 else()
   target_sources(${PROJECT_NAME} PRIVATE hostCode.cpp deviceCode.cu)
   configure_cuda_src(deviceCode.cu)

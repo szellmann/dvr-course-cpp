@@ -27,7 +27,6 @@ OWLVarDecl launchParams_owl[]
 = {
    // volume
    { "volume.handle",  OWL_RAW_POINTER, OWL_OFFSETOF(LaunchParams,volume.handle) },
-   { "volume.filterLinear",  OWL_BOOL, OWL_OFFSETOF(LaunchParams,volume.filterLinear) },
    { "volume.bounds", OWL_USER_TYPE(box3f), OWL_OFFSETOF(LaunchParams,volume.bounds) },
    // xf data
    { "transfunc.valueRange", OWL_USER_TYPE(box1f), OWL_OFFSETOF(LaunchParams,transfunc.valueRange) },

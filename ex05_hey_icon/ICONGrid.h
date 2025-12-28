@@ -17,9 +17,9 @@
 #pragma once
 
 // common
-#include <dvr_course-common.cuh>
+#include <vecmath.h>
 
-using namespace dvr_course;
+using namespace vecmath;
 
 namespace ex05_hey_icon {
 
