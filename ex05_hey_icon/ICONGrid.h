@@ -48,6 +48,15 @@ inline __host__ __device__ vec3f toCartesian(const vec3f spherical)
   return {x,y,z};
 }
 
+inline __host__ __device__
+vec3f triangleLerp(const vec3f a, const vec3f b, const vec3f c, float u, float v)
+{
+  const vec3f s2 = c * v;
+  const vec3f s3 = b * u;
+  const vec3f s1 = a * (1.f-u-v);
+  return s1+s2+s3;
+}
+
 
 #define MAX_LAYERS 32
 
@@ -72,11 +81,6 @@ struct ICONCell {
 
   inline __host__ __device__
   box3f getBounds() const {
-
-    // TODO: implement this using midpoint slerp!!
-
-    float r = 0.f;//height[numLayers-1]-height[0];
-
     // bottom triangle vertices
     vec3f bv1 = toCartesian({height[0],lat.x,lon.x});
     vec3f bv2 = toCartesian({height[0],lat.y,lon.y});
@@ -87,17 +91,26 @@ struct ICONCell {
     vec3f tv2 = toCartesian({height[numLayers-1],lat.y,lon.y});
     vec3f tv3 = toCartesian({height[numLayers-1],lat.z,lon.z});
 
+    vec3f tbarycenter = triangleLerp(tv1,tv2,tv3,0.5f,0.5f);
+    vec3f tbs = toSpherical(tbarycenter);
+    tbs.x = height[numLayers-1];
+
+    // center point of the top triangle,
+    // projected onto the sphere surface:
+    vec3f tvc = toCartesian(tbs);
+
     box3f bounds(
       {INFINITY,INFINITY,INFINITY},
       {-INFINITY,-INFINITY,-INFINITY}
     );
 
-    bounds.extend(bv1-r); bounds.extend(bv1+r);
-    bounds.extend(bv2-r); bounds.extend(bv2+r);
-    bounds.extend(bv3-r); bounds.extend(bv3+r);
-    bounds.extend(tv1-r); bounds.extend(tv1+r);
-    bounds.extend(tv2-r); bounds.extend(tv2+r);
-    bounds.extend(tv3-r); bounds.extend(tv3+r);
+    bounds.extend(bv1);
+    bounds.extend(bv2);
+    bounds.extend(bv3);
+    bounds.extend(tv1);
+    bounds.extend(tv2);
+    bounds.extend(tv3);
+    bounds.extend(tvc);
 
     return bounds;
   }
