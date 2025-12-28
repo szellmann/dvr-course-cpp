@@ -69,8 +69,6 @@ inline __device__ bool sampleVolume(const Volume &vol, vec3f pos, float &value)
   if (prd.primID != ~0u) {
     value = prd.value;
     return true;
-  } else {
-    return false;
   }
 #else
   // on non-RT hardware we resort to just linearly
