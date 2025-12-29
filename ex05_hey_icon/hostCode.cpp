@@ -86,19 +86,21 @@ extern "C" int main(int argc, char *argv[]) {
   for (int i=0; i<cells.size(); ++i) {
     ICONCell &cell = cells[i];
 
-    cell.numLayers = 5;
+    if (cell.numLayers == 0) {
+      cell.numLayers = 5;
 
-    cell.value[0] = 1.f;
-    cell.value[1] = 0.f;
-    cell.value[2] = 0.5f;
-    cell.value[3] = 0.1f;
-    cell.value[4] = 0.25f;
+      cell.value[0] = 1.f;
+      cell.value[1] = 0.f;
+      cell.value[2] = 0.5f;
+      cell.value[3] = 0.1f;
+      cell.value[4] = 0.25f;
 
-    cell.height[0] = 6.371229f;
-    cell.height[1] = 6.372229f;
-    cell.height[2] = 6.372529f;
-    cell.height[3] = 6.372829f;
-    cell.height[4] = 6.372929f;
+      cell.height[0] = 6.371229f;
+      cell.height[1] = 6.372229f;
+      cell.height[2] = 6.372529f;
+      cell.height[3] = 6.372829f;
+      cell.height[4] = 6.372929f;
+    }
 
     volbounds.extend(cell.getBounds());
   }
@@ -131,7 +133,7 @@ extern "C" int main(int argc, char *argv[]) {
     pl.setTransfunc(&tf);
   }
 
-  g_appState.unitDistance = 0.02f;
+  g_appState.unitDistance = 1.0f;
   pl.uiParam("Unit distance", &g_appState.unitDistance, 0.001f, 5.f);
 
 #ifdef RTCORE

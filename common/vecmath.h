@@ -264,6 +264,7 @@ struct vec2f
   __host__ __device__ vec2f(float s) : x(s), y(s) {}
   __host__ __device__ vec2f(float x, float y) : x(x), y(y) {}
   __host__ __device__ vec2f(const vec2i &v) : x(v.x), y(v.y) {}
+  __host__ __device__ vec2f(const vec3f &v); // below
   __host__ __device__ float &operator[](int i) { return ((float*)this)[i]; }
   __host__ __device__ const float &operator[](int i) const { return ((float*)this)[i]; }
   union {
@@ -372,6 +373,9 @@ struct vec3f
     struct { float u, v, w; };
   };
 };
+
+// vec2f from vec3f
+inline vec2f::vec2f(const vec3f &v) : x(v.x), y(v.y) {}
 
 inline __host__ __device__
 vec3f operator-(vec3f v) {

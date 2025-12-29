@@ -91,14 +91,6 @@ struct ICONCell {
     vec3f tv2 = toCartesian({height[numLayers-1],lat.y,lon.y});
     vec3f tv3 = toCartesian({height[numLayers-1],lat.z,lon.z});
 
-    vec3f tbarycenter = triangleLerp(tv1,tv2,tv3,0.5f,0.5f);
-    vec3f tbs = toSpherical(tbarycenter);
-    tbs.x = height[numLayers-1];
-
-    // center point of the top triangle,
-    // projected onto the sphere surface:
-    vec3f tvc = toCartesian(tbs);
-
     box3f bounds(
       {INFINITY,INFINITY,INFINITY},
       {-INFINITY,-INFINITY,-INFINITY}
@@ -110,7 +102,51 @@ struct ICONCell {
     bounds.extend(tv1);
     bounds.extend(tv2);
     bounds.extend(tv3);
-    bounds.extend(tvc);
+
+    // sphere extrema in cartesian coordinates:
+    const vec3f left(-height[numLayers-1],0,0);
+    const vec3f right(height[numLayers-1],0,0);
+    const vec3f bottom(0,-height[numLayers-1],0);
+    const vec3f top(0,height[numLayers-1],0);
+    const vec3f back(0,0,-height[numLayers-1]);
+    const vec3f front(0,0,height[numLayers-1]);
+
+    // sphere extrema in spherical coordinates:
+    const vec2f sleft(0.f,M_PI);
+    const vec2f sright(0.f,0.f);
+    const vec2f sbottom(0.f,-M_PI*0.5f);
+    const vec2f stop(0.f,M_PI*0.5f);
+    const vec2f sback(-M_PI*0.5f,0.f);
+    const vec2f sfront(M_PI*0.5f,0.f);
+
+    // top triangle edges in spherical coordinates:
+    const vec2f se1(lat.y-lat.x,lon.y-lon.x);
+    const vec2f se2(lat.z-lat.y,lon.z-lon.y);
+    const vec2f se3(lat.x-lat.z,lon.z-lon.z);
+
+    if (dot(se1,sleft) > 0 && dot(se2,sleft) > 0 && dot(se3,sleft) > 0) {
+      bounds.extend(left);
+    }
+
+    if (dot(se1,sright) > 0 && dot(se2,sright) > 0 && dot(se3,sright) > 0) {
+      bounds.extend(right);
+    }
+
+    if (dot(se1,sbottom) > 0 && dot(se2,sbottom) > 0 && dot(se3,sbottom) > 0) {
+      bounds.extend(bottom);
+    }
+
+    if (dot(se1,stop) > 0 && dot(se2,stop) > 0 && dot(se3,stop) > 0) {
+      bounds.extend(top);
+    }
+
+    if (dot(se1,sback) > 0 && dot(se2,sback) > 0 && dot(se3,sback) > 0) {
+      bounds.extend(back);
+    }
+
+    if (dot(se1,sfront) > 0 && dot(se2,sfront) > 0 && dot(se3,sfront) > 0) {
+      bounds.extend(front);
+    }
 
     return bounds;
   }
