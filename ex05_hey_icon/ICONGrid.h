@@ -48,15 +48,6 @@ inline __host__ __device__ vec3f toCartesian(const vec3f spherical)
   return {x,y,z};
 }
 
-inline __host__ __device__
-vec3f triangleLerp(const vec3f a, const vec3f b, const vec3f c, float u, float v)
-{
-  const vec3f s2 = c * v;
-  const vec3f s3 = b * u;
-  const vec3f s1 = a * (1.f-u-v);
-  return s1+s2+s3;
-}
-
 
 #define MAX_LAYERS 32
 
@@ -81,72 +72,39 @@ struct ICONCell {
 
   inline __host__ __device__
   box3f getBounds() const {
-    // bottom triangle vertices
-    vec3f bv1 = toCartesian({height[0],lat.x,lon.x});
-    vec3f bv2 = toCartesian({height[0],lat.y,lon.y});
-    vec3f bv3 = toCartesian({height[0],lat.z,lon.z});
-
-    // top triangle vertices
-    vec3f tv1 = toCartesian({height[numLayers-1],lat.x,lon.x});
-    vec3f tv2 = toCartesian({height[numLayers-1],lat.y,lon.y});
-    vec3f tv3 = toCartesian({height[numLayers-1],lat.z,lon.z});
 
     box3f bounds(
       {INFINITY,INFINITY,INFINITY},
       {-INFINITY,-INFINITY,-INFINITY}
     );
 
+    // bottom triangle vertices
+    vec3f bv1 = toCartesian({height[0],lat.x,lon.x});
+    vec3f bv2 = toCartesian({height[0],lat.y,lon.y});
+    vec3f bv3 = toCartesian({height[0],lat.z,lon.z});
+
     bounds.extend(bv1);
     bounds.extend(bv2);
     bounds.extend(bv3);
+
+    // top triangle vertices
+    vec3f tv1 = toCartesian({height[numLayers-1],lat.x,lon.x});
+    vec3f tv2 = toCartesian({height[numLayers-1],lat.y,lon.y});
+    vec3f tv3 = toCartesian({height[numLayers-1],lat.z,lon.z});
+
+    vec3f bary = (tv1+tv2+tv3)/3.f;
+
+    float R = height[numLayers-1];
+    float D = R-length(bary);
+    float off = D/R;
+
+    tv1 += tv1*off;
+    tv2 += tv2*off;
+    tv3 += tv3*off;
+
     bounds.extend(tv1);
     bounds.extend(tv2);
     bounds.extend(tv3);
-
-    // sphere extrema in cartesian coordinates:
-    const vec3f left(-height[numLayers-1],0,0);
-    const vec3f right(height[numLayers-1],0,0);
-    const vec3f bottom(0,-height[numLayers-1],0);
-    const vec3f top(0,height[numLayers-1],0);
-    const vec3f back(0,0,-height[numLayers-1]);
-    const vec3f front(0,0,height[numLayers-1]);
-
-    // sphere extrema in spherical coordinates:
-    const vec2f sleft(0.f,M_PI);
-    const vec2f sright(0.f,0.f);
-    const vec2f sbottom(0.f,-M_PI*0.5f);
-    const vec2f stop(0.f,M_PI*0.5f);
-    const vec2f sback(-M_PI*0.5f,0.f);
-    const vec2f sfront(M_PI*0.5f,0.f);
-
-    // top triangle edges in spherical coordinates:
-    const vec2f se1(lat.y-lat.x,lon.y-lon.x);
-    const vec2f se2(lat.z-lat.y,lon.z-lon.y);
-    const vec2f se3(lat.x-lat.z,lon.z-lon.z);
-
-    if (dot(se1,sleft) > 0 && dot(se2,sleft) > 0 && dot(se3,sleft) > 0) {
-      bounds.extend(left);
-    }
-
-    if (dot(se1,sright) > 0 && dot(se2,sright) > 0 && dot(se3,sright) > 0) {
-      bounds.extend(right);
-    }
-
-    if (dot(se1,sbottom) > 0 && dot(se2,sbottom) > 0 && dot(se3,sbottom) > 0) {
-      bounds.extend(bottom);
-    }
-
-    if (dot(se1,stop) > 0 && dot(se2,stop) > 0 && dot(se3,stop) > 0) {
-      bounds.extend(top);
-    }
-
-    if (dot(se1,sback) > 0 && dot(se2,sback) > 0 && dot(se3,sback) > 0) {
-      bounds.extend(back);
-    }
-
-    if (dot(se1,sfront) > 0 && dot(se2,sfront) > 0 && dot(se3,sfront) > 0) {
-      bounds.extend(front);
-    }
 
     return bounds;
   }

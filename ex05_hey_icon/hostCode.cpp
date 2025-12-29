@@ -83,6 +83,29 @@ extern "C" int main(int argc, char *argv[]) {
     {-INFINITY,-INFINITY,-INFINITY}
   );
 
+#if 0
+  cells.clear();
+
+  ICONCell cell;
+  cell.lon.x = deg2rad(30);
+  cell.lon.y = deg2rad(0);
+  cell.lon.z = deg2rad(-30);
+
+  cell.lat.x = deg2rad(0);
+  cell.lat.y = deg2rad(90);
+  cell.lat.z = deg2rad(0);
+
+  cell.numLayers = 2;
+  cell.height[0] = 100.f;
+  cell.height[1] = 120.f;
+  cell.value[0] = 0.1f;
+  cell.value[1] = 1.f;
+
+  volbounds.extend(cell.getBounds());
+
+  cells.push_back(cell);
+#endif
+
   for (int i=0; i<cells.size(); ++i) {
     ICONCell &cell = cells[i];
 
