@@ -83,6 +83,8 @@ extern "C" int main(int argc, char *argv[]) {
     {-INFINITY,-INFINITY,-INFINITY}
   );
 
+  box1f dataRange(INFINITY, -INFINITY);
+
 #if 0
   cells.clear();
 
@@ -126,6 +128,7 @@ extern "C" int main(int argc, char *argv[]) {
     }
 
     volbounds.extend(cell.getBounds());
+    for (int j=0; j<cell.numLayers; ++j) dataRange.extend(cell.value[j]);
   }
 
   Buffer deviceCells(cells.size(), cells.data());
@@ -145,8 +148,7 @@ extern "C" int main(int argc, char *argv[]) {
 
   if (!pl.transfuncValid()) {
     auto &tf = g_appState.transfunc;
-    tf.valueRange = {0.f,1.f};//{gridHandle.grid<float>()->tree().root().minimum(),
-                     //gridHandle.grid<float>()->tree().root().maximum()};
+    tf.valueRange = dataRange;
 
     if (tf.valueRange.empty()) tf.valueRange = {0.f,1.f};
     tf.setLUT(std::vector<vec4f>({
