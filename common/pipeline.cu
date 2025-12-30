@@ -18,6 +18,26 @@
 #include <climits>
 #include <fstream>
 #include <map>
+// os
+#ifdef _WIN32
+# ifndef WIN32_LEAN_AND_MEAN
+#   define WIN32_LEAN_AND_MEAN
+# endif
+# include <Windows.h>
+# ifdef min
+#  undef min
+# endif
+# ifdef max
+#   undef max
+# endif
+# ifdef OPAQUE
+#   undef OPAQUE
+# endif
+#endif
+#ifdef __GNUC__
+# include <execinfo.h>
+# include <sys/time.h>
+#endif
 #ifdef INTERACTIVE
 # include <SDL3/SDL.h>
 # define IMGUI_DISABLE_INCLUDE_IMCONFIG_H
@@ -68,6 +88,26 @@ OWLDataType mapOwlType(int) { return OWL_INT; }
 #endif
 
 namespace dvr_course {
+
+inline double getCurrentTime()
+{
+#ifdef _WIN32
+  SYSTEMTIME tp; GetSystemTime(&tp);
+  /*
+     Please note: we are not handling the "leap year" issue.
+ */
+  size_t numSecsSince2020
+      = tp.wSecond
+      + (60ull) * tp.wMinute
+      + (60ull * 60ull) * tp.wHour
+      + (60ull * 60ul * 24ull) * tp.wDay
+      + (60ull * 60ul * 24ull * 365ull) * (tp.wYear - 2020);
+  return double(numSecsSince2020 + tp.wMilliseconds * 1e-3);
+#else
+  struct timeval tp; gettimeofday(&tp,nullptr);
+  return double(tp.tv_sec) + double(tp.tv_usec)/1E6;
+#endif
+}
 
 #ifndef RTCORE
 const vec2i getLaunchIndex(void)
@@ -417,6 +457,20 @@ struct Pipeline::Impl
 #endif
   }
 
+  void beginTiming()
+  {
+    t_last = getCurrentTime();
+  }
+
+  void endTiming()
+  {
+    t_now = getCurrentTime();
+    if (avg_t <= 0) {
+      avg_t = t_now-t_last;
+    }
+    avg_t = 0.8*avg_t + 0.2*(t_now-t_last);
+  }
+
   void present(const uint32_t *pixels, int w, int h)
   {
 #ifdef INTERACTIVE
@@ -469,6 +523,10 @@ struct Pipeline::Impl
         ImGui::EndTabBar();
       }
     }
+
+    ImGui::LabelText("##General", "General");
+
+    ImGui::LabelText("##FPS", "FPS %.2f",1.f/fmaxf(avg_t,1e-8f));
 
     // App-side params
     if (!paramf.empty()) {
@@ -529,6 +587,8 @@ struct Pipeline::Impl
 #endif
   std::string xfFile;
   thread_pool pool{std::thread::hardware_concurrency()};
+  // timing:
+  double t_last{0.0}, t_now{0.0}, avg_t{0.0};
 
   // app-side params:
   struct Paramf
@@ -732,6 +792,7 @@ void Pipeline::launch() {
     clearFramebuffer(fb,impl->pool);
 
   if (frameID < impl->sampleLimit) {
+    impl->beginTiming();
 #ifdef RTCORE
     owlLaunch2D(impl->owl.rayGen, fb->width, fb->height, impl->owl.launchParams);
 #else
@@ -742,6 +803,7 @@ void Pipeline::launch() {
         func();
       });
 #endif
+    impl->endTiming();
   }
 }
 
