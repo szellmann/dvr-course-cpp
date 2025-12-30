@@ -14,8 +14,6 @@
 // limitations under the License.                                           //
 // ======================================================================== //
 
-// nanovdb
-#include <nanovdb/math/SampleFromVoxels.h>
 // common
 #include <dvr_course-common.cuh>
 // ex05

@@ -2,13 +2,6 @@
 #include <fstream>
 #include <string>
 
-// nanovdb
-#include <nanovdb/GridHandle.h>
-#include <nanovdb/HostBuffer.h>
-#include <nanovdb/NanoVDB.h>
-#include <nanovdb/io/IO.h>
-#include <nanovdb/tools/GridStats.h>
-
 // Header with common resources; .h: host, .cuh: device
 #include <dvr_course-common.h>
 

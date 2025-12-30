@@ -13,11 +13,9 @@ add_executable(${PROJECT_NAME})
 if (DVR_COURSE_WITH_OWL)
   enable_language(CUDA)
   target_sources(${PROJECT_NAME} PRIVATE hostCode.cpp)
-  set_source_files_properties(deviceCode.cu
-    PROPERTIES COMPILE_FLAGS "--extended-lambda --expt-relaxed-constexpr")
   embed_ptx(
     OUTPUT_TARGET ex05_deviceCode-ptx
-    PTX_LINK_LIBRARIES dvr_course-common $<BUILD_INTERFACE:nanovdb>
+    PTX_LINK_LIBRARIES dvr_course-common
     EMBEDDED_SYMBOL_NAMES ptxCode
     SOURCES deviceCode.cu
   )
@@ -27,4 +25,3 @@ else()
   configure_cuda_src(deviceCode.cu)
 endif()
 target_link_libraries(${PROJECT_NAME} PRIVATE dvr_course-common)
-target_link_libraries(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:nanovdb>)
