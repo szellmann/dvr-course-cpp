@@ -259,6 +259,8 @@ struct Pipeline::Impl
 #endif
 
 #ifdef RTCORE
+    cudaEventCreate(&last);
+    cudaEventCreate(&now);
     initOWL();
 #endif
   }
@@ -365,6 +367,9 @@ struct Pipeline::Impl
     owlModuleRelease(owl.module);
     owlRayGenRelease(owl.rayGen);
     owlContextDestroy(owl.context);
+
+    cudaEventDestroy(last);
+    cudaEventDestroy(now);
 #endif
   }
 
@@ -459,16 +464,29 @@ struct Pipeline::Impl
 
   void beginTiming()
   {
+#ifdef RTCORE
+    cudaEventRecord(last);
+#else
     t_last = getCurrentTime();
+#endif
   }
 
   void endTiming()
   {
+#ifdef RTCORE
+    cudaEventRecord(now);
+    cudaEventSynchronize(now);
+    float ms = 0.0f;
+    cudaEventElapsedTime(&ms, last, now);
+    double elapsed = ms/1000.0;
+#else
     t_now = getCurrentTime();
     if (avg_t <= 0) {
       avg_t = t_now-t_last;
     }
-    avg_t = 0.8*avg_t + 0.2*(t_now-t_last);
+    double elapsed = t_now-t_last;
+#endif
+    avg_t = 0.8*avg_t + 0.2*elapsed;
   }
 
   void present(const uint32_t *pixels, int w, int h)
@@ -588,7 +606,12 @@ struct Pipeline::Impl
   std::string xfFile;
   thread_pool pool{std::thread::hardware_concurrency()};
   // timing:
+#ifdef RTCORE
+  cudaEvent_t last, now;
+  double avg_t;
+#else
   double t_last{0.0}, t_now{0.0}, avg_t{0.0};
+#endif
 
   // app-side params:
   struct Paramf
