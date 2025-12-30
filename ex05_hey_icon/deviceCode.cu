@@ -89,6 +89,45 @@ inline __device__ vec4f postClassify(Transfunc tf, float v)
   return v1*frac+v2*(1.f-frac);
 }
 
+inline __device__ float woodcockTracking(const Ray &ray,
+                                         Random &rnd,
+                                         float majorant,
+                                         //output:
+                                         vec3f &albedo,
+                                         float &extinction)
+{
+  auto &lp = optixLaunchParams;
+
+  float t=ray.tmin;
+
+  while (1) {
+    // In later chapters majorants will vary in space:
+    if (majorant <= 0.f)
+      break;
+
+    t -= (logf(1.f - rnd()) / (majorant / lp.unitDistance));
+
+    if (t > ray.tmax)
+      break;
+
+    vec3f P = ray.org+ray.dir*t;
+
+    float value{0.f};
+    if (!sampleVolume(lp.volume, P, value))
+      continue;
+
+    vec4f sample = postClassify(lp.transfunc, value);
+    float u = rnd();
+    if (sample.w >= u * majorant) {
+      albedo = vec3f(sample.x,sample.y,sample.z);
+      extinction = sample.w;
+      break;
+    }
+  }
+
+  return fminf(t,ray.tmax);
+}
+
 // ========================================================
 // OptiX ICON geometry (only when using OWL!)
 // ========================================================
@@ -131,6 +170,58 @@ OPTIX_CLOSEST_HIT_PROGRAM(ICONCellClosestHit)()
 #endif
 
 // ========================================================
+// Sphere intersection, used for the makeshift
+// traversal structure
+// ========================================================
+inline __device__
+bool intersectSphere(const Ray &ray, float radius, float &tnear, float &tfar) {
+  float A = dot(ray.dir,ray.dir);
+  float B = dot(ray.dir,ray.org) * 2.f;
+  float C = dot(ray.org,ray.org) - radius*radius;
+
+  float d = B*B - 4.f*A*C;
+  if (d < 0.f) return false;
+
+  d = sqrtf(d);
+
+  float q = B < 0.f ? -0.5f * (B-d) : -0.f * (B+d);
+
+  float t1 = q/A;
+  float t2 = C/q;
+
+  tnear = fminf(t1,t2);
+  tfar  = fmaxf(t1,t2);
+  return true;
+}
+
+inline __device__
+bool traverseAccel(const Ray &ray, float &tnear, float &tfar) {
+  auto &lp = optixLaunchParams;
+
+  float t1,t2,t3,t4;
+  bool s1 = intersectSphere(ray,lp.volume.accel.outerRadius,t1,t4);
+  bool s2 = intersectSphere(ray,lp.volume.accel.innerRadius,t2,t3);
+  if (!s1 && !s2) return false;
+  if (t4 < ray.tmin) return false;
+  // outer sphere hit, but inner was missed:
+  if (s1 && !s2) {
+    tnear = t1;
+    tfar  = t4;
+  }
+  // inside front segment:
+  else if (ray.tmin < t2) {
+    tnear = t1;
+    tfar  = t2;
+  }
+  // inside back segment:
+  else { 
+    tnear = t3;
+    tfar  = t4;
+  }
+  return true;
+}
+
+// ========================================================
 // Main ray gen prog (woodcock tracking, A+E)
 // ========================================================
 RAYGEN_PROGRAM(woodockTrackingAE)()
@@ -151,43 +242,42 @@ RAYGEN_PROGRAM(woodockTrackingAE)()
 
   ray.tmin = t0, ray.tmax = t1;
 
-  vec3f albedo = 0.f;
-  float extinction = 0.f;
+  if (lp.volume.accel.active) {
+    float tnear, tfar;
+    vec3f color{0.f};
+    float alpha{0.f};
+    while (traverseAccel(ray, tnear, tfar)) {
+      const float majorant = 1.f;
 
-  const float majorant = 1.f;
+      vec3f albedo = 0.f;
+      float extinction = 0.f;
 
-  float t=ray.tmin;
-
-  while (1) {
-    // In later chapters majorants will vary in space:
-    if (majorant <= 0.f)
-      break;
-
-    t -= (logf(1.f - rnd()) / (majorant / lp.unitDistance));
-
-    if (t > ray.tmax)
-      break;
-
-    vec3f P = ray.org+ray.dir*t;
-
-    float value{0.f};
-    if (!sampleVolume(lp.volume, P, value))
-      continue;
-
-    vec4f sample = postClassify(lp.transfunc, value);
-    float u = rnd();
-    if (sample.w >= u * majorant) {
-      albedo = vec3f(sample.x,sample.y,sample.z);
-      extinction = sample.w;
-      break;
+      ray.tmin = fmaxf(ray.tmin,tnear);
+      ray.tmax = tfar;
+      float t = woodcockTracking(ray, rnd, majorant, albedo, extinction);
+      if (t < tfar) {
+        color = albedo * lp.ambientColor * lp.ambientRadiance;
+        alpha = extinction > 0.f ? 1.f : 0.f;
+        break;
+      }
+      ray.tmin = tfar+1e-3f;
     }
+    float accum = 1.f/(lp.accumID+1);
+    lp.accumBuffer[pixelID] = lerp(vec4f(color,alpha), lp.accumBuffer[pixelID], accum);
+  } else {
+    const float majorant = 1.f;
+
+    vec3f albedo = 0.f;
+    float extinction = 0.f;
+
+    float t = woodcockTracking(ray, rnd, majorant, albedo, extinction);
+
+    vec3f color = albedo * lp.ambientColor * lp.ambientRadiance;
+    float alpha = extinction > 0.f ? 1.f : 0.f;
+
+    float accum = 1.f/(lp.accumID+1);
+    lp.accumBuffer[pixelID] = lerp(vec4f(color,alpha), lp.accumBuffer[pixelID], accum);
   }
-
-  vec3f color = albedo * lp.ambientColor * lp.ambientRadiance;
-  float alpha = extinction > 0.f ? 1.f : 0.f;
-
-  float accum = 1.f/(lp.accumID+1);
-  lp.accumBuffer[pixelID] = lerp(vec4f(color,alpha), lp.accumBuffer[pixelID], accum);
 
   vec4f accumColor = lp.accumBuffer[pixelID];
   accumColor.r = linear_to_srgb(accumColor.r);

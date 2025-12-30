@@ -542,12 +542,20 @@ struct Pipeline::Impl
     ImGui::LabelText("##FPS", "FPS %.2f",1.f/fmaxf(avg_t,1e-8f));
 
     // App-side params
-    if (!paramf.empty()) {
+    if (!uiParams.empty()) {
       ImGui::LabelText("##App", "App");
-      for (int i=0; i<paramf.size(); ++i) {
-        Paramf &p = paramf[i];
-        if (ImGui::SliderFloat(p.name.c_str(), p.f, p.minf, p.maxf)) {
-          parent->resetAccumulation();
+      for (int i=0; i<uiParams.size(); ++i) {
+        UIParam &p = uiParams[i];
+        if (p.type == UIParam::Bool) {
+          if (ImGui::Checkbox(p.name.c_str(), p.asBool.b)) {
+            parent->resetAccumulation();
+          }
+        }
+        if (p.type == UIParam::Float) {
+          if (ImGui::SliderFloat(
+                p.name.c_str(), p.asFloat.f, p.asFloat.minf, p.asFloat.maxf)) {
+            parent->resetAccumulation();
+          }
         }
       }
     }
@@ -609,16 +617,22 @@ struct Pipeline::Impl
 #endif
 
   // app-side params:
-  struct Paramf
+  struct UIParam
   {
     std::string name;
-    float *f;
-    float minf;
-    float maxf;
+    enum { Bool, Float, } type;
+    struct {
+      bool *b;
+    } asBool;
+    struct {
+      float *f;
+      float minf;
+      float maxf;
+    } asFloat;
   };
-  std::vector<Paramf> paramf;
+  std::vector<UIParam> uiParams;
 
-  void uiParam(Paramf p) { paramf.push_back(p); }
+  void uiParam(UIParam p) { uiParams.push_back(p); }
 
 #ifdef RTCORE
   struct LP
@@ -739,8 +753,22 @@ bool Pipeline::transfuncValid(int index) const {
 }
 
 // ui params:
+void Pipeline::uiParam(std::string name, bool *b) {
+  Impl::UIParam parm;
+  parm.name = name;
+  parm.type = Impl::UIParam::Bool;
+  parm.asBool.b = b;
+  impl->uiParam(parm);
+}
+
 void Pipeline::uiParam(std::string name, float *f, float minf, float maxf) {
-  impl->uiParam({name,f,minf,maxf});
+  Impl::UIParam parm;
+  parm.name = name;
+  parm.type = Impl::UIParam::Float;
+  parm.asFloat.f = f;
+  parm.asFloat.minf = minf;
+  parm.asFloat.maxf = maxf;
+  impl->uiParam(parm);
 }
 
 bool Pipeline::isRunning() {

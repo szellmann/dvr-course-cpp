@@ -21,6 +21,7 @@ struct {
   std::string filepath;
   Transfunc transfunc;
   float unitDistance;
+  bool accelActive;
 } g_appState;
 
 namespace ex05_hey_icon {
@@ -102,8 +103,12 @@ extern "C" int main(int argc, char *argv[]) {
   cells.push_back(cell);
 #endif
 
+  float innerRadius{INFINITY};
+  float outerRadius{-INFINITY};
   for (int i=0; i<cells.size(); ++i) {
     ICONCell &cell = cells[i];
+    innerRadius = fminf(innerRadius,cell.height[0]);
+    outerRadius = fmaxf(outerRadius,cell.height[cell.numLayers]);
     volbounds.extend(cell.getBounds());
     for (int j=0; j<cell.numLayers; ++j) dataRange.extend(cell.value[j]);
   }
@@ -129,14 +134,20 @@ extern "C" int main(int argc, char *argv[]) {
 
     if (tf.valueRange.empty()) tf.valueRange = {0.f,1.f};
     tf.setLUT(std::vector<vec4f>({
-      {0.f,0.f,1.f,0.1f },
-      {0.f,1.f,0.f,0.1f }
+      {0.752f, 0.298f, 0.231f, 0.0f},
+      {0.996f, 0.690f, 0.552f, 0.25f},
+      {0.866f, 0.866f, 0.866f, 0.5f},
+      {0.486f, 0.603f, 0.956f, 0.75f},
+      {0.149f, 0.015f, 0.705f, 1.0f}
     }));
     pl.setTransfunc(&tf);
   }
 
-  g_appState.unitDistance = 1.0f;
+  g_appState.unitDistance = 0.01f;
   pl.uiParam("Unit distance", &g_appState.unitDistance, 0.001f, 5.f);
+
+  g_appState.accelActive = true;
+  pl.uiParam("Use naive accel", &g_appState.accelActive);
 
 #ifdef RTCORE
   pl.setRayGen(ptxCode, "woodockTrackingAE");
@@ -187,6 +198,8 @@ extern "C" int main(int argc, char *argv[]) {
 #ifdef RTCORE
   //pl.launchParam("volume.handle", parms.volume.handle) = tlas;
   owlParamsSetGroup(pl.owlLaunchParams(), "volume.handle", tlas);
+  pl.launchParam("volume.accel.innerRadius", parms.volume.accel.innerRadius) = innerRadius;
+  pl.launchParam("volume.accel.outerRadius", parms.volume.accel.outerRadius) = outerRadius;
 #else
   pl.launchParam("volume.handle", (RawPointer &)parms.volume.handle) = &deviceGrid;
 #endif
@@ -204,6 +217,8 @@ extern "C" int main(int argc, char *argv[]) {
     } screen;
     cam.getScreen(screen.lower_left,screen.horizontal,screen.vertical);
 
+    // update volume accel active:
+    pl.launchParam("volume.accel.active", parms.volume.accel.active) = g_appState.accelActive;
     // update camera:
     pl.launchParam("camera.org", parms.camera.org) = cam.getPosition();
     pl.launchParam("camera.dir_00", parms.camera.dir_00) = screen.lower_left;

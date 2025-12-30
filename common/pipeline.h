@@ -116,6 +116,7 @@ struct Pipeline {
   bool transfuncValid(int index=0) const;
 
   // UI params
+  void uiParam(std::string name, bool *b);
   void uiParam(std::string name, float *f, float minf, float maxf);
 
   // Interface

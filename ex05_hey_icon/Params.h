@@ -36,6 +36,19 @@ struct Volume {
   ICONGrid *handle;
 #endif
   box3f bounds;
+
+  // the most simple accelerator imaginable
+  // for this kind of data, just two spheres
+  // forming a shell around the icon elements;
+  // everything inside the inner and outside
+  // the outer sphere is considered empty
+  struct {
+    float innerRadius, outerRadius;
+    // obviously this is not always a good idea,
+    // e.g., when the elements don't nearly form 
+    // circle. So we can decide if we use it or not:
+    bool active;
+  } accel;
 };
 
 struct Transfunc {
