@@ -64,10 +64,10 @@ struct ICONCell {
   // Number of layers
   int numLayers;
 
-  // Height per layer
+  // Height per layer, in [0:numLayers] (right-closed!)
   float height[MAX_LAYERS];
 
-  // Value per layer
+  // Value per layer, in [0:numLayers) (right-open!)
   float value[MAX_LAYERS];
 
   inline __host__ __device__
@@ -88,13 +88,13 @@ struct ICONCell {
     bounds.extend(bv3);
 
     // top triangle vertices
-    vec3f tv1 = toCartesian({height[numLayers-1],lat.x,lon.x});
-    vec3f tv2 = toCartesian({height[numLayers-1],lat.y,lon.y});
-    vec3f tv3 = toCartesian({height[numLayers-1],lat.z,lon.z});
+    vec3f tv1 = toCartesian({height[numLayers],lat.x,lon.x});
+    vec3f tv2 = toCartesian({height[numLayers],lat.y,lon.y});
+    vec3f tv3 = toCartesian({height[numLayers],lat.z,lon.z});
 
     vec3f bary = (tv1+tv2+tv3)/3.f;
 
-    float R = height[numLayers-1];
+    float R = height[numLayers];
     float D = R-length(bary);
     float off = D/R;
 
@@ -126,7 +126,7 @@ inline __device__ float evalPlane(const Plane &p, const vec3f pos)
 inline __device__ bool sample(const ICONCell &cell, vec3f pos, float &value)
 {
   const vec3f spherical = toSpherical(pos);
-  if (spherical.x < cell.height[0] || spherical.x > cell.height[cell.numLayers-1])
+  if (spherical.x < cell.height[0] || spherical.x > cell.height[cell.numLayers])
     return false;
 
   // bottom triangle vertices
@@ -135,9 +135,9 @@ inline __device__ bool sample(const ICONCell &cell, vec3f pos, float &value)
   vec3f bv3 = toCartesian({cell.height[0],cell.lat.z,cell.lon.z});
 
   // top triangle vertices
-  vec3f tv1 = toCartesian({cell.height[cell.numLayers-1],cell.lat.x,cell.lon.x});
-  vec3f tv2 = toCartesian({cell.height[cell.numLayers-1],cell.lat.y,cell.lon.y});
-  vec3f tv3 = toCartesian({cell.height[cell.numLayers-1],cell.lat.z,cell.lon.z});
+  vec3f tv1 = toCartesian({cell.height[cell.numLayers],cell.lat.x,cell.lon.x});
+  vec3f tv2 = toCartesian({cell.height[cell.numLayers],cell.lat.y,cell.lon.y});
+  vec3f tv3 = toCartesian({cell.height[cell.numLayers],cell.lat.z,cell.lon.z});
 
   auto p1 = makePlane(bv1,bv2,tv2);
   auto p2 = makePlane(bv2,bv3,tv3);
@@ -149,13 +149,15 @@ inline __device__ bool sample(const ICONCell &cell, vec3f pos, float &value)
 
   // interpolate value
   float h = spherical.x;
-  for (int i=0; i<cell.numLayers-1; ++i) {
+  for (int i=0; i<cell.numLayers; ++i) {
     float h0 = cell.height[i];
     float h1 = cell.height[i+1];
 
     if (h >= h0 && h<= h1) {
-      float v0 = cell.value[i];
-      float v1 = cell.value[i+1];
+      int i_prev = i==0 ? i : i-1;
+      int i_next = i<cell.numLayers-1 ? i+1 : i;
+      float v0 = (cell.value[i_prev] + cell.value[i]) * 0.5f;
+      float v1 = (cell.value[i] + cell.value[i_next]) * 0.5f;
       float f = (h-h0)/(h1-h0);
       value = v0*(1.f-f) + v1*f;
       break;

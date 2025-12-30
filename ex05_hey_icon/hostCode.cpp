@@ -99,7 +99,8 @@ extern "C" int main(int argc, char *argv[]) {
 
   cell.numLayers = 2;
   cell.height[0] = 100.f;
-  cell.height[1] = 120.f;
+  cell.height[1] = 110.f;
+  cell.height[2] = 120.f;
   cell.value[0] = 0.1f;
   cell.value[1] = 1.f;
 
@@ -110,23 +111,6 @@ extern "C" int main(int argc, char *argv[]) {
 
   for (int i=0; i<cells.size(); ++i) {
     ICONCell &cell = cells[i];
-
-    if (cell.numLayers == 0) {
-      cell.numLayers = 5;
-
-      cell.value[0] = 1.f;
-      cell.value[1] = 0.f;
-      cell.value[2] = 0.5f;
-      cell.value[3] = 0.1f;
-      cell.value[4] = 0.25f;
-
-      cell.height[0] = 6.371229f;
-      cell.height[1] = 6.372229f;
-      cell.height[2] = 6.372529f;
-      cell.height[3] = 6.372829f;
-      cell.height[4] = 6.372929f;
-    }
-
     volbounds.extend(cell.getBounds());
     for (int j=0; j<cell.numLayers; ++j) dataRange.extend(cell.value[j]);
   }
