@@ -419,7 +419,6 @@ struct Pipeline::Impl
           fb->resize(event.window.data1, event.window.data2);
           windowResize = true;
         }
-        return;
       }
       // mouse events
       if (!io.WantCaptureMouse) {
@@ -430,7 +429,6 @@ struct Pipeline::Impl
           if (button.button == SDL_BUTTON_MIDDLE) ourButton = CameraManip::Middle;
           if (button.button == SDL_BUTTON_RIGHT) ourButton = CameraManip::Right;
           cameraUpdate = manip.handleMouseDown(button.x,button.y,ourButton);
-          return;
         }
         if (event.type == SDL_EVENT_MOUSE_BUTTON_UP) {
           SDL_MouseButtonEvent button = event.button;
@@ -439,12 +437,10 @@ struct Pipeline::Impl
           if (button.button == SDL_BUTTON_MIDDLE) ourButton = CameraManip::Middle;
           if (button.button == SDL_BUTTON_RIGHT) ourButton = CameraManip::Right;
           cameraUpdate = manip.handleMouseUp(button.x,button.y,ourButton);
-          return;
         }
         if (event.type == SDL_EVENT_MOUSE_MOTION) {
           SDL_MouseMotionEvent motion = event.motion;
           cameraUpdate = manip.handleMouseMove(motion.x,motion.y);
-          return;
         }
       }
       // keyboard events
@@ -455,7 +451,6 @@ struct Pipeline::Impl
             // TODO: check if in ascii range
             keyDownHandler(key.key);
           }
-          return;
         }
       }
     }
