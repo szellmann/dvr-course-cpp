@@ -9,4 +9,7 @@ structures discussed in later chapters. The sample generally works on the CPU,
 but doesn't use a BVH so will be very slow.
 
 ## TODOs:
-- [ ] No _known_ TODOs at this point (remove this comment at the end..)
+- [ ] Make accel and non-accel code paths use separate ray gen progs. The
+      reason for this being that it is nice show that the ray gen prog per se
+      isn't any different than the ray gen used in prior examples, only the
+      element type changed
