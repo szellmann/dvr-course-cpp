@@ -146,7 +146,7 @@ int main(int argc, char *argv[]) {
 
   int numLayers = 0;
   std::vector<float> heights, values;
-  for (int i=2; i<std::min(argc,32); ++i) {
+  for (int i=2; i<argc; ++i) {
     if ((retval = nc_open(argv[i], NC_NOWRITE, &ncid)) != NC_NOERR) {
       printf("Error opening file: %s\n", nc_strerror(retval));
       return 1;
@@ -252,13 +252,16 @@ int main(int argc, char *argv[]) {
   }
 
 
+  if (numLayers > 30) {
+    std::cerr << "Only loading the first 30 layers..\n";
+    numLayers = 30;
+  }
 
   std::ofstream out("out.ic",std::ios::binary);
   for (int i=0; i<cell; ++i) {
     float lat[3]{(float)clat_vertices[i*3],(float)clat_vertices[i*3+1],(float)clat_vertices[i*3+2]};
     float lon[3]{(float)clon_vertices[i*3],(float)clon_vertices[i*3+1],(float)clon_vertices[i*3+2]};;
     float H[32];
-    assert(numLayers<sizeof(H)/sizeof(H[0]));
     H[0] = 6.371229f;
     for (int j=0; j<numLayers; ++j) {
       H[j+1] = H[j]+height_to_index[j].first/100000.f;
