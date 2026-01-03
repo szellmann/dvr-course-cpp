@@ -10,3 +10,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(netCDF COMPONENTS netcdf REQUIRED)
 add_executable(${PROJECT_NAME} convert_icon.cpp)
 target_link_libraries(${PROJECT_NAME} PRIVATE netCDF::netcdf)
+
+find_package(umesh)
+
+if(TARGET umesh::umesh)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE WITH_UMESH)
+  target_link_libraries(${PROJECT_NAME} PRIVATE umesh::umesh)
+endif()

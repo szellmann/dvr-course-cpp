@@ -9,6 +9,14 @@
 #include <iostream>
 #include <fstream>
 #include <netcdf.h>
+#ifdef WITH_UMESH
+# include "umesh/umesh.h"
+#endif
+
+struct {
+  bool convertToIC{true};
+  bool convertToUMesh{false};
+} g_appState;
 
 static void printHelp() {
   std::cout << "SYNOPSIS\n\n";
@@ -21,6 +29,18 @@ static void printHelp() {
   std::cout << "cdo -f nc copy <in.grib2> <out.nc>\n";
   std::cout << "We assume that certain NetCDF dims and variables are present, such as \"height\".\n";
   std::cout << "In case this these are not present this script should be adapted accordingly....\n";
+}
+
+inline umesh::vec3f toCartesian(const umesh::vec3f spherical)
+{
+  const float r = spherical.x;
+  const float lat = spherical.y;
+  const float lon = spherical.z;
+
+  float x = r * cosf(lat) * cosf(lon);
+  float y = r * cosf(lat) * sinf(lon);
+  float z = r * sinf(lat);
+  return {x,y,z};
 }
 
 int main(int argc, char *argv[]) {
@@ -257,27 +277,88 @@ int main(int argc, char *argv[]) {
     numLayers = 30;
   }
 
-  std::ofstream out("out.ic",std::ios::binary);
-  for (int i=0; i<cell; ++i) {
-    float lat[3]{(float)clat_vertices[i*3],(float)clat_vertices[i*3+1],(float)clat_vertices[i*3+2]};
-    float lon[3]{(float)clon_vertices[i*3],(float)clon_vertices[i*3+1],(float)clon_vertices[i*3+2]};;
-    float H[32];
-    H[0] = 6.371229f;
-    for (int j=0; j<numLayers; ++j) {
-      H[j+1] = H[j]+height_to_index[j].first/100000.f;
+  if (g_appState.convertToIC) {
+    std::ofstream out("out.ic",std::ios::binary);
+    for (int i=0; i<cell; ++i) {
+      float lat[3]{(float)clat_vertices[i*3],(float)clat_vertices[i*3+1],(float)clat_vertices[i*3+2]};
+      float lon[3]{(float)clon_vertices[i*3],(float)clon_vertices[i*3+1],(float)clon_vertices[i*3+2]};;
+      float H[32];
+      H[0] = 6.371229f;
+      for (int j=0; j<numLayers; ++j) {
+        //H[j+1] = H[j]+height_to_index[j].first/100000.f;
+        H[j+1] = H[j]+height_to_index[j].first/1000.f;
+      }
+      float value[32];
+      for (int j=0; j<numLayers; ++j) {
+        int h = height_to_index[j].second;
+        if (i==0) std::cout << "layer " << j << " is at index " << h << ", height value is " << height_to_index[j].first << '\n';
+        value[j] = values[h*cell+i];
+      }
+      out.write((const char *)lat,sizeof(lat));
+      out.write((const char *)lon,sizeof(lon));
+      out.write((const char *)&numLayers,sizeof(numLayers));
+      out.write((const char *)H,sizeof(H));
+      out.write((const char *)value,sizeof(value));
     }
-    float value[32];
-    for (int j=0; j<numLayers; ++j) {
-      int h = height_to_index[j].second;
-      if (i==0) std::cout << "layer " << j << " is at index " << h << ", height value is " << height_to_index[j].first << '\n';
-      value[j] = values[h*cell+i];
-    }
-    out.write((const char *)lat,sizeof(lat));
-    out.write((const char *)lon,sizeof(lon));
-    out.write((const char *)&numLayers,sizeof(numLayers));
-    out.write((const char *)H,sizeof(H));
-    out.write((const char *)value,sizeof(value));
+    out.close();
   }
-  out.close();
 
+  if (g_appState.convertToUMesh) {
+    using namespace umesh;
+    auto output = std::make_shared<UMesh>();
+    output->perVertex = std::make_shared<Attribute>();
+    for (int i=0; i<cell; ++i) {
+      float lat[3]{(float)clat_vertices[i*3],(float)clat_vertices[i*3+1],(float)clat_vertices[i*3+2]};
+      float lon[3]{(float)clon_vertices[i*3],(float)clon_vertices[i*3+1],(float)clon_vertices[i*3+2]};;
+      //float H[32];
+      //H[0] = 6.371229f;
+      //for (int j=0; j<numLayers; ++j) {
+      //  H[j+1] = H[j]+height_to_index[j].first/100000.f;
+      //}
+      //float value[32];
+      float h1 = 6.371229f;
+      for (int j=0; j<numLayers; ++j) {
+        float h2 = h1 + height_to_index[j].first/1000.f;
+
+        int h = height_to_index[j].second;
+
+        // bottom triangle vertices
+        vec3f bv1 = toCartesian({h1,lat[0],lon[0]});
+        vec3f bv2 = toCartesian({h1,lat[1],lon[1]});
+        vec3f bv3 = toCartesian({h1,lat[2],lon[2]});
+        // bottom value
+        float bot = values[h*cell+i]; // TODO: interpolate
+
+        // top triangle vertices
+        vec3f tv1 = toCartesian({h2,lat[0],lon[0]});
+        vec3f tv2 = toCartesian({h2,lat[1],lon[1]});
+        vec3f tv3 = toCartesian({h2,lat[2],lon[2]});
+        float top = values[h*cell+i]; // TODO: interpolate
+
+        output->vertices.push_back(bv1); output->perVertex->values.push_back(bot);
+        output->vertices.push_back(bv2); output->perVertex->values.push_back(bot);
+        output->vertices.push_back(bv3); output->perVertex->values.push_back(bot);
+        output->vertices.push_back(tv1); output->perVertex->values.push_back(top);
+        output->vertices.push_back(tv2); output->perVertex->values.push_back(top);
+        output->vertices.push_back(tv3); output->perVertex->values.push_back(top);
+
+        UMesh::Wedge wedge;
+        wedge[0] = (int)output->vertices.size()-6;
+        wedge[1] = (int)output->vertices.size()-5;
+        wedge[2] = (int)output->vertices.size()-4;
+        wedge[3] = (int)output->vertices.size()-3;
+        wedge[4] = (int)output->vertices.size()-2;
+        wedge[5] = (int)output->vertices.size()-1;
+
+        output->wedges.push_back(wedge);
+
+        h1 = h2;
+      }
+    }
+
+    output->finalize();
+    std::cout << output->vertices.size() << '\n';
+    std::cout << output->wedges.size() << '\n';
+    output->saveTo("out.umesh");
+  }
 }
