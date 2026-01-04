@@ -34,7 +34,7 @@ namespace ex02_woodcock {
 #ifdef RTCORE
 extern "C" char ptxCode[];
 #else
-extern void woodockTrackingAE();
+extern void woodcockTrackingAE();
 #endif
 
 void printUsage() {
@@ -116,10 +116,10 @@ extern "C" int main(int argc, char *argv[]) {
   pl.uiParam("Unit distance", &g_appState.unitDistance, 0.001f, 5.f);
 
 #ifdef RTCORE
-  pl.setRayGen(ptxCode, "woodockTrackingAE");
+  pl.setRayGen(ptxCode, "woodcockTrackingAE");
   pl.setLaunchParamsDecl(launchParams_owl, sizeof(LaunchParams));
 #else
-  pl.setRayGen(woodockTrackingAE);
+  pl.setRayGen(woodcockTrackingAE);
 #endif
 
   LaunchParams parms;

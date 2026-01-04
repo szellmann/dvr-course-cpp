@@ -76,7 +76,7 @@ inline __device__ vec4f postClassify(Transfunc tf, float v)
 // ========================================================
 // Main ray gen prog (woodcock tracking, A+E)
 // ========================================================
-RAYGEN_PROGRAM(woodockTrackingAE)()
+RAYGEN_PROGRAM(woodcockTrackingAE)()
 {
   auto &lp = optixLaunchParams;
   const vec2i threadIndex = getLaunchIndex();
