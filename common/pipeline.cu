@@ -667,6 +667,14 @@ Pipeline::~Pipeline() {
 #ifdef RTCORE
 void Pipeline::setRayGen(const char *name) {
   impl->owl.rayGenName = name;
+  if (impl->owl.rayGen) {
+    owlRayGenRelease(impl->owl.rayGen);
+    impl->owl.rayGen = nullptr;
+    impl->initOWLRayGen();
+    owlBuildPrograms(impl->owl.context);
+    owlBuildPipeline(impl->owl.context);
+    owlBuildSBT(impl->owl.context);
+  }
 }
 
 void Pipeline::setRayGen(const char *ptxCode, const char *name) {
