@@ -28,7 +28,8 @@ namespace ex05_hey_icon {
 #ifdef RTCORE
 extern "C" char ptxCode[];
 #else
-extern void woodockTrackingAE();
+extern void woodcockTrackingAE();
+extern void woodcockTrackingWithAccel();
 #endif
 
 void printUsage() {
@@ -42,6 +43,27 @@ static void parseCommandLine(int argc, char *argv[]) {
     if (arg[0] != '-')
       g_appState.filepath = arg;
   }
+}
+
+static void toggleRayGen(Pipeline &pl) {
+  static bool accelActive=true;
+  if (g_appState.accelActive != accelActive) {
+    if (g_appState.accelActive) {
+#ifdef RTCORE
+      pl.setRayGen("woodcockTrackingWithAccel");
+#else
+      pl.setRayGen(woodcockTrackingWithAccel);
+#endif
+    } else {
+#ifdef RTCORE
+      pl.setRayGen("woodcockTrackingAE");
+#else
+      pl.setRayGen(woodcockTrackingAE);
+#endif
+    }
+    pl.resetAccumulation();
+  }
+  accelActive = g_appState.accelActive;
 }
 
 extern "C" int main(int argc, char *argv[]) {
@@ -150,10 +172,10 @@ extern "C" int main(int argc, char *argv[]) {
   pl.uiParam("Use naive accel", &g_appState.accelActive);
 
 #ifdef RTCORE
-  pl.setRayGen(ptxCode, "woodockTrackingAE");
+  pl.setRayGen(ptxCode, "woodcockTrackingWithAccel");
   pl.setLaunchParamsDecl(launchParams_owl, sizeof(LaunchParams));
 #else
-  pl.setRayGen(woodockTrackingAE);
+  pl.setRayGen(woodcockTrackingAE);
 #endif
 
   LaunchParams parms;
@@ -212,13 +234,13 @@ extern "C" int main(int argc, char *argv[]) {
   // For default (PNG image) pipeline this
   // loop returns immediately
   do {
+    toggleRayGen(pl);
+
     struct {
       vec3f lower_left, horizontal, vertical;
     } screen;
     cam.getScreen(screen.lower_left,screen.horizontal,screen.vertical);
 
-    // update volume accel active:
-    pl.launchParam("volume.accel.active", parms.volume.accel.active) = g_appState.accelActive;
     // update camera:
     pl.launchParam("camera.org", parms.camera.org) = cam.getPosition();
     pl.launchParam("camera.dir_00", parms.camera.dir_00) = screen.lower_left;

@@ -44,10 +44,6 @@ struct Volume {
   // the outer sphere is considered empty
   struct {
     float innerRadius, outerRadius;
-    // obviously this is not always a good idea,
-    // e.g., when the elements don't nearly form 
-    // circle. So we can decide if we use it or not:
-    bool active;
   } accel;
 };
 

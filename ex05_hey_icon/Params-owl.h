@@ -31,7 +31,6 @@ OWLVarDecl launchParams_owl[]
    // volume accel
    { "volume.accel.innerRadius", OWL_FLOAT, OWL_OFFSETOF(LaunchParams,volume.accel.innerRadius) },
    { "volume.accel.outerRadius", OWL_FLOAT, OWL_OFFSETOF(LaunchParams,volume.accel.outerRadius) },
-   { "volume.accel.active", OWL_BOOL, OWL_OFFSETOF(LaunchParams,volume.accel.active) },
    // xf data
    { "transfunc.valueRange", OWL_USER_TYPE(box1f), OWL_OFFSETOF(LaunchParams,transfunc.valueRange) },
    { "transfunc.values", OWL_RAW_POINTER, OWL_OFFSETOF(LaunchParams,transfunc.values) },
