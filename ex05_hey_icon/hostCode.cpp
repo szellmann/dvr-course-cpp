@@ -175,7 +175,7 @@ extern "C" int main(int argc, char *argv[]) {
   pl.setRayGen(ptxCode, "woodcockTrackingWithAccel");
   pl.setLaunchParamsDecl(launchParams_owl, sizeof(LaunchParams));
 #else
-  pl.setRayGen(woodcockTrackingAE);
+  pl.setRayGen(woodcockTrackingWithAccel);
 #endif
 
   LaunchParams parms;
@@ -220,11 +220,11 @@ extern "C" int main(int argc, char *argv[]) {
 #ifdef RTCORE
   //pl.launchParam("volume.handle", parms.volume.handle) = tlas;
   owlParamsSetGroup(pl.owlLaunchParams(), "volume.handle", tlas);
-  pl.launchParam("volume.accel.innerRadius", parms.volume.accel.innerRadius) = innerRadius;
-  pl.launchParam("volume.accel.outerRadius", parms.volume.accel.outerRadius) = outerRadius;
 #else
   pl.launchParam("volume.handle", (RawPointer &)parms.volume.handle) = &deviceGrid;
 #endif
+  pl.launchParam("volume.accel.innerRadius", parms.volume.accel.innerRadius) = innerRadius;
+  pl.launchParam("volume.accel.outerRadius", parms.volume.accel.outerRadius) = outerRadius;
   pl.launchParam("volume.bounds", parms.volume.bounds) = volbounds;
   // lighting
   pl.launchParam("ambientColor", parms.ambientColor) = vec3f(1.f);
