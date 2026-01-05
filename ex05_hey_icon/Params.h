@@ -32,9 +32,10 @@ namespace ex05_hey_icon {
 struct Volume {
 #ifdef RTCORE
   OptixTraversableHandle handle;
-#else
-  ICONGrid *handle;
+  bool useTriangles;
 #endif
+  ICONCell *cells;
+  int numCells;
   box3f bounds;
 
   // the most simple accelerator imaginable
@@ -51,6 +52,14 @@ struct Transfunc {
   box1f  valueRange;
   vec4f *values;
   int size;
+};
+
+struct ICONTriangleGeom
+{
+  /*! array/buffer of vertex indices */
+  vec3i *index;
+  /*! array/buffer of vertex positions */
+  vec3f *vertex;
 };
 
 struct LaunchParams {

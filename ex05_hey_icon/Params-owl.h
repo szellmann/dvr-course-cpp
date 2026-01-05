@@ -27,6 +27,9 @@ OWLVarDecl launchParams_owl[]
 = {
    // volume
    { "volume.handle", OWL_GROUP, OWL_OFFSETOF(LaunchParams,volume.handle) },
+   { "volume.useTriangles", OWL_BOOL, OWL_OFFSETOF(LaunchParams,volume.useTriangles) },
+   { "volume.cells", OWL_RAW_POINTER, OWL_OFFSETOF(LaunchParams,volume.cells) },
+   { "volume.numCells", OWL_INT, OWL_OFFSETOF(LaunchParams,volume.numCells) },
    { "volume.bounds", OWL_USER_TYPE(box3f), OWL_OFFSETOF(LaunchParams,volume.bounds) },
    // volume accel
    { "volume.accel.innerRadius", OWL_FLOAT, OWL_OFFSETOF(LaunchParams,volume.accel.innerRadius) },

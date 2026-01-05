@@ -13,3 +13,4 @@ but doesn't use a BVH so will be very slow.
       reason for this being that it is nice show that the ray gen prog per se
       isn't any different than the ray gen used in prior examples, only the
       element type changed
+- [ ] Decide if we keep both OptiX user geom and OptiX triangle sampler

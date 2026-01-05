@@ -21,7 +21,11 @@ struct {
   std::string filepath;
   Transfunc transfunc;
   float unitDistance;
+  bool useOptixTriangles;
   bool accelActive;
+#ifdef RTCORE
+  OWLGroup trianglesTLAS, userGeomTLAS;
+#endif
 } g_appState;
 
 namespace ex05_hey_icon {
@@ -64,6 +68,23 @@ static void toggleRayGen(Pipeline &pl) {
     pl.resetAccumulation();
   }
   accelActive = g_appState.accelActive;
+}
+
+static void toggleOptixTriangles(Pipeline &pl, LaunchParams &parms) {
+#ifdef RTCORE
+  static bool useOptixTriangles=true;
+  if (g_appState.useOptixTriangles != useOptixTriangles) {
+    if (g_appState.useOptixTriangles) {
+      owlParamsSetGroup(pl.owlLaunchParams(), "volume.handle", g_appState.trianglesTLAS);
+    } else {
+      owlParamsSetGroup(pl.owlLaunchParams(), "volume.handle", g_appState.userGeomTLAS);
+    }
+    pl.launchParam("volume.useTriangles", parms.volume.useTriangles)
+        = g_appState.useOptixTriangles;
+    pl.resetAccumulation();
+  }
+  useOptixTriangles = g_appState.useOptixTriangles;
+#endif
 }
 
 extern "C" int main(int argc, char *argv[]) {
@@ -171,6 +192,9 @@ extern "C" int main(int argc, char *argv[]) {
   g_appState.accelActive = true;
   pl.uiParam("Use naive accel", &g_appState.accelActive);
 
+  g_appState.useOptixTriangles = true;
+  pl.uiParam("Use OptiX triangle sampler", &g_appState.useOptixTriangles);
+
 #ifdef RTCORE
   pl.setRayGen(ptxCode, "woodcockTrackingWithAccel");
   pl.setLaunchParamsDecl(launchParams_owl, sizeof(LaunchParams));
@@ -181,48 +205,99 @@ extern "C" int main(int argc, char *argv[]) {
   LaunchParams parms;
 
 #ifdef RTCORE
+  // ######################################################
+  // variant with triangle geometry
+  // ######################################################
+
+  std::vector<vec3f> vertex;
+  std::vector<vec3i> index;
+  for (size_t i=0; i<cells.size(); ++i) {
+    const ICONCell &cell = cells[i];
+    vec3f v1 = toCartesian({cell.height[0],cell.lat.x,cell.lon.x});
+    vec3f v2 = toCartesian({cell.height[0],cell.lat.y,cell.lon.y});
+    vec3f v3 = toCartesian({cell.height[0],cell.lat.z,cell.lon.z});
+    vertex.push_back(v1);
+    vertex.push_back(v2);
+    vertex.push_back(v3);
+    index.push_back({int(i)*3,int(i)*3+1,int(i)*3+2});
+  }
+
+  OWLVarDecl trianglesGeomVars[] = {
+    { "index",  OWL_BUFPTR, OWL_OFFSETOF(ICONTriangleGeom,index)},
+    { "vertex", OWL_BUFPTR, OWL_OFFSETOF(ICONTriangleGeom,vertex)},
+    { nullptr /* sentinel to mark end of list */ }
+  };
+  OWLGeomType trianglesGeomType = owlGeomTypeCreate(pl.owlContext(),
+                                                    OWL_TRIANGLES,
+                                                    sizeof(ICONTriangleGeom),
+                                                    trianglesGeomVars,-1);
+  owlGeomTypeSetClosestHit(trianglesGeomType, 0, pl.owlModule(), "ICONTrianglesClosestHit");
+  OWLBuffer vertexBuffer
+    = owlDeviceBufferCreate(pl.owlContext(),OWL_FLOAT3,vertex.size(),vertex.data());
+  OWLBuffer indexBuffer
+    = owlDeviceBufferCreate(pl.owlContext(),OWL_INT3,index.size(),index.data());
+
+  OWLGeom trianglesGeom = owlGeomCreate(pl.owlContext(),trianglesGeomType);
+
+  owlTrianglesSetVertices(trianglesGeom,vertexBuffer,vertex.size(),sizeof(vec3f),0);
+  owlTrianglesSetIndices(trianglesGeom,indexBuffer,index.size(),sizeof(vec3i),0);
+
+  owlGeomSetBuffer(trianglesGeom,"vertex",vertexBuffer);
+  owlGeomSetBuffer(trianglesGeom,"index",indexBuffer);
+
+  OWLGroup trianglesBLAS = owlTrianglesGeomGroupCreate(pl.owlContext(),1,&trianglesGeom);
+  owlGroupBuildAccel(trianglesBLAS);
+
+  g_appState.trianglesTLAS = owlInstanceGroupCreate(pl.owlContext(),1,&trianglesBLAS);
+  owlGroupBuildAccel(g_appState.trianglesTLAS);
+
+
+  // ######################################################
+  // variant with user geometry
+  // ######################################################
+
   OWLVarDecl iconGeomVars[]
   = {
      { "cells",  OWL_BUFPTR, OWL_OFFSETOF(ICONGrid,cells)},
      { "numCells",  OWL_UINT, OWL_OFFSETOF(ICONGrid,numCells)},
      { nullptr /* sentinel to mark end of list */ }
   };
-  OWLGeomType geomType = owlGeomTypeCreate(pl.owlContext(),
-                                           OWL_GEOM_USER,
-                                           sizeof(ICONGrid),
-                                           iconGeomVars, -1);
-  owlGeomTypeSetBoundsProg(geomType, pl.owlModule(), "ICONCellBounds");
-  owlGeomTypeSetIntersectProg(geomType, 0, pl.owlModule(), "ICONCellIntersect");
-  owlGeomTypeSetClosestHit(geomType, 0, pl.owlModule(), "ICONCellClosestHit");
+  OWLGeomType userGeomType = owlGeomTypeCreate(pl.owlContext(),
+                                               OWL_GEOM_USER,
+                                               sizeof(ICONGrid),
+                                               iconGeomVars, -1);
+  owlGeomTypeSetBoundsProg(userGeomType, pl.owlModule(), "ICONCellBounds");
+  owlGeomTypeSetIntersectProg(userGeomType, 0, pl.owlModule(), "ICONCellIntersect");
+  owlGeomTypeSetClosestHit(userGeomType, 0, pl.owlModule(), "ICONCellClosestHit");
 
-  OWLGeom geom = owlGeomCreate(pl.owlContext(), geomType);
-  owlGeomSetPrimCount(geom, cells.size());
+  OWLGeom userGeom = owlGeomCreate(pl.owlContext(), userGeomType);
+  owlGeomSetPrimCount(userGeom, cells.size());
 
   OWLBuffer cellBuffer = owlDeviceBufferCreate(pl.owlContext(),
                                                OWL_USER_TYPE(ICONCell{}),
                                                cells.size(),
                                                cells.data());
-  owlGeomSetBuffer(geom, "cells", cellBuffer);
-  owlGeomSet1ui(geom, "numCells", (unsigned)cells.size());
+  owlGeomSetBuffer(userGeom, "cells", cellBuffer);
+  owlGeomSet1ui(userGeom, "numCells", (unsigned)cells.size());
 
   owlBuildPrograms(pl.owlContext());
 
-  OWLGroup blas = owlUserGeomGroupCreate(pl.owlContext(), 1, &geom);
-  owlGroupBuildAccel(blas);
+  OWLGroup userGeomBLAS = owlUserGeomGroupCreate(pl.owlContext(), 1, &userGeom);
+  owlGroupBuildAccel(userGeomBLAS);
 
-  OWLGroup tlas = owlInstanceGroupCreate(pl.owlContext(), 1);
-  owlInstanceGroupSetChild(tlas, 0, blas);
+  g_appState.userGeomTLAS = owlInstanceGroupCreate(pl.owlContext(), 1);
+  owlInstanceGroupSetChild(g_appState.userGeomTLAS, 0, userGeomBLAS);
 
-  owlGroupBuildAccel(tlas);
+  owlGroupBuildAccel(g_appState.userGeomTLAS);
 #endif
 
   // volume
 #ifdef RTCORE
-  //pl.launchParam("volume.handle", parms.volume.handle) = tlas;
-  owlParamsSetGroup(pl.owlLaunchParams(), "volume.handle", tlas);
-#else
-  pl.launchParam("volume.handle", (RawPointer &)parms.volume.handle) = &deviceGrid;
+  owlParamsSetGroup(pl.owlLaunchParams(), "volume.handle", g_appState.trianglesTLAS);
+  pl.launchParam("volume.useTriangles", parms.volume.useTriangles) = true;
 #endif
+  pl.launchParam("volume.cells", (RawPointer &)parms.volume.cells) = deviceCells.data();
+  pl.launchParam("volume.numCells", parms.volume.numCells) = (int)deviceCells.size();
   pl.launchParam("volume.accel.innerRadius", parms.volume.accel.innerRadius) = innerRadius;
   pl.launchParam("volume.accel.outerRadius", parms.volume.accel.outerRadius) = outerRadius;
   pl.launchParam("volume.bounds", parms.volume.bounds) = volbounds;
@@ -235,6 +310,7 @@ extern "C" int main(int argc, char *argv[]) {
   // loop returns immediately
   do {
     toggleRayGen(pl);
+    toggleOptixTriangles(pl,parms);
 
     struct {
       vec3f lower_left, horizontal, vertical;

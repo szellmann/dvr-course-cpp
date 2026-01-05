@@ -56,23 +56,41 @@ struct PRD {
 inline __device__ bool sampleVolume(const Volume &vol, vec3f pos, float &value)
 {
 #ifdef RTCORE
-  PRD prd;
-  prd.value = 0.f;
-  prd.primID = ~0u;
-  owl::Ray ray;
-  ray.origin = owl::vec3f(pos.x,pos.y,pos.z);
-  ray.direction = owl::vec3f(1.f);
-  ray.tmin = ray.tmax = 0.f;
-  owl::traceRay(vol.handle,ray,prd,OPTIX_RAY_FLAG_DISABLE_ANYHIT);
-  if (prd.primID != ~0u) {
-    value = prd.value;
-    return true;
+  if (vol.useTriangles) {
+    PRD prd;
+    prd.value = 0.f;
+    prd.primID = ~0u;
+    owl::Ray ray;
+    ray.origin = owl::vec3f(pos.x,pos.y,pos.z);
+    ray.direction = -normalize(ray.origin);
+    owl::traceRay(vol.handle,ray,prd,OPTIX_RAY_FLAG_CULL_BACK_FACING_TRIANGLES);
+    if (prd.primID != ~0u) {
+      const ICONCell &cell = vol.cells[prd.primID];
+      const vec3f spherical = toSpherical(pos);
+      if (spherical.x < cell.height[0] || spherical.x > cell.height[cell.numLayers])
+        return false;
+      value = cell.getValue(spherical.x);
+      return true;
+    }
+  } else {
+    PRD prd;
+    prd.value = 0.f;
+    prd.primID = ~0u;
+    owl::Ray ray;
+    ray.origin = owl::vec3f(pos.x,pos.y,pos.z);
+    ray.direction = owl::vec3f(1.f);
+    ray.tmin = ray.tmax = 0.f;
+    owl::traceRay(vol.handle,ray,prd,OPTIX_RAY_FLAG_DISABLE_ANYHIT);
+    if (prd.primID != ~0u) {
+      value = prd.value;
+      return true;
+    }
   }
 #else
   // on non-RT hardware we resort to just linearly
   // iterating over all primitives (veeeryy slow...)
-  for (unsigned i=0; i<vol.handle->numCells; ++i) {
-    if (sample(vol.handle->cells[i],pos,value))
+  for (unsigned i=0; i<vol.numCells; ++i) {
+    if (sample(vol.cells[i],pos,value))
       return true;
   }
 #endif
@@ -166,6 +184,13 @@ OPTIX_INTERSECT_PROGRAM(ICONCellIntersect)()
 OPTIX_CLOSEST_HIT_PROGRAM(ICONCellClosestHit)()
 {
   // empty
+}
+
+// CH used with triangle geom:
+OPTIX_CLOSEST_HIT_PROGRAM(ICONTrianglesClosestHit)()
+{
+  PRD &prd = owl::getPRD<PRD>();
+  prd.primID = optixGetPrimitiveIndex();
 }
 #endif
 
