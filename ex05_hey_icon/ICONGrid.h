@@ -28,6 +28,11 @@ inline __host__ __device__ float deg2rad(float d)
   return d*float(M_PI)/180.f;
 }
 
+inline __host__ __device__ float rad2deg(float d)
+{
+  return d*180.f/float(M_PI);
+}
+
 inline __host__ __device__ vec3f toSpherical(const vec3f cartesian)
 {
   float r = length(cartesian);
@@ -108,6 +113,27 @@ struct ICONCell {
 
     return bounds;
   }
+
+  inline __device__ float getValue(float hpos) const
+  {
+    // interpolate value
+    for (int i=0; i<numLayers; ++i) {
+      float h0 = height[i];
+      float h1 = height[i+1];
+  
+      if (hpos >= h0 && hpos <= h1) {
+        int i_prev = i==0 ? i : i-1;
+        int i_next = i<numLayers-1 ? i+1 : i;
+        float v0 = (value[i_prev] + value[i]) * 0.5f;
+        float v1 = (value[i] + value[i_next]) * 0.5f;
+        float f = (hpos-h0)/(h1-h0);
+        return v0*(1.f-f) + v1*f;
+      }
+    }
+    // should never get here!
+    return {};
+  }
+
 };
 
 typedef vec4f Plane;
@@ -147,22 +173,7 @@ inline __device__ bool sample(const ICONCell &cell, vec3f pos, float &value)
   if (evalPlane(p2,pos) > 0.f) return false; /* ccw */
   if (evalPlane(p3,pos) > 0.f) return false; /* ccw */
 
-  // interpolate value
-  float h = spherical.x;
-  for (int i=0; i<cell.numLayers; ++i) {
-    float h0 = cell.height[i];
-    float h1 = cell.height[i+1];
-
-    if (h >= h0 && h<= h1) {
-      int i_prev = i==0 ? i : i-1;
-      int i_next = i<cell.numLayers-1 ? i+1 : i;
-      float v0 = (cell.value[i_prev] + cell.value[i]) * 0.5f;
-      float v1 = (cell.value[i] + cell.value[i_next]) * 0.5f;
-      float f = (h-h0)/(h1-h0);
-      value = v0*(1.f-f) + v1*f;
-      break;
-    }
-  }
+  value = cell.getValue(spherical.x);
 
   return true;
 }
