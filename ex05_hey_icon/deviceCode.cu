@@ -184,7 +184,7 @@ bool intersectSphere(const Ray &ray, float radius, float &tnear, float &tfar) {
 
   d = sqrtf(d);
 
-  float q = B < 0.f ? -0.5f * (B-d) : -0.f * (B+d);
+  float q = B < 0.f ? -0.5f * (B-d) : -0.5f * (B+d);
 
   float t1 = q/A;
   float t2 = C/q;
