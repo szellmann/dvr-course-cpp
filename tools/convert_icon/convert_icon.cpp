@@ -22,7 +22,11 @@ static void printHelp() {
   std::cout << "SYNOPSIS\n\n";
   std::cout << "Convert DWD ICON data to internal format used by our tool chain.\n";
   std::cout << "Given data from the DWD, we require the appropriate \"horizontal grid file\",\n";
-  std::cout << "e.g., \"icon_grid_0026_R03B07_G.nc\" from http://icon-downloads.mpimet.mpg.de/dwd_grids.xml\n";
+  std::cout << "e.g., \"icon_grid_0026_R03B07_G.nc\" from http://icon-downloads.mpimet.mpg.de/dwd_grids.xml,\n";
+  std::cout << "the time-invariant grid containing HSURF, e.g.:\n";
+  std::cout << "\"icon_global_icosahedral_time-invariant_2026010300_HSURF.nc\",";
+  std::cout << "the level height grids containing HHL from here:\n";
+  std::cout << "https://opendata.dwd.de/weather/nwp/icon/grib/00/hhl/\n";
   std::cout << "and the grid files for the variable of interest in NetCDF format.\n";
   std::cout << "Data files can, e.g., be found here: https://opendata.dwd.de/weather/nwp/icon/grib/00/\n";
   std::cout << "Files in grib2 format must first be converted to NetCDF using:\n";
@@ -43,6 +47,68 @@ inline umesh::vec3f toCartesian(const umesh::vec3f spherical)
   return {x,y,z};
 }
 
+static size_t readDimLength(int ncid, std::string name) {
+  int retval, dimid;
+  if ((retval != nc_inq_dimid(ncid, name.c_str(), &dimid)) != NC_NOERR) {
+    fprintf(stderr, "dim %s not found\n", name.c_str());
+    return ~0ull;
+  }
+
+  size_t result;
+  if ((retval = nc_inq_dimlen(ncid, dimid, &result)) != NC_NOERR) {
+    fprintf(stderr, "variable %s found but size mismatch\n", name.c_str());
+    return ~0ull;
+  }
+
+  return result;
+}
+
+static std::vector<int> readIntVar(int ncid, std::string name, size_t len) {
+  int retval, varid;
+  if ((retval = nc_inq_varid(ncid, name.c_str(), &varid)) != NC_NOERR) {
+    fprintf(stderr, "variable %s not found\n", name.c_str());
+    return {};
+  }
+
+  std::vector<int> result(len);
+
+  if ((retval = nc_get_var_int(ncid, varid, result.data())) != NC_NOERR) {
+    fprintf(stderr, "cannot read from variable %s\n", name.c_str());
+    return {};
+  }
+
+  if (result.size() != len) {
+    fprintf(stderr, "variable %s found but size mismatch\n", name.c_str());
+    return {};
+  }
+
+  return result;
+}
+
+static std::vector<double> readDoubleVar(int ncid, std::string name, size_t len) {
+  int retval, varid;
+  if ((retval = nc_inq_varid(ncid, name.c_str(), &varid)) != NC_NOERR) {
+    fprintf(stderr, "variable %s not found\n", name.c_str());
+    return {};
+  }
+
+  std::vector<double> result(len);
+
+  if ((retval = nc_get_var_double(ncid, varid, result.data())) != NC_NOERR) {
+    fprintf(stderr, "cannot read from variable %s\n", name.c_str());
+    return {};
+  }
+
+  if (result.size() != len) {
+    fprintf(stderr, "variable %s found but size mismatch\n", name.c_str());
+    return {};
+  }
+
+  return result;
+}
+
+
+
 int main(int argc, char *argv[]) {
   if (argc < 3 || std::string(argv[1]) == "help" ) {
     printHelp();
@@ -56,111 +122,25 @@ int main(int argc, char *argv[]) {
   }
 
   // read number of cells:
-  int cell_id;
-  if ((retval = nc_inq_dimid(ncid, "cell", &cell_id)) != NC_NOERR) {
-    printf("Error finding dimension: %s\n", nc_strerror(retval));
-    nc_close(ncid);
-    return 1;
-  }
-
-  size_t cell;
-  if ((retval = nc_inq_dimlen(ncid, cell_id, &cell)) != NC_NOERR) {
-    printf("Error reading dimension: %s\n", nc_strerror(retval));
-    nc_close(ncid);
-    return 1;
-  }
+  size_t cell = readDimLength(ncid, "cell");
   printf("number of cells: %i\n",(int)cell);
 
-  // read triangle vertex IDs
-  int vertex_of_cell_id;
-  if ((retval = nc_inq_varid(ncid, "vertex_of_cell", &vertex_of_cell_id)) != NC_NOERR) {
-    printf("Error finding variable: %s\n", nc_strerror(retval));
-    nc_close(ncid);
-    return 1;
-  }
-
-  int *vertex_of_cell = new int[cell*3]; // these are one-based!! (Fortran......)
-  if ((retval = nc_get_var_int(ncid, vertex_of_cell_id, vertex_of_cell)) != NC_NOERR) {
-    printf("Error reading data: %s\n", nc_strerror(retval));
-    nc_close(ncid);
-    return 1;
-  }
-
   // read number of vertices:
-  int vertex_id;
-  if ((retval = nc_inq_dimid(ncid, "vertex", &vertex_id)) != NC_NOERR) {
-    printf("Error finding dimension: %s\n", nc_strerror(retval));
-    nc_close(ncid);
-    return 1;
-  }
-
-  size_t vertex;
-  if ((retval = nc_inq_dimlen(ncid, vertex_id, &vertex)) != NC_NOERR) {
-    printf("Error reading dimension: %s\n", nc_strerror(retval));
-    nc_close(ncid);
-    return 1;
-  }
+  size_t vertex = readDimLength(ncid, "vertex");
   printf("number of vertices: %i\n",(int)vertex);
 
-  // read vlon & vlat:
-  int vlon_id;
-  if ((retval = nc_inq_varid(ncid, "vlon", &vlon_id)) != NC_NOERR) {
-    printf("Error finding dimension: %s\n", nc_strerror(retval));
-    nc_close(ncid);
-    return 1;
-  }
-
-  double *vlon = new double[vertex];
-  if ((retval = nc_get_var_double(ncid, vlon_id, vlon)) != NC_NOERR) {
-    printf("Error reading data: %s\n", nc_strerror(retval));
-    nc_close(ncid);
-    return 1;
-  }
-
-  int vlat_id;
-  if ((retval = nc_inq_varid(ncid, "vlat", &vlat_id)) != NC_NOERR) {
-    printf("Error finding dimension: %s\n", nc_strerror(retval));
-    nc_close(ncid);
-    return 1;
-  }
-
-  double *vlat = new double[vertex];
-  if ((retval = nc_get_var_double(ncid, vlat_id, vlat)) != NC_NOERR) {
-    printf("Error reading data: %s\n", nc_strerror(retval));
-    nc_close(ncid);
-    return 1;
-  }
-
   // read clon_vertices & clat_vertices:
-  int clon_vertices_id;
-  if ((retval = nc_inq_varid(ncid, "clon_vertices", &clon_vertices_id)) != NC_NOERR) {
-    printf("Error finding dimension: %s\n", nc_strerror(retval));
-    nc_close(ncid);
-    return 1;
-  }
 
-  double *clon_vertices = new double[cell*3];
-  if ((retval = nc_get_var_double(ncid, clon_vertices_id, clon_vertices)) != NC_NOERR) {
-    printf("Error reading data: %s\n", nc_strerror(retval));
-    nc_close(ncid);
-    return 1;
-  }
-
-  int clat_vertices_id;
-  if ((retval = nc_inq_varid(ncid, "clat_vertices", &clat_vertices_id)) != NC_NOERR) {
-    printf("Error finding dimension: %s\n", nc_strerror(retval));
-    nc_close(ncid);
-    return 1;
-  }
-
-  double *clat_vertices = new double[cell*3];
-  if ((retval = nc_get_var_double(ncid, clat_vertices_id, clat_vertices)) != NC_NOERR) {
-    printf("Error reading data: %s\n", nc_strerror(retval));
-    nc_close(ncid);
-    return 1;
-  }
+  auto clon_vertices = readDoubleVar(ncid, "clon_vertices", cell*3);
+  auto clat_vertices = readDoubleVar(ncid, "clat_vertices", cell*3);
 
   nc_close(ncid);
+
+  if (clon_vertices.empty() || clat_vertices.empty()) {
+    fprintf(stderr, "%s\n", "Cannot proceed as lon/lat coordinates missing");
+    nc_close(ncid);
+    return 1;
+  }
 
   // Data files:
 
@@ -173,88 +153,42 @@ int main(int argc, char *argv[]) {
     }
 
     // read number of cells:
-    int ncells_id;
-    if ((retval = nc_inq_dimid(ncid, "ncells", &ncells_id)) != NC_NOERR) {
-      printf("Error finding dimension: %s\n", nc_strerror(retval));
-      nc_close(ncid);
-      return 1;
-    }
-
-    size_t ncells;
-    if ((retval = nc_inq_dimlen(ncid, ncells_id, &ncells)) != NC_NOERR) {
-      printf("Error reading dimension: %s\n", nc_strerror(retval));
-      nc_close(ncid);
-      return 1;
-    }
+    size_t ncells = readDimLength(ncid, "ncells");
     printf("number of cells IN DATA FILE: %i\n",(int)ncells);
 
-    // read number height layers:
-    int height_id;
-    if ((retval = nc_inq_dimid(ncid, "height", &height_id)) != NC_NOERR) {
-      printf("Error finding dimension: %s\n", nc_strerror(retval));
+    auto height = readDoubleVar(ncid, "height", 1);
+    if (height.empty()) {
+      fprintf(stderr, "No height found in %s, aborting...\n", argv[i]);
       nc_close(ncid);
       return 1;
     }
-
-    size_t height;
-    if ((retval = nc_inq_dimlen(ncid, height_id, &height)) != NC_NOERR) {
-      printf("Error reading dimension: %s\n", nc_strerror(retval));
-      nc_close(ncid);
-      return 1;
-    }
-    printf("height IN DATA FILE: %i (MUST BE 1!)\n",(int)height);
-
-    // read height as variable
-    int height_as_var_id;
-    if ((retval = nc_inq_varid(ncid, "height", &height_as_var_id)) != NC_NOERR) {
-      printf("Error finding dimension: %s\n", nc_strerror(retval));
-      nc_close(ncid);
-      return 1;
-    }
-
-    double *height_var = new double[height];
-    if ((retval = nc_get_var_double(ncid, height_as_var_id, height_var)) != NC_NOERR) {
-      printf("Error reading data: %s\n", nc_strerror(retval));
-      nc_close(ncid);
-      return 1;
-    }
-    for (int j=0; j<height; ++j) {
-      heights.push_back((float)height_var[j]);
-    }
-    delete[] height_var;
-
-    const char *varname = "pres";
+    heights.push_back(height[0]);
 
     // read VARIABLE
-    int var_id;
-    if ((retval = nc_inq_varid(ncid, varname, &var_id)) != NC_NOERR) {
-      printf("Error finding dimension: %s\n", nc_strerror(retval));
+    const char *varname = "pres";
+    auto var = readDoubleVar(ncid, varname, ncells);
+    if (var.empty()) {
+      fprintf(stderr, "Error reading variable %s, error: %s\n",
+              varname, nc_strerror(retval));
       nc_close(ncid);
       return 1;
     }
 
-    double *var = new double[ncells*height];
-    if ((retval = nc_get_var_double(ncid, var_id, var)) != NC_NOERR) {
-      printf("Error reading data: %s\n", nc_strerror(retval));
-      nc_close(ncid);
-      return 1;
-    }
 #if 1
     double minValue(DBL_MAX);
     double maxValue(-DBL_MAX);
-    for (int j=0; j<ncells*height; ++j) {
+    for (int j=0; j<ncells; ++j) {
       minValue = fmin(minValue,var[j]);
       maxValue = fmax(maxValue,var[j]);
     }
-    for (int j=0; j<ncells*height; ++j) {
+    for (int j=0; j<ncells; ++j) {
       var[j] -= minValue;
       var[j] /= maxValue-minValue;
     }
 #endif
-    for (int j=0; j<ncells*height; ++j) {
+    for (int j=0; j<ncells; ++j) {
       values.push_back((float)var[j]);
     }
-    delete[] var;
 
     numLayers++;
   }
