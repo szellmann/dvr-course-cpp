@@ -186,8 +186,10 @@ extern "C" int main(int argc, char *argv[]) {
     pl.setTransfunc(&tf);
   }
 
-  g_appState.unitDistance = 0.01f;
-  pl.uiParam("Unit distance", &g_appState.unitDistance, 0.001f, 5.f);
+  float magnitude = floorf(log10f(innerRadius));
+  float scale = powf(10.f,magnitude-3);
+  g_appState.unitDistance = 1.0f*scale;
+  pl.uiParam("Unit distance", &g_appState.unitDistance, 0.01f*scale, 5.f*scale);
 
   g_appState.accelActive = true;
   pl.uiParam("Use naive accel", &g_appState.accelActive);

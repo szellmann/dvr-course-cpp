@@ -326,7 +326,10 @@ RAYGEN_PROGRAM(woodcockTrackingWithAccel)()
       alpha = extinction > 0.f ? 1.f : 0.f;
       break;
     }
-    ray.tmin = tfar+1e-3f;
+    // makeshift epsilon to avoid intersecting the same
+    // spherical shell again (there are better ways to do this..)
+    const float sceneEPS = lp.volume.accel.innerRadius*1e-3f;
+    ray.tmin = tfar+sceneEPS;
   }
   float accum = 1.f/(lp.accumID+1);
   lp.accumBuffer[pixelID] = lerp(vec4f(color,alpha), lp.accumBuffer[pixelID], accum);
