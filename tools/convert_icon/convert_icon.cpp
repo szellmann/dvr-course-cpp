@@ -18,8 +18,9 @@ struct {
   std::string hsurfFile; // -hsurf
   std::vector<std::string> hhlFiles; // -hhl
   std::vector<std::string> dataFiles; // -data
-  bool convertToIC{true};
-  bool convertToUMesh{false};
+  bool convertToIC{false};
+  bool convertToUMesh{true};
+  int maxLayers{5};
 } g_appState;
 
 static void printHelp() {
@@ -37,6 +38,10 @@ static void printHelp() {
   std::cout << "cdo -f nc copy <in.grib2> <out.nc>\n";
   std::cout << "We assume that certain NetCDF dims and variables are present, such as \"height\".\n";
   std::cout << "In case this these are not present this script should be adapted accordingly....\n";
+}
+
+inline int div_up(int a, int b) {
+  return (a+b-1)/b;
 }
 
 inline umesh::vec3f toCartesian(const umesh::vec3f spherical)
@@ -335,9 +340,11 @@ int main(int argc, char *argv[]) {
 
   int numLayers(g_appState.dataFiles.size());
 
-  if (numLayers > 31) {
-    numLayers = 31;
+  if (numLayers > g_appState.maxLayers) {
+    numLayers = g_appState.maxLayers;
   }
+
+  #define LMAX 32
 
   if (g_appState.convertToIC) {
     std::ofstream out("out.ic",std::ios::binary);
@@ -345,29 +352,41 @@ int main(int argc, char *argv[]) {
       float lat[3]{(float)clat_vertices[cellID*3],(float)clat_vertices[cellID*3+1],(float)clat_vertices[cellID*3+2]};
       float lon[3]{(float)clon_vertices[cellID*3],(float)clon_vertices[cellID*3+1],(float)clon_vertices[cellID*3+2]};
       constexpr float R = 6.371229E6f;
-      float H[32];
-      H[0] = R + hsurf[cellID];
-      for (int j=1; j<=numLayers; ++j) {
-        H[j] = R + hhl[j].value[cellID]-hsurf[cellID];
+      int valueIt = 0, hhlIt = 0;
+      float prevH = R + hsurf[cellID];
+      for (int i=0; i<div_up(numLayers,LMAX-1); ++i) {
+        int numLayersLocal = LMAX-1;
+        if ((i+1) * numLayersLocal > numLayers) {
+          numLayersLocal = numLayers % LMAX-1;
+        }
+
+        float H[LMAX];
+        H[0] = prevH;
+        for (int j=1; j<=numLayersLocal; ++j) {
+          H[j] = R + hhl[hhlIt++].value[cellID]-hsurf[cellID];
+          prevH = H[j];
+        }
+        float value[LMAX];
+        for (int j=0; j<numLayersLocal; ++j) {
+          value[j] = values[valueIt++].value[cellID];
+        }
+        if (cellID == 0) {
+          for (int j=0; j<numLayersLocal; ++j) {
+            std::cout << j << ": " << H[j]/1000.f << ',' << value[j] << '\n';
+          }
+        }
+        out.write((const char *)lat,sizeof(lat));
+        out.write((const char *)lon,sizeof(lon));
+        out.write((const char *)&numLayersLocal,sizeof(numLayersLocal));
+        out.write((const char *)H,sizeof(H));
+        out.write((const char *)value,sizeof(value));
       }
-      // for (int j=0; j<=numLayers; ++j) {
-      //   H[j] /= 1000.f;
-      // }
-      float value[32];
-      for (int j=0; j<numLayers; ++j) {
-        value[j] = values[j].value[cellID];
-      }
-      out.write((const char *)lat,sizeof(lat));
-      out.write((const char *)lon,sizeof(lon));
-      out.write((const char *)&numLayers,sizeof(numLayers));
-      out.write((const char *)H,sizeof(H));
-      out.write((const char *)value,sizeof(value));
     }
     out.close();
   }
 
   if (g_appState.convertToUMesh) {
-#if 0
+#if 1
     using namespace umesh;
     auto output = std::make_shared<UMesh>();
     output->perVertex = std::make_shared<Attribute>();
@@ -375,27 +394,25 @@ int main(int argc, char *argv[]) {
       float lat[3]{(float)clat_vertices[cellID*3],(float)clat_vertices[cellID*3+1],(float)clat_vertices[cellID*3+2]};
       float lon[3]{(float)clon_vertices[cellID*3],(float)clon_vertices[cellID*3+1],(float)clon_vertices[cellID*3+2]};;
       //float value[32];
-      float h1 = 6.371229f;
+      constexpr float R = 6.371229E6f;
       for (int j=0; j<numLayers; ++j) {
-        int layerHeight = hhl[j].height-1;
-        float h = (j==0) ? h1+hsurf[cellID] : hhl[hhlHeightToIndex[layerHeight]].value[cellID]-hsurf[cellID];
-        if (j == 0)
-        float h2 = h1 + height_to_index[j].first/1000.f;
-
-        int h = height_to_index[j].second;
+        float h1 = j==0 ? R + hsurf[cellID]
+                     : R + hhl[j].value[cellID]-hsurf[cellID];
+        float h2 = R + hhl[j+1].value[cellID]-hsurf[cellID];
 
         // bottom triangle vertices
         vec3f bv1 = toCartesian({h1,lat[0],lon[0]});
         vec3f bv2 = toCartesian({h1,lat[1],lon[1]});
         vec3f bv3 = toCartesian({h1,lat[2],lon[2]});
         // bottom value
-        float bot = values[h*cell+i]; // TODO: interpolate
+        float bot = values[j].value[cellID]; // TODO: interpolate
 
         // top triangle vertices
         vec3f tv1 = toCartesian({h2,lat[0],lon[0]});
         vec3f tv2 = toCartesian({h2,lat[1],lon[1]});
         vec3f tv3 = toCartesian({h2,lat[2],lon[2]});
-        float top = values[h*cell+i]; // TODO: interpolate
+        // top value
+        float top = values[j].value[cellID]; // TODO: interpolate
 
         output->vertices.push_back(bv1); output->perVertex->values.push_back(bot);
         output->vertices.push_back(bv2); output->perVertex->values.push_back(bot);
