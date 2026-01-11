@@ -177,11 +177,11 @@ extern "C" int main(int argc, char *argv[]) {
 
     if (tf.valueRange.empty()) tf.valueRange = {0.f,1.f};
     tf.setLUT(std::vector<vec4f>({
-      {0.752f, 0.298f, 0.231f, 0.0f},
-      {0.996f, 0.690f, 0.552f, 0.25f},
-      {0.866f, 0.866f, 0.866f, 0.5f},
+      {0.149f, 0.015f, 0.705f, 1.0f},
       {0.486f, 0.603f, 0.956f, 0.75f},
-      {0.149f, 0.015f, 0.705f, 1.0f}
+      {0.866f, 0.866f, 0.866f, 0.5f},
+      {0.996f, 0.690f, 0.552f, 0.25f},
+      {0.752f, 0.298f, 0.231f, 0.0f}
     }));
     pl.setTransfunc(&tf);
   }
