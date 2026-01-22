@@ -18,6 +18,7 @@ struct {
   std::string hsurfFile; // -hsurf
   std::vector<std::string> hhlFiles; // -hhl
   std::vector<std::string> dataFiles; // -data
+  std::string outfileBase{"out"};
   bool convertToIC{false};
   bool convertToUMesh{true};
   int maxLayers{5};
@@ -152,6 +153,9 @@ static void parseCommandLine(int argc, char *argv[]) {
     }
     else if (arg == "-data") {
       mode = Data;
+    }
+    else if (arg == "-o") {
+      g_appState.outfileBase = argv[++i];
     }
   }
 }
@@ -347,7 +351,8 @@ int main(int argc, char *argv[]) {
   #define LMAX 32
 
   if (g_appState.convertToIC) {
-    std::ofstream out("out.ic",std::ios::binary);
+    std::string outfileName = g_appState.outfileBase + ".ic";
+    std::ofstream out(outfileName,std::ios::binary);
     for (int cellID=0; cellID<cell; ++cellID) {
       float lat[3]{(float)clat_vertices[cellID*3],(float)clat_vertices[cellID*3+1],(float)clat_vertices[cellID*3+2]};
       float lon[3]{(float)clon_vertices[cellID*3],(float)clon_vertices[cellID*3+1],(float)clon_vertices[cellID*3+2]};
@@ -386,7 +391,7 @@ int main(int argc, char *argv[]) {
   }
 
   if (g_appState.convertToUMesh) {
-#if 1
+#ifdef WITH_UMESH
     using namespace umesh;
     auto output = std::make_shared<UMesh>();
     output->perVertex = std::make_shared<Attribute>();
@@ -438,7 +443,10 @@ int main(int argc, char *argv[]) {
     output->finalize();
     std::cout << output->vertices.size() << '\n';
     std::cout << output->wedges.size() << '\n';
-    output->saveTo("out.umesh");
+    std::string outfileName = g_appState.outfileBase + ".umesh";
+    output->saveTo(outfileName);
+#else
+    std::cerr << "Not compiled with support for UMesh files!\n";
 #endif
   }
 }
