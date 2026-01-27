@@ -400,10 +400,11 @@ int main(int argc, char *argv[]) {
       float lon[3]{(float)clon_vertices[cellID*3],(float)clon_vertices[cellID*3+1],(float)clon_vertices[cellID*3+2]};;
       //float value[32];
       constexpr float R = 6.371229E6f;
+      constexpr float scale = 50.f;
       for (int j=0; j<numLayers; ++j) {
-        float h1 = j==0 ? R + hsurf[cellID]
-                     : R + hhl[j].value[cellID]-hsurf[cellID];
-        float h2 = R + hhl[j+1].value[cellID]-hsurf[cellID];
+        float h1 = j==0 ? R + hsurf[cellID]*scale
+                     : R + (hhl[j].value[cellID]-hsurf[cellID])*scale;
+        float h2 = R + (hhl[j+1].value[cellID]-hsurf[cellID])*scale;
 
         // bottom triangle vertices
         vec3f bv1 = toCartesian({h1,lat[0],lon[0]});
