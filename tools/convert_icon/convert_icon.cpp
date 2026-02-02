@@ -10,7 +10,7 @@
 #include <fstream>
 #include <netcdf.h>
 #ifdef WITH_UMESH
-# include "umesh/umesh.h"
+# include "umesh/UMesh.h"
 #endif
 
 struct {
