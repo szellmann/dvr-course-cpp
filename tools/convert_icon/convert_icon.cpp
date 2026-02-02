@@ -59,7 +59,7 @@ inline umesh::vec3f toCartesian(const umesh::vec3f spherical)
 
 static size_t readDimLength(int ncid, std::string name) {
   int retval, dimid;
-  if ((retval != nc_inq_dimid(ncid, name.c_str(), &dimid)) != NC_NOERR) {
+  if ((retval = nc_inq_dimid(ncid, name.c_str(), &dimid)) != NC_NOERR) {
     fprintf(stderr, "dim %s not found: %s\n", name.c_str(), nc_strerror(retval));
     return ~0ull;
   }
