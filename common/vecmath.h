@@ -681,6 +681,25 @@ struct mat3f
 };
 
 inline __host__ __device__
+float determinant(const mat3f &m) {
+  auto det2 = [](float m00, float m01, float m10, float m11) {
+    return m00*m11 - m10*m01;
+  };
+
+  float a00 = det2(m(1,1), m(1,2), m(2,1), m(2,2));
+  float a01 = det2(m(1,0), m(1,2), m(2,0), m(2,2));
+  float a02 = det2(m(1,0), m(1,1), m(2,0), m(2,1));
+  float a10 = det2(m(0,1), m(0,2), m(2,1), m(2,2));
+  float a11 = det2(m(0,0), m(0,2), m(2,0), m(2,2));
+  float a12 = det2(m(0,0), m(0,1), m(2,0), m(2,1));
+  float a20 = det2(m(0,1), m(0,2), m(1,1), m(1,2));
+  float a21 = det2(m(0,0), m(0,2), m(1,0), m(1,2));
+  float a22 = det2(m(0,0), m(0,1), m(1,0), m(1,1));
+
+  return m(0,0)*a00 - m(0,1)*a01 + m(0,2)*a02;
+}
+
+inline __host__ __device__
 mat3f inverse(const mat3f &m) {
   auto det2 = [](float m00, float m01, float m10, float m11) {
     return m00*m11 - m10*m01;
