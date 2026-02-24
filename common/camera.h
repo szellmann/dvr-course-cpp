@@ -75,6 +75,10 @@ struct Camera
     return upVector;
   }
 
+  float getFovyInDegrees() const {
+    return fovy/M_PI*180.f;
+  }
+
   void getScreen(vec3f &lower_left, vec3f &horizontal, vec3f &vertical) const {
     float screen_height = 2.f*tanf(0.5f*fovy);
     vertical   = screen_height * frame.vy;

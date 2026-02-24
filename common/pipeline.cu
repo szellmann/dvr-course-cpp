@@ -208,6 +208,21 @@ struct Pipeline::Impl
         sampleLimit = atoi(argv[++i]);
       } else if (arg == "--xf") {
         xfFile = argv[++i];
+      } else if (arg == "-win"  || arg == "--win" || arg == "--size") {
+        cmdline.width  = std::atoi(argv[++i]);
+        cmdline.height = std::atoi(argv[++i]);
+      } else if (arg == "-fovy") {
+        cmdline.camera.fovy = std::stof(argv[++i]);
+      } else if (arg == "--camera") {
+        cmdline.camera.vp.x = std::stof(argv[++i]);
+        cmdline.camera.vp.y = std::stof(argv[++i]);
+        cmdline.camera.vp.z = std::stof(argv[++i]);
+        cmdline.camera.vi.x = std::stof(argv[++i]);
+        cmdline.camera.vi.y = std::stof(argv[++i]);
+        cmdline.camera.vi.z = std::stof(argv[++i]);
+        cmdline.camera.vu.x = std::stof(argv[++i]);
+        cmdline.camera.vu.y = std::stof(argv[++i]);
+        cmdline.camera.vu.z = std::stof(argv[++i]);
       }
     }
   }
@@ -220,8 +235,24 @@ struct Pipeline::Impl
     }
 
     fb = frame;
-    width = fb->width;
-    height = fb->height;
+    if (cmdline.width>0 && cmdline.height>0) {
+      width = cmdline.width;
+      height = cmdline.height;
+      fb->resize(width,height);
+      clearFramebuffer(fb,pool);
+    } else {
+      width = fb->width;
+      height = fb->height;
+    }
+
+    if (cmdline.camera.vu != vec3f(0.f)) {
+      float fovy = cmdline.camera.fovy;
+      if (fovy<1e-3f) {
+        fovy=90.f;
+      }
+      fovy = fovy*M_PI/180.f;
+      camera->setOrientation(cmdline.camera.vp,cmdline.camera.vi,cmdline.camera.vu,fovy);
+    }
 #ifdef INTERACTIVE
     manip = CameraManip(camera, width, height);
 
@@ -446,6 +477,28 @@ struct Pipeline::Impl
       // keyboard events
       if (!io.WantCaptureKeyboard) {
         if (event.type == SDL_EVENT_KEY_DOWN) {
+          // our own:
+          if (event.key.key == 99) {//'C') {
+            std::cout << "(C)urrent camera:" << std::endl;
+            std::cout << "- from :" << manip.camera->getPosition() << std::endl;
+            std::cout << "- poi  :" << manip.camera->getPOI() << std::endl;
+            std::cout << "- upVec:" << manip.camera->getUp() << std::endl;
+            //std::cout << "- frame:" << manip.camera->getFrame() << std::endl;
+
+            const vec3f vp = manip.camera->getPosition();
+            const vec3f vi = manip.camera->getPOI();
+            const vec3f vu = manip.camera->getUp();
+            const float fovy = manip.camera->getFovyInDegrees();
+            std::cout << "(suggested cmdline format, for apps that support this:) "
+                      << std::endl
+                      << " --camera"
+                      << " " << vp.x << " " << vp.y << " " << vp.z
+                      << " " << vi.x << " " << vi.y << " " << vi.z
+                      << " " << vu.x << " " << vu.y << " " << vu.z
+                      << " -fovy " << fovy
+                      << std::endl;
+          }
+          // give app chance to intercept:
           SDL_KeyboardEvent key = event.key;
           if (keyDownHandler) {
             // TODO: check if in ascii range
@@ -615,6 +668,18 @@ struct Pipeline::Impl
 #else
   double t_last{0.0}, t_now{0.0}, avg_t{0.0};
 #endif
+
+  // cmdline overwrites:
+  struct {
+    struct {
+      vec3f vp = vec3f(0.f);
+      vec3f vu = vec3f(0.f);
+      vec3f vi = vec3f(0.f);
+      float fovy = 70;
+    } camera;
+    int width{-1};
+    int height{-1};
+  } cmdline;
 
   // app-side params:
   struct UIParam
