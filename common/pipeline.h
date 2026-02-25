@@ -101,7 +101,7 @@ struct Pipeline {
 #endif
 
   // Frame
-  void setFrame(Frame *f) { fb = f; }
+  void setFrame(Frame *f);
   Frame *fb{nullptr};
 
   int frameID{0};

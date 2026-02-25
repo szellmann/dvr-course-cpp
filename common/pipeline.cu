@@ -229,20 +229,9 @@ struct Pipeline::Impl
 
   void init(Frame *frame, Camera *camera)
   {
-    if (!frame || !camera) {
+    if (!fb || !camera) {
       fprintf(stderr,"Pipeline invalid on init, aborting...\n");
       abort();
-    }
-
-    fb = frame;
-    if (cmdline.width>0 && cmdline.height>0) {
-      width = cmdline.width;
-      height = cmdline.height;
-      fb->resize(width,height);
-      clearFramebuffer(fb,pool);
-    } else {
-      width = fb->width;
-      height = fb->height;
     }
 
     if (cmdline.camera.vu != vec3f(0.f)) {
@@ -402,6 +391,20 @@ struct Pipeline::Impl
     cudaEventDestroy(last);
     cudaEventDestroy(now);
 #endif
+  }
+
+  void setFrame(Frame *frame)
+  {
+    fb = frame;
+    if (cmdline.width>0 && cmdline.height>0) {
+      width = cmdline.width;
+      height = cmdline.height;
+      fb->resize(width,height);
+      clearFramebuffer(fb,pool);
+    } else {
+      width = fb->width;
+      height = fb->height;
+    }
   }
 
   void setTransfunc(Transfunc *tf, int index)
@@ -809,6 +812,10 @@ DEF_LAUNCH_PARM_FUNC(RawPointer)
 #ifdef RTCORE
 DEF_LAUNCH_PARM_FUNC(OptixTraversableHandle)
 #endif
+
+void Pipeline::setFrame(Frame *f) {
+  fb = f; impl->setFrame(f);
+}
 
 /*
   transfuncs:
