@@ -122,7 +122,7 @@ const bool debug(void) {
 #endif
 
 static bool loadXF(std::string xfFile, dvr_course::Transfunc &tf) {
-  std::ifstream in(xfFile);
+  std::ifstream in(xfFile,std::ios::binary);
 
   if (!in.good()) {
     return false;
@@ -142,6 +142,25 @@ static bool loadXF(std::string xfFile, dvr_course::Transfunc &tf) {
   std::vector<vec4f> rgbaLUT(numValues);
   in.read((char *)rgbaLUT.data(), sizeof(rgbaLUT[0]) * rgbaLUT.size());
   tf.setLUT(rgbaLUT);
+
+  return true;
+}
+
+static bool saveXF(std::string xfFile, const dvr_course::Transfunc &tf) {
+  std::ofstream out(xfFile,std::ios::binary);
+
+  if (!out.good()) {
+    return false;
+  }
+
+  out.write((const char *)&tf.opacity, sizeof(tf.opacity));
+  out.write((const char *)&tf.valueRange, sizeof(tf.valueRange));
+  out.write((const char *)&tf.relRange, sizeof(tf.relRange));
+
+  int numValues = (int)tf.getLUT().size();
+  out.write((const char *)&numValues, sizeof(numValues));
+
+  out.write((const char *)tf.getLUT().data(), sizeof(tf.getLUT()[0]) * tf.getLUT().size());
 
   return true;
 }
@@ -481,7 +500,7 @@ struct Pipeline::Impl
       if (!io.WantCaptureKeyboard) {
         if (event.type == SDL_EVENT_KEY_DOWN) {
           // our own:
-          if (event.key.key == 99) {//'C') {
+          if (event.key.key == 'c'  && (event.key.mod & SDL_KMOD_SHIFT)) {
             std::cout << "(C)urrent camera:" << std::endl;
             std::cout << "- from :" << manip.camera->getPosition() << std::endl;
             std::cout << "- poi  :" << manip.camera->getPOI() << std::endl;
@@ -500,6 +519,12 @@ struct Pipeline::Impl
                       << " " << vu.x << " " << vu.y << " " << vu.z
                       << " -fovy " << fovy
                       << std::endl;
+          }
+          if (event.key.key == 't'  && (event.key.mod & SDL_KMOD_SHIFT)) {
+            std::string xfFile = "dvr-course.xf";
+            if (saveXF(xfFile,*transfuncs[tfID])) {
+              std::cout << "Saved transfer function to " << xfFile << std::endl;
+            }
           }
           // give app chance to intercept:
           SDL_KeyboardEvent key = event.key;
