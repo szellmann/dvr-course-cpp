@@ -368,6 +368,18 @@ struct Pipeline::Impl
         int i1 = *(int *)lp.value;
         owlParamsSet1i(owl.launchParams, name.c_str(), i1);
       }
+      else if (lp.type == OWL_INT2) {
+        vec2i i2 = *(vec2i *)lp.value;
+        owlParamsSet2i(owl.launchParams, name.c_str(), i2.x, i2.y);
+      }
+      else if (lp.type == OWL_INT3) {
+        vec3i i3 = *(vec3i *)lp.value;
+        owlParamsSet3i(owl.launchParams, name.c_str(), i3.x, i3.y, i3.z);
+      }
+      else if (lp.type == OWL_INT4) {
+        vec4i i4 = *(vec4i *)lp.value;
+        owlParamsSet4i(owl.launchParams, name.c_str(), i4.x, i4.y, i4.z, i4.w);
+      }
       else if (lp.type == OWL_BOOL) {
         bool b1 = *(bool *)lp.value;
         owlParamsSet1b(owl.launchParams, name.c_str(), b1);
@@ -848,6 +860,9 @@ T &Pipeline::launchParam(std::string name, T &value) {        \
 
 DEF_LAUNCH_PARM_FUNC(bool)
 DEF_LAUNCH_PARM_FUNC(int)
+DEF_LAUNCH_PARM_FUNC(vec2i)
+DEF_LAUNCH_PARM_FUNC(vec3i)
+DEF_LAUNCH_PARM_FUNC(vec4i)
 DEF_LAUNCH_PARM_FUNC(float)
 DEF_LAUNCH_PARM_FUNC(vec2f)
 DEF_LAUNCH_PARM_FUNC(vec3f)
