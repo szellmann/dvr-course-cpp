@@ -253,6 +253,11 @@ struct Pipeline::Impl
       abort();
     }
 
+    if (transfuncUpdateHandler) {
+      for (int i=0; i<transfuncs.size(); ++i) {
+        transfuncUpdateHandler(transfuncs[i],i);
+      }
+    }
 #ifdef INTERACTIVE
     manip = CameraManip(camera, width, height);
 
@@ -461,6 +466,9 @@ struct Pipeline::Impl
       transfuncs[index]->setLUT(newLUT);
     }
 #endif
+    if (transfuncUpdateHandler) {
+      transfuncUpdateHandler(tf,index);
+    }
   }
 
   void pollEvents(bool &quit, bool &cameraUpdate, bool &windowResize)
@@ -618,13 +626,21 @@ struct Pipeline::Impl
     ImGui::Begin("Settings");//, nullptr, window_flags);
     ImGui::LabelText("##TFE", "TFE");
     if (transfuncs.size() == 1) {
-      tfe[0].drawImmediate();
+      if (tfe[0].drawImmediate()) {
+        if (transfuncUpdateHandler) {
+          transfuncUpdateHandler(transfuncs[0],0);
+        }
+      }
     } else {
       if (ImGui::BeginTabBar("Lookup Tables")) {
         for (int i=0; i<transfuncs.size(); ++i) {
           ImGui::PushID(i);
           if (ImGui::BeginTabItem(std::to_string(i).c_str())) {
-            tfe[i].drawImmediate();
+            if (tfe[i].drawImmediate()) {
+              if (transfuncUpdateHandler) {
+                transfuncUpdateHandler(transfuncs[i],i);
+              }
+            }
             ImGui::EndTabItem();
             tfID = i;
           }
@@ -704,6 +720,7 @@ struct Pipeline::Impl
   std::vector<TFE> tfe;
   int tfID{0};
 #endif
+  Pipeline::TransfuncUpdateHandler transfuncUpdateHandler = 0;
   Frame *fb{nullptr};
   std::vector<Transfunc *> transfuncs;
   Transfunc ourTransfunc;
@@ -1032,6 +1049,10 @@ void Pipeline::setKeyDownHandler(KeyDownHandler kdh) {
 #ifdef INTERACTIVE
   impl->keyDownHandler = kdh;
 #endif
+}
+
+void Pipeline::setTransfuncUpdateHandler(TransfuncUpdateHandler tuh) {
+  impl->transfuncUpdateHandler = tuh;
 }
 
 } // namespace dvr_course

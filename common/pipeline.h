@@ -134,6 +134,9 @@ struct Pipeline {
   typedef std::function<void(char)> KeyDownHandler;
   void setKeyDownHandler(KeyDownHandler kdh);
 
+  typedef std::function<void(const Transfunc *,int)> TransfuncUpdateHandler;
+  void setTransfuncUpdateHandler(TransfuncUpdateHandler tuh);
+
  private:
 
   struct Impl;
