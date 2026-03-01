@@ -79,11 +79,14 @@ OWLDataType mapOwlType(const T &t) { return OWL_USER_TYPE(t); }
 OWLDataType mapOwlType(RawPointer) { return OWL_RAW_POINTER; }
 OWLDataType mapOwlType(OptixTraversableHandle) { return OWL_GROUP; }
 OWLDataType mapOwlType(bool) { return OWL_BOOL; }
+OWLDataType mapOwlType(int) { return OWL_INT; }
+OWLDataType mapOwlType(vecmath::vec2i) { return OWL_INT2; }
+OWLDataType mapOwlType(vecmath::vec3i) { return OWL_INT3; }
+OWLDataType mapOwlType(vecmath::vec4i) { return OWL_INT4; }
 OWLDataType mapOwlType(float) { return OWL_FLOAT; }
 OWLDataType mapOwlType(vecmath::vec2f) { return OWL_FLOAT2; }
 OWLDataType mapOwlType(vecmath::vec3f) { return OWL_FLOAT3; }
 OWLDataType mapOwlType(vecmath::vec4f) { return OWL_FLOAT4; }
-OWLDataType mapOwlType(int) { return OWL_INT; }
 // ... TODO
 #endif
 
