@@ -75,6 +75,10 @@ struct Camera
     return upVector;
   }
 
+  float getFovyInRadians() const {
+    return fovy;
+  }
+
   float getFovyInDegrees() const {
     return fovy/M_PI*180.f;
   }
