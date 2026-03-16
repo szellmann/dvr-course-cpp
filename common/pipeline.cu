@@ -505,13 +505,23 @@ struct Pipeline::Impl
       }
       // mouse events
       if (!io.WantCaptureMouse) {
+        SDL_Keymod mods = SDL_GetModState();
+
+        CameraManip::Modifier mod = CameraManip::NoMod;
+        if ((mods & (SDL_KMOD_LSHIFT | SDL_KMOD_RSHIFT)) != 0)
+          mod = (CameraManip::Modifier)(mod | CameraManip::Shift);
+        if ((mods & (SDL_KMOD_LCTRL  | SDL_KMOD_RCTRL))  != 0)
+          mod = (CameraManip::Modifier)(mod | CameraManip::Ctrl);
+        if ((mods & (SDL_KMOD_LALT   | SDL_KMOD_RALT))   != 0)
+          mod = (CameraManip::Modifier)(mod | CameraManip::Alt);
+
         if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
           SDL_MouseButtonEvent button = event.button;
           CameraManip::MouseButton ourButton{CameraManip::Left};
           if (button.button == SDL_BUTTON_LEFT) ourButton = CameraManip::Left;
           if (button.button == SDL_BUTTON_MIDDLE) ourButton = CameraManip::Middle;
           if (button.button == SDL_BUTTON_RIGHT) ourButton = CameraManip::Right;
-          cameraUpdate = manip.handleMouseDown(button.x,button.y,ourButton);
+          cameraUpdate = manip.handleMouseDown(button.x,button.y,ourButton,mod);
         }
         if (event.type == SDL_EVENT_MOUSE_BUTTON_UP) {
           SDL_MouseButtonEvent button = event.button;
@@ -519,11 +529,11 @@ struct Pipeline::Impl
           if (button.button == SDL_BUTTON_LEFT) ourButton = CameraManip::Left;
           if (button.button == SDL_BUTTON_MIDDLE) ourButton = CameraManip::Middle;
           if (button.button == SDL_BUTTON_RIGHT) ourButton = CameraManip::Right;
-          cameraUpdate = manip.handleMouseUp(button.x,button.y,ourButton);
+          cameraUpdate = manip.handleMouseUp(button.x,button.y,ourButton,mod);
         }
         if (event.type == SDL_EVENT_MOUSE_MOTION) {
           SDL_MouseMotionEvent motion = event.motion;
-          cameraUpdate = manip.handleMouseMove(motion.x,motion.y);
+          cameraUpdate = manip.handleMouseMove(motion.x,motion.y,mod);
         }
       }
       // keyboard events
