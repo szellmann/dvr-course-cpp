@@ -123,6 +123,7 @@ struct Pipeline {
   void uiParam(std::string name, float *f, float minf, float maxf);
   void uiParam(std::string name, vec3f *v, vec3f minv, vec3f maxv);
   void uiParam(std::string name, const std::vector<std::string> &options, int *o);
+  void uiParam(std::string name, std::function<void(void)> f);
 
   // Interface
   bool isValid() const { return fb != nullptr && camera != nullptr; }

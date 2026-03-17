@@ -712,6 +712,11 @@ struct Pipeline::Impl
             ImGui::EndCombo();
           }
         }
+        if (p.type == UIParam::Func) {
+          if (ImGui::Button(p.name.c_str())) {
+            p.asFunc.f();
+          }
+        }
       }
     }
     ImGui::End();
@@ -789,7 +794,7 @@ struct Pipeline::Impl
   struct UIParam
   {
     std::string name;
-    enum { Bool, Float, Vec3f, Select, } type;
+    enum { Bool, Float, Vec3f, Select, Func, } type;
     struct {
       bool *b;
     } asBool;
@@ -807,6 +812,9 @@ struct Pipeline::Impl
       std::vector<std::string> options;
       int *o;
     } asSelect;
+    struct {
+      std::function<void(void)> f;
+    } asFunc;
   };
   std::vector<UIParam> uiParams;
 
@@ -985,6 +993,14 @@ void Pipeline::uiParam(
   parm.type = Impl::UIParam::Select;
   parm.asSelect.options = options;
   parm.asSelect.o = o;
+  impl->uiParam(parm);
+}
+
+void Pipeline::uiParam(std::string name, std::function<void(void)> f) {
+  Impl::UIParam parm;
+  parm.name = name;
+  parm.type = Impl::UIParam::Func;
+  parm.asFunc.f = f;
   impl->uiParam(parm);
 }
 
