@@ -998,6 +998,11 @@ struct box1f
   }
 
   inline __host__ __device__
+  bool overlaps(const box1f &other) {
+    return contains(other.lower) || contains(other.upper);
+  }
+
+  inline __host__ __device__
   void extend(float v) {
     lower = fminf(lower,v);
     upper = fmaxf(upper,v);
@@ -1036,6 +1041,11 @@ struct box2f
   bool contains(vec2f p) const {
     return lower.x<=p.x && p.x<=upper.x
         && lower.y<=p.y && p.y<=upper.y;
+  }
+
+  inline __host__ __device__
+  bool overlaps(const box2f &other) {
+    return contains(other.lower) || contains(other.upper);
   }
 
   inline __host__ __device__
@@ -1090,6 +1100,11 @@ struct  box3f
     return lower.x<=p.x && p.x<=upper.x
         && lower.y<=p.y && p.y<=upper.y
         && lower.z<=p.z && p.z<=upper.z;
+  }
+
+  inline __host__ __device__
+  bool overlaps(const box3f &other) {
+    return contains(other.lower) || contains(other.upper);
   }
 
   inline __host__ __device__
