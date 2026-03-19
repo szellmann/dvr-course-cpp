@@ -999,7 +999,12 @@ struct box1f
 
   inline __host__ __device__
   bool overlaps(const box1f &other) {
-    return contains(other.lower) || contains(other.upper);
+    return !intersection(other).empty();
+  }
+
+  inline __host__ __device__
+  box1f intersection(const box1f &other) {
+    return {fmaxf(lower,other.lower),fminf(upper,other.upper)};
   }
 
   inline __host__ __device__
@@ -1045,7 +1050,12 @@ struct box2f
 
   inline __host__ __device__
   bool overlaps(const box2f &other) {
-    return contains(other.lower) || contains(other.upper);
+    return !intersection(other).empty();
+  }
+
+  inline __host__ __device__
+  box2f intersection(const box2f &other) {
+    return {max(lower,other.lower),min(upper,other.upper)};
   }
 
   inline __host__ __device__
@@ -1104,7 +1114,12 @@ struct  box3f
 
   inline __host__ __device__
   bool overlaps(const box3f &other) {
-    return contains(other.lower) || contains(other.upper);
+    return !intersection(other).empty();
+  }
+
+  inline __host__ __device__
+  box3f intersection(const box3f &other) {
+    return {max(lower,other.lower),min(upper,other.upper)};
   }
 
   inline __host__ __device__
