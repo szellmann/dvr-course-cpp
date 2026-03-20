@@ -7,6 +7,8 @@ project(dvr_course-common LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+include(cmake/common.cmake)
+
 option(DVR_COURSE_WITH_OWL "Use OWL as ray tracing API (for hardware ray tracing)" OFF)
 if (DVR_COURSE_WITH_OWL)
   find_package(owl REQUIRED)
