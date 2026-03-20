@@ -680,6 +680,12 @@ struct Pipeline::Impl
             parent->resetAccumulation();
           }
         }
+        if (p.type == UIParam::Int) {
+          if (ImGui::InputInt(p.name.c_str(), p.asInt.i)) {
+            *p.asInt.i = clamp(*p.asInt.i, p.asInt.mini, p.asInt.maxi);
+            parent->resetAccumulation();
+          }
+        }
         if (p.type == UIParam::Float) {
           if (ImGui::SliderFloat(
                 p.name.c_str(), p.asFloat.f, p.asFloat.minf, p.asFloat.maxf)) {
@@ -794,10 +800,15 @@ struct Pipeline::Impl
   struct UIParam
   {
     std::string name;
-    enum { Bool, Float, Vec3f, Select, Func, } type;
+    enum { Bool, Int, Float, Vec3f, Select, Func, } type;
     struct {
       bool *b;
     } asBool;
+    struct {
+      int *i;
+      int mini;
+      int maxi;
+    } asInt;
     struct {
       float *f;
       float minf;
@@ -963,6 +974,16 @@ void Pipeline::uiParam(std::string name, bool *b) {
   parm.name = name;
   parm.type = Impl::UIParam::Bool;
   parm.asBool.b = b;
+  impl->uiParam(parm);
+}
+
+void Pipeline::uiParam(std::string name, int *i, int mini, int maxi) {
+  Impl::UIParam parm;
+  parm.name = name;
+  parm.type = Impl::UIParam::Int;
+  parm.asInt.i = i;
+  parm.asInt.mini = mini;
+  parm.asInt.maxi = maxi;
   impl->uiParam(parm);
 }
 
