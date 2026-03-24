@@ -154,7 +154,7 @@ struct CameraManip
       return false;
 
     bool rotate = mouseButton == Left && mod != Alt;
-    bool pan    = mouseButton == Left && mod == Alt;
+    bool pan    = (mouseButton == Middle) || (mouseButton == Left && mod == Alt);
     bool zoom   = mouseButton == Right;
 
     if (rotate) {
