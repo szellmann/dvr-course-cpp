@@ -692,6 +692,20 @@ struct Pipeline::Impl
             parent->resetAccumulation();
           }
         }
+        if (p.type == UIParam::Vec3i) {
+          if (ImGui::InputInt((p.name+"_X").c_str(), &p.asVec3i.v->x)) {
+            p.asVec3i.v->x = clamp(p.asVec3i.v->x, p.asVec3i.minv.x, p.asVec3i.maxv.x);
+            parent->resetAccumulation();
+          }
+          if (ImGui::InputInt((p.name+"_Y").c_str(), &p.asVec3i.v->y)) {
+            p.asVec3i.v->y = clamp(p.asVec3i.v->y, p.asVec3i.minv.y, p.asVec3i.maxv.y);
+            parent->resetAccumulation();
+          }
+          if (ImGui::InputInt((p.name+"_Z").c_str(), &p.asVec3i.v->z)) {
+            p.asVec3i.v->z = clamp(p.asVec3i.v->z, p.asVec3i.minv.z, p.asVec3i.maxv.z);
+            parent->resetAccumulation();
+          }
+        }
         if (p.type == UIParam::Vec3f) {
           if (ImGui::SliderFloat(
                 (p.name+"_X").c_str(), &p.asVec3f.v->x, p.asVec3f.minv.x, p.asVec3f.maxv.x)) {
@@ -800,7 +814,7 @@ struct Pipeline::Impl
   struct UIParam
   {
     std::string name;
-    enum { Bool, Int, Float, Vec3f, Select, Func, } type;
+    enum { Bool, Int, Float, Vec3i, Vec3f, Select, Func, } type;
     struct {
       bool *b;
     } asBool;
@@ -814,6 +828,11 @@ struct Pipeline::Impl
       float minf;
       float maxf;
     } asFloat;
+    struct {
+      vec3i *v;
+      vec3i minv;
+      vec3i maxv;
+    } asVec3i;
     struct {
       vec3f *v;
       vec3f minv;
@@ -1004,6 +1023,16 @@ void Pipeline::uiParam(std::string name, vec3f *v, vec3f minv, vec3f maxv) {
   parm.asVec3f.v = v;
   parm.asVec3f.minv = minv;
   parm.asVec3f.maxv = maxv;
+  impl->uiParam(parm);
+}
+
+void Pipeline::uiParam(std::string name, vec3i *v, vec3i minv, vec3i maxv) {
+  Impl::UIParam parm;
+  parm.name = name;
+  parm.type = Impl::UIParam::Vec3i;
+  parm.asVec3i.v = v;
+  parm.asVec3i.minv = minv;
+  parm.asVec3i.maxv = maxv;
   impl->uiParam(parm);
 }
 
