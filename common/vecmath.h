@@ -1723,6 +1723,16 @@ size_t arg_max(const vectorN<T,Allocator> &u) {
 }
 
 template <typename T, typename Allocator>
+T reduce_min(const vectorN<T,Allocator> &u) {
+  return u[arg_min(u)];
+}
+
+template <typename T, typename Allocator>
+T reduce_max(const vectorN<T,Allocator> &u) {
+  return u[arg_max(u)];
+}
+
+template <typename T, typename Allocator>
 vectorN<T,Allocator> clamp(const vectorN<T,Allocator> &u, const T &a, const T &b) {
   vectorN<T,Allocator> result(u.size());
   for (size_t i=0; i<u.size(); ++i) {
