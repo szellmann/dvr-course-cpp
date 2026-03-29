@@ -1764,12 +1764,15 @@ struct matrixN
 {
   typedef T value_type;
 
-  matrixN() = default;
+  matrixN();
   matrixN(unsigned numRows, unsigned numCols);
   matrixN(const matrixN &other);
   matrixN &operator=(const matrixN &other);
  ~matrixN();
-  unsigned numRows=0, numCols=0;
+  union {
+    struct { unsigned numRows, numCols; };
+    struct { unsigned fanIn, fanOut; };
+  };
   T *data=nullptr;
   Allocator alloc;
   static_assert(std::is_same<T,typename Allocator::value_type>::value,"Type mismatch");
@@ -1795,6 +1798,11 @@ struct matrixN
   inline
   blockT<const matrixN> block(vec2ui lower, vec2ui upper) const;
 };
+
+template <typename T, typename Allocator>
+matrixN<T,Allocator>::matrixN()
+  : numRows(0), numCols(0)
+{}
 
 template <typename T, typename Allocator>
 matrixN<T,Allocator>::matrixN(unsigned numRows, unsigned numCols)
