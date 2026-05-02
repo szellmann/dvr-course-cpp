@@ -566,6 +566,13 @@ bool operator!=(vec3f u, vec3f v) {
   return !(u==v);
 }
 
+inline __host__ __device__
+void make_orthonormal_basis(vec3f &u, vec3f &v, const vec3f w) {
+  v = fabsf(w.x) > fabsf(w.y) ? normalize(vec3f(-w.z,0.f,w.x))
+                              : normalize(vec3f(0.f,w.z,-w.y));
+  u = cross(v,w);
+}
+
 inline
 std::ostream& operator<<(std::ostream &out, vec3f v) {
   out << '(' << v.x << ',' << v.y <<',' << v.z << ')';
