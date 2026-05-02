@@ -2,6 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 
 cmake_minimum_required(VERSION 3.12)
+
+set(CMAKE_BUILD_TYPE_INIT Release)
+
 project(dvr-course-cpp LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -15,7 +18,8 @@ add_subdirectory(ex01_let_there_be_voxels)
 add_subdirectory(ex02_woodcock)
 add_subdirectory(ex03_multi_volume)
 add_subdirectory(ex04_lights_on)
-add_subdirectory(ex05_hey_icon)
+#add_subdirectory(ex05_hey_icon)
+#add_subdirectory(ex05_tets_n_friends)
 
 # cmdline tools used for data wrangling, etc.
 # we don't usually need these to run the examples

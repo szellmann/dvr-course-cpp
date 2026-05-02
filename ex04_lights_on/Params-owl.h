@@ -46,6 +46,8 @@ OWLVarDecl launchParams_owl[]
    // lighting
    { "ambientColor", OWL_FLOAT3, OWL_OFFSETOF(LaunchParams,ambientColor) },
    { "ambientRadiance", OWL_FLOAT, OWL_OFFSETOF(LaunchParams,ambientRadiance) },
+   { "ambientSamples", OWL_INT, OWL_OFFSETOF(LaunchParams,ambientSamples) },
+   { "occlusionDistance", OWL_FLOAT, OWL_OFFSETOF(LaunchParams,occlusionDistance) },
    // render settings
    { "unitDistance", OWL_FLOAT, OWL_OFFSETOF(LaunchParams,unitDistance) },
    { nullptr /* sentinel to mark end of list */ }

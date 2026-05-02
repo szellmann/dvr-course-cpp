@@ -27,14 +27,17 @@ DECL_LAUNCH_PARAMS(ex04_lights_on::LaunchParams)
 struct {
   std::string filepath;
   Transfunc transfunc;
-  float unitDistance;
+  float unitDistance{1.f};
+  // AO:
+  int ambientSamples{1};
+  float occlusionDistance{2.f};
 } g_appState;
 
 namespace ex04_lights_on {
 #ifdef RTCORE
 extern "C" char ptxCode[];
 #else
-extern void woodcockTrackingAE();
+extern void woodcockTrackingSS();
 #endif
 
 void printUsage() {
@@ -112,14 +115,15 @@ extern "C" int main(int argc, char *argv[]) {
     pl.setTransfunc(&tf);
   }
 
-  g_appState.unitDistance = 1.0f;
   pl.uiParam("Unit distance", &g_appState.unitDistance, 0.001f, 5.f);
+  pl.uiParam("Ambient samples", &g_appState.ambientSamples, 0, 1024);
+  pl.uiParam("Occlusion distance", &g_appState.occlusionDistance, 0.1f, 64.f);
 
 #ifdef RTCORE
-  pl.setRayGen(ptxCode, "woodcockTrackingAE");
+  pl.setRayGen(ptxCode, "woodcockTrackingSS");
   pl.setLaunchParamsDecl(launchParams_owl, sizeof(LaunchParams));
 #else
-  pl.setRayGen(woodcockTrackingAE);
+  pl.setRayGen(woodcockTrackingSS);
 #endif
 
   LaunchParams parms;
@@ -128,9 +132,6 @@ extern "C" int main(int argc, char *argv[]) {
   pl.launchParam("volume.handle", (RawPointer &)parms.volume.handle) = (nanovdb::NanoGrid<float> *)deviceGrid.data();
   pl.launchParam("volume.filterLinear", parms.volume.filterLinear) = true;
   pl.launchParam("volume.bounds", parms.volume.bounds) = volbounds;
-  // lighting
-  pl.launchParam("ambientColor", parms.ambientColor) = vec3f(1.f);
-  pl.launchParam("ambientRadiance", parms.ambientRadiance) = 1.f;
 
   // Render and present...
   // For default (PNG image) pipeline this
@@ -154,6 +155,11 @@ extern "C" int main(int argc, char *argv[]) {
     pl.launchParam("fbPointer", (RawPointer &)parms.fbPointer) = fb.fbPointer;
     pl.launchParam("fbDepth", (RawPointer &)parms.fbDepth) = fb.fbDepth;
     pl.launchParam("accumBuffer", (RawPointer &)parms.accumBuffer) = fb.accumBuffer;
+    // update lighting params:
+    pl.launchParam("ambientColor", parms.ambientColor) = vec3f(1.f);
+    pl.launchParam("ambientRadiance", parms.ambientRadiance) = 1.f;
+    pl.launchParam("ambientSamples", parms.ambientSamples) = g_appState.ambientSamples;
+    pl.launchParam("occlusionDistance", parms.occlusionDistance) = g_appState.occlusionDistance;
     // update DVR params:
     pl.launchParam("unitDistance", parms.unitDistance) = g_appState.unitDistance;
     // update accum:

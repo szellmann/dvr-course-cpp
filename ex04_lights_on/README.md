@@ -6,7 +6,7 @@ vs. noise. In a sci-vis framework, noise is often more acceptable than lower
 interactivity.
 
 ## TODOs:
-- [ ] Implement AO
+- [x] Implement AO
 - [ ] Implement directional light source
 - [ ] Implement UI
 - [ ] Allow switching between delta and ratio tracking for shadow rays

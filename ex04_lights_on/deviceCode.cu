@@ -73,31 +73,14 @@ inline __device__ vec4f postClassify(Transfunc tf, float v)
   return v1*frac+v2*(1.f-frac);
 }
 
-// ========================================================
-// Main ray gen prog (woodcock tracking, A+E)
-// ========================================================
-RAYGEN_PROGRAM(woodcockTrackingAE)()
+inline __device__ float woodcockTracking(const Ray &ray,
+                                         Random &rnd,
+                                         float majorant,
+                                         //output:
+                                         vec3f &albedo,
+                                         float &extinction)
 {
   auto &lp = optixLaunchParams;
-  const vec2i threadIndex = getLaunchIndex();
-  const vec2i launchDim = getLaunchDims();
-  const int pixelID = threadIndex.x + getLaunchDims().x * threadIndex.y;
-
-  Random rnd(lp.accumID*launchDim.x*launchDim.y+(unsigned)threadIndex.x,
-             (unsigned)threadIndex.y);
-
-  Ray ray = generateRay(vec2f(threadIndex)+vec2f(.5f), rnd);
-
-  float t0, t1;
-  if (!boxTest(ray, lp.volume.bounds, t0, t1))
-    return;
-
-  ray.tmin = t0, ray.tmax = t1;
-
-  vec3f albedo = 0.f;
-  float extinction = 0.f;
-
-  const float majorant = 1.f;
 
   float t=ray.tmin;
 
@@ -126,7 +109,101 @@ RAYGEN_PROGRAM(woodcockTrackingAE)()
     }
   }
 
-  vec3f color = albedo * lp.ambientColor * lp.ambientRadiance;
+  return fminf(t,ray.tmax);
+}
+
+inline __device__ vec3f cosineSampleHemisphere(float u1, float u2)
+{
+  float r = sqrtf(u1);
+  float theta = float(M_PI*2.f) * u2;
+  return { r*cosf(theta), r*sinf(theta), sqrtf(1.f-u1) };
+}
+
+inline __device__ vec3f uniformSampleSphere(float u1, float u2)
+{
+  float z = 1.f-2.f*u1;
+  float r = sqrtf(fmaxf(0.f,1.f-z*z));
+  float phi = float(M_PI*2.f) * u2;
+  return { r*cosf(phi), r*sinf(phi), z };
+}
+
+inline __device__ float ambientOcclusion(vec3f hitPos, vec3f n, Random &rnd)
+{
+  auto &lp = optixLaunchParams;
+ 
+  float ao = 0.f;
+  float aoWeights = 0.f;
+  for (int sample=0; sample<lp.ambientSamples; ++sample) {
+    vec3f u, v, w = n;
+    make_orthonormal_basis(u,v,w);
+    vec3f sp = cosineSampleHemisphere(rnd(),rnd());
+    vec3f dir = normalize(sp.x*u + sp.y*v + sp.z*w);
+
+    Ray aoRay;
+    aoRay.org = hitPos + n*1e-3f;
+    aoRay.dir = dir;
+    aoRay.tmin = 0.f;
+    aoRay.tmax = lp.occlusionDistance;
+
+    // Clip against bounding box here. While during tracking, sampleVolume()
+    // may return false, we can't be sure the ray definitely left the volume;
+    // only that at the sample position the volume is not defined, so clipping
+    // has to happen here:
+    float t0, t1;
+    boxTest(aoRay, lp.volume.bounds, t0, t1);
+    aoRay.tmax = fminf(aoRay.tmax, t1);
+
+    vec3f albedo = 0.f;
+    float extinction = 0.f;
+
+    const float majorant = 1.f;
+
+    float t = woodcockTracking(aoRay, rnd, majorant, albedo, extinction);
+
+    float weight = fmaxf(0.f, dot(aoRay.dir,n));
+    if (t < aoRay.tmax)
+      ao += weight;
+    aoWeights += weight;
+  }
+
+  if (aoWeights > 0.f)
+    return ao/aoWeights;
+  else
+    return 0.f;
+}
+
+// ========================================================
+// Main ray gen prog (woodcock tracking with single
+// scattering)
+// ========================================================
+RAYGEN_PROGRAM(woodcockTrackingSS)()
+{
+  auto &lp = optixLaunchParams;
+  const vec2i threadIndex = getLaunchIndex();
+  const vec2i launchDim = getLaunchDims();
+  const int pixelID = threadIndex.x + getLaunchDims().x * threadIndex.y;
+
+  Random rnd(lp.accumID*launchDim.x*launchDim.y+(unsigned)threadIndex.x,
+             (unsigned)threadIndex.y);
+
+  Ray ray = generateRay(vec2f(threadIndex)+vec2f(.5f), rnd);
+
+  float t0, t1;
+  if (!boxTest(ray, lp.volume.bounds, t0, t1))
+    return;
+
+  ray.tmin = t0, ray.tmax = t1;
+
+  vec3f albedo = 0.f;
+  float extinction = 0.f;
+
+  const float majorant = 1.f;
+
+  float t = woodcockTracking(ray, rnd, majorant, albedo, extinction);
+  // use random sample as normal vector:
+  vec3f N = uniformSampleSphere(rnd(),rnd());
+  float aoV = 1.f-ambientOcclusion(ray.eval(t), N, rnd);
+  vec3f color = albedo * lp.ambientColor * lp.ambientRadiance * aoV;
   float alpha = extinction > 0.f ? 1.f : 0.f;
 
   float accum = 1.f/(lp.accumID+1);
