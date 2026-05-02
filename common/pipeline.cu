@@ -521,7 +521,7 @@ struct Pipeline::Impl
           if (button.button == SDL_BUTTON_LEFT) ourButton = CameraManip::Left;
           if (button.button == SDL_BUTTON_MIDDLE) ourButton = CameraManip::Middle;
           if (button.button == SDL_BUTTON_RIGHT) ourButton = CameraManip::Right;
-          cameraUpdate = manip.handleMouseDown(button.x,button.y,ourButton,mod);
+          manip.handleMouseDown(button.x,button.y,ourButton,mod);
         }
         if (event.type == SDL_EVENT_MOUSE_BUTTON_UP) {
           SDL_MouseButtonEvent button = event.button;
@@ -529,7 +529,7 @@ struct Pipeline::Impl
           if (button.button == SDL_BUTTON_LEFT) ourButton = CameraManip::Left;
           if (button.button == SDL_BUTTON_MIDDLE) ourButton = CameraManip::Middle;
           if (button.button == SDL_BUTTON_RIGHT) ourButton = CameraManip::Right;
-          cameraUpdate = manip.handleMouseUp(button.x,button.y,ourButton,mod);
+          manip.handleMouseUp(button.x,button.y,ourButton,mod);
         }
         if (event.type == SDL_EVENT_MOUSE_MOTION) {
           SDL_MouseMotionEvent motion = event.motion;
