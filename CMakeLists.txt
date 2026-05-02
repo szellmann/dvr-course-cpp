@@ -14,7 +14,7 @@ add_subdirectory(ex00_hello_dvr_course)
 add_subdirectory(ex01_let_there_be_voxels)
 add_subdirectory(ex02_woodcock)
 add_subdirectory(ex03_multi_volume)
-# add_subdirectory(ex04_lights_on)
+add_subdirectory(ex04_lights_on)
 add_subdirectory(ex05_hey_icon)
 
 # cmdline tools used for data wrangling, etc.
