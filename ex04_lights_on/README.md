@@ -1,13 +1,12 @@
-# Ex. 02: Woodcock tracking
+# Ex. 04: Lights on!!
 
-This example replaces the ray marching loop with Woodcock tracking to also
-compute absorption + emission. Appearance-wise the (converged) result is rather
-similar to ordinary sci-vis ray marching. We use Woodcock in a sci-vis style
-manner, i.e., the data values do not directly become the density--instead we
-perform a lookup into an RGBA transfer function (as the ray marching samples
-did as well) and then (in stark contrast to production style rendering)
-interpret RGB as albedo and alpha as extinction coefficient.
+This example discusses delta vs. ratio tracking. We use ratio tracking to
+compute transmittance estimates for shadow rays. The trade-off is interactivity
+vs. noise. In a sci-vis framework, noise is often more acceptable than lower in
+interactivity.
 
 ## TODOs:
-- [x] Implement CPU code path (first light)
-- [x] Implement OWL code path
+- [ ] Implement AO
+- [ ] Implement directional light source
+- [ ] Implement UI
+- [ ] Allow switching between delta and ratio tracking for shadow rays
