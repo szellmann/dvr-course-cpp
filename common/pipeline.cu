@@ -35,7 +35,9 @@
 # endif
 #endif
 #ifdef __GNUC__
-# include <execinfo.h>
+# ifndef __EMSCRIPTEN__
+#  include <execinfo.h>
+# endif
 # include <sys/time.h>
 #endif
 #ifdef INTERACTIVE
@@ -166,36 +168,6 @@ static bool saveXF(std::string xfFile, const dvr_course::Transfunc &tf) {
   out.write((const char *)tf.getLUT().data(), sizeof(tf.getLUT()[0]) * tf.getLUT().size());
 
   return true;
-}
-
-void clearFramebuffer(const Frame *fb,
-                      thread_pool &pool,
-                      const vec4f &rgba = vec4f(0.f),
-                      float depth = 0.f)
-{
-  int width = fb->width; int height = fb->height;
-  auto *fbPointer = fb->fbPointer;
-  auto *fbDepth = fb->fbDepth;
-  auto *accumBuffer = fb->accumBuffer;
-#ifdef RTCORE
-  cuda::for_each(/*TODO: stream*/0, 0, width, 0, height,
-#else
-  parallel::for_each(pool, 0, width, 0, height,
-#endif
-    [=] __device__ (int x, int y) {
-      int pixelID = x+y*width;
-      if (fbPointer) {
-        fbPointer[pixelID] = make_rgba(rgba);
-      }
-
-      if (fbDepth) {
-        fbDepth[pixelID] = depth;
-      }
-
-      if (accumBuffer) {
-        accumBuffer[pixelID] = vec4f(0.f);
-      }
-    });
 }
 
 struct Pipeline::Impl
@@ -427,6 +399,35 @@ struct Pipeline::Impl
 #endif
   }
 
+  void clearFramebuffer(const vec4f &rgba = vec4f(0.f), float depth = 0.f)
+  {
+    int width = fb->width; int height = fb->height;
+    auto *fbPointer = fb->fbPointer;
+    auto *fbDepth = fb->fbDepth;
+    auto *accumBuffer = fb->accumBuffer;
+  #ifdef RTCORE
+    cuda::for_each(/*TODO: stream*/0, 0, width, 0, height,
+  #elif defined(__EMSCRIPTEN__)
+    serial::for_each(0, width, 0, height,
+  #else
+    parallel::for_each(pool, 0, width, 0, height,
+  #endif
+      [=] __device__ (int x, int y) {
+        int pixelID = x+y*width;
+        if (fbPointer) {
+          fbPointer[pixelID] = make_rgba(rgba);
+        }
+
+        if (fbDepth) {
+          fbDepth[pixelID] = depth;
+        }
+
+        if (accumBuffer) {
+          accumBuffer[pixelID] = vec4f(0.f);
+        }
+      });
+  }
+
   void setFrame(Frame *frame)
   {
     fb = frame;
@@ -434,7 +435,7 @@ struct Pipeline::Impl
       width = cmdline.width;
       height = cmdline.height;
       fb->resize(width,height);
-      clearFramebuffer(fb,pool);
+      clearFramebuffer();
     } else {
       width = fb->width;
       height = fb->height;
@@ -789,7 +790,9 @@ struct Pipeline::Impl
   int sampleLimit{1};
 #endif
   std::string xfFile;
+#ifndef __EMSCRIPTEN__
   thread_pool pool{std::thread::hardware_concurrency()};
+#endif
   // timing:
 #ifdef RTCORE
   cudaEvent_t last, now;
@@ -1122,14 +1125,18 @@ void Pipeline::launch() {
 #endif
 
   if (frameID == 0)
-    clearFramebuffer(fb,impl->pool);
+    impl->clearFramebuffer();
 
   if (frameID < impl->sampleLimit) {
     impl->beginTiming();
 #ifdef RTCORE
     owlLaunch2D(impl->owl.rayGen, fb->width, fb->height, impl->owl.launchParams);
 #else
+#ifndef __EMSCRIPTEN__
     parallel::for_each(impl->pool, 0, fb->width, 0, fb->height,
+#else
+    serial::for_each(0, fb->width, 0, fb->height,
+#endif
       [&](int x, int y) {
         launchDims = {fb->width,fb->height};
         launchIndex = {x,y};
