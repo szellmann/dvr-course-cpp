@@ -1157,6 +1157,72 @@ std::ostream& operator<<(std::ostream &out, box3f b) {
   return out;
 }
 
+struct  box4f
+{
+  box4f() = default;
+  __host__ __device__ box4f(vec4f lo, vec4f up) : lower(lo), upper(up) {}
+
+  inline __host__ __device__
+  bool empty() const {
+    return upper.x <= lower.x || upper.y <= lower.y || upper.z <= lower.z;
+  }
+
+  inline __host__ __device__
+  vec4f center() const {
+    return (lower+upper)/2;
+  }
+
+  inline __host__ __device__
+  vec4f size() const {
+    return upper-lower;
+  }
+
+  inline __host__ __device__
+  bool contains(vec4f p) const {
+    return lower.x<=p.x && p.x<=upper.x
+        && lower.y<=p.y && p.y<=upper.y
+        && lower.z<=p.z && p.z<=upper.z
+        && lower.w<=p.w && p.w<=upper.w;
+  }
+
+  inline __host__ __device__
+  bool overlaps(const box4f &other) {
+    return !intersection(other).empty();
+  }
+
+  inline __host__ __device__
+  box4f intersection(const box4f &other) {
+    return {max(lower,other.lower),min(upper,other.upper)};
+  }
+
+  inline __host__ __device__
+  box4f &extend(const vec4f &v) {
+    lower = min(lower,v);
+    upper = max(upper,v);
+    return *this;
+  }
+
+  inline __host__ __device__
+  box4f &extend(const box4f &other) {
+    lower = min(lower,other.lower);
+    upper = max(upper,other.upper);
+    return *this;
+  }
+
+  vec4f lower, upper;
+};
+
+inline __host__ __device__
+box4f intersection(const box4f &a, const box4f &b) {
+  return box4f(max(a.lower,b.lower),min(a.upper,b.upper));
+}
+
+inline
+std::ostream& operator<<(std::ostream &out, box4f b) {
+  out << '(' << b.lower << ',' << b.upper << ')';
+  return out;
+}
+
 struct box3i
 {
   box3i() = default;
