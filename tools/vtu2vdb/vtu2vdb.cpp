@@ -80,6 +80,13 @@ static vec3i projectToGrid(const vec3f V, const box3f &worldBounds, const vec3i 
   return clamp(Vi,vec3i(0),dims-1);
 }
 
+static vec3f unprojectFromGrid(
+    const vec3i Vi, const box3f &worldBounds, const vec3i &dims)
+{
+  vec3f V01 = vec3f(Vi)/vec3f(dims);
+  return V01*worldBounds.size()+worldBounds.lower;
+}
+
 static void rasterize(openvdb::FloatGrid::Accessor acc,
                       const box4f &cell,
                       const box3f &worldBounds,
@@ -93,6 +100,73 @@ static void rasterize(openvdb::FloatGrid::Accessor acc,
       for (int x=lo.x; x<=up.x; ++x) {
         float t = length((vec3f(x,y,z)-vec3f(lo))/vec3f(up-lo+1))/length(vec3f(1,1,1));
         acc.setValue(openvdb::Coord(x,y,z),lerp(cell.lower.w,cell.upper.w,t));
+      }
+    }
+  }
+}
+
+using Tet = vec4f[4];
+using Plane = vec4f;
+
+inline Plane makePlane(vec3f a, vec3f b, vec3f c)
+{
+  vec3f N = cross(b-a,c-a);
+  return { N,dot(a,N) };
+}
+
+inline float evalPlane(Plane p, vec3f v)
+{ return dot(v,p.xyz)-p.w; }
+
+inline bool evalTet(float &value, const vec3f P, const Tet &tet)
+{
+  vec3f va = vec3f(tet[0])-P;
+  vec3f vb = vec3f(tet[1])-P;
+  vec3f vc = vec3f(tet[2])-P;
+  vec3f vd = vec3f(tet[3])-P;
+
+  Plane pa = makePlane(vb,vd,vc);
+  Plane pb = makePlane(va,vc,vd);
+  Plane pc = makePlane(va,vd,vb);
+  Plane pd = makePlane(va,vb,vc);
+
+  float fa = evalPlane(pa,vec3f(0.f))/evalPlane(pa,va);
+  if (fa < 0.f || fa > 1.f) return false;
+  
+  float fb = evalPlane(pb,vec3f(0.f))/evalPlane(pb,vb);
+  if (fb < 0.f || fa > 1.f) return false;
+  
+  float fc = evalPlane(pc,vec3f(0.f))/evalPlane(pc,vc);
+  if (fc < 0.f || fa > 1.f) return false;
+  
+  float fd = evalPlane(pd,vec3f(0.f))/evalPlane(pd,vd);
+  if (fd < 0.f || fa > 1.f) return false;
+
+  value = fa*tet[0].w + fb*tet[1].w + fc*tet[2].w + fd*tet[3].w;
+  return true;
+}
+
+// overload for tets (uses inside/outside tests to fill candidate voxels)
+static void rasterize(openvdb::FloatGrid::Accessor acc,
+                      const Tet &tet,
+                      const box3f &worldBounds,
+                      const vec3i &dims)
+{
+  box3f cellBounds{1e20f,-1e20f};
+  for (int i=0; i<4; ++i) {
+    cellBounds.extend(tet[i]);
+  }
+
+  vec3i lo = projectToGrid(cellBounds.lower,worldBounds,dims);
+  vec3i up = projectToGrid(cellBounds.upper,worldBounds,dims);
+
+  for (int z=lo.z; z<=up.z; ++z) {
+    for (int y=lo.y; y<=up.y; ++y) {
+      for (int x=lo.x; x<=up.x; ++x) {
+        const vec3f P = unprojectFromGrid(vec3i(x,y,z),worldBounds,dims);
+        float value=0.f;
+        if (evalTet(value,P,tet)) {
+          acc.setValue(openvdb::Coord(x,y,z),value);
+        }
       }
     }
   }
@@ -218,14 +292,25 @@ int main(int argc, char **argv)
     vtkCell *cell = grid->GetCell(i);
     int n = cell->GetNumberOfPoints();
     float cellValue = cellValues.empty() ? NAN : cellValues[i];
-    box4f cellBounds{1e20f,-1e20f};
-    for (int j=0; j<n; ++j) {
-      vtkIdType index = cell->GetPointId(j);
-      float value = vertexValues.empty() ? cellValue : vertexValues[index];
-      assert(!isnan(value));
-      cellBounds.extend(vec4f(vertices[index],value));
+    if (type == VTK_TETRA) {
+      Tet tet;
+      for (int j=0; j<n; ++j) {
+        vtkIdType index = cell->GetPointId(j);
+        float value = vertexValues.empty() ? cellValue : vertexValues[index];
+        assert(!isnan(value));
+        tet[j] = vec4f(vertices[index],value);
+      }
+      rasterize(acc,tet,worldBounds,g_appState.dims);
+    } else {
+      box4f cellBounds{1e20f,-1e20f};
+      for (int j=0; j<n; ++j) {
+        vtkIdType index = cell->GetPointId(j);
+        float value = vertexValues.empty() ? cellValue : vertexValues[index];
+        assert(!isnan(value));
+        cellBounds.extend(vec4f(vertices[index],value));
+      }
+      rasterize(acc,cellBounds,worldBounds,g_appState.dims);
     }
-    rasterize(acc,cellBounds,worldBounds,g_appState.dims);
   }
 
   tree.prune();
