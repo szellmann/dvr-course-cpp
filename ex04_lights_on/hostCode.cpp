@@ -83,7 +83,7 @@ extern "C" int main(int argc, char *argv[]) {
   Buffer deviceGrid(gridHandle.bufferSize(), (uint8_t *)gridHandle.data());
 
   auto boundsMin = gridHandle.gridMetaData()->worldBBox().min();
-  auto boundsMax = gridHandle.gridMetaData()->worldBBox().max()-nanovdb::Vec3d(1.f);
+  auto boundsMax = gridHandle.gridMetaData()->worldBBox().max();
   box3f volbounds({(float)boundsMin[0], (float)boundsMin[1], (float)boundsMin[2]},
                   {(float)boundsMax[0], (float)boundsMax[1], (float)boundsMax[2]});
 
