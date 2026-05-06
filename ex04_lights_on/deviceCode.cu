@@ -78,9 +78,11 @@ inline __device__ float woodcockTracking(const Ray &ray,
                                          float majorant,
                                          //output:
                                          vec3f &albedo,
-                                         float &extinction)
+                                         float &transmission)
 {
   auto &lp = optixLaunchParams;
+
+  transmission = 1.f;
 
   float t=ray.tmin;
 
@@ -104,7 +106,7 @@ inline __device__ float woodcockTracking(const Ray &ray,
     float u = rnd();
     if (sample.w >= u * majorant) {
       albedo = vec3f(sample.x,sample.y,sample.z);
-      extinction = sample.w;
+      transmission = 0.f;
       break;
     }
   }
@@ -154,11 +156,11 @@ inline __device__ float ambientOcclusion(vec3f hitPos, vec3f n, Random &rnd)
     aoRay.tmax = fminf(aoRay.tmax, t1);
 
     vec3f albedo = 0.f;
-    float extinction = 0.f;
+    float transmission = 1.f;
 
     const float majorant = 1.f;
 
-    float t = woodcockTracking(aoRay, rnd, majorant, albedo, extinction);
+    float t = woodcockTracking(aoRay, rnd, majorant, albedo, transmission);
 
     float weight = fmaxf(0.f, dot(aoRay.dir,n));
     if (t < aoRay.tmax)
@@ -195,16 +197,16 @@ RAYGEN_PROGRAM(woodcockTrackingSS)()
   ray.tmin = t0, ray.tmax = t1;
 
   vec3f albedo = 0.f;
-  float extinction = 0.f;
+  float transmission;
 
   const float majorant = 1.f;
 
-  float t = woodcockTracking(ray, rnd, majorant, albedo, extinction);
+  float t = woodcockTracking(ray, rnd, majorant, albedo, transmission);
   // use random sample as normal vector:
   vec3f N = uniformSampleSphere(rnd(),rnd());
   float aoV = 1.f-ambientOcclusion(ray.eval(t), N, rnd);
   vec3f color = albedo * lp.ambientColor * lp.ambientRadiance * aoV;
-  float alpha = extinction > 0.f ? 1.f : 0.f;
+  float alpha = 1.f-transmission;
 
   float accum = 1.f/(lp.accumID+1);
   lp.accumBuffer[pixelID] = lerp(vec4f(color,alpha), lp.accumBuffer[pixelID], accum);
