@@ -18,7 +18,7 @@ add_subdirectory(ex01_let_there_be_voxels)
 add_subdirectory(ex02_woodcock)
 add_subdirectory(ex03_multi_volume)
 add_subdirectory(ex04_lights_on)
-#add_subdirectory(ex05_tets_n_friends)
+add_subdirectory(ex05_tets_n_friends)
 
 # cmdline tools used for data wrangling, etc.
 # we don't usually need these to run the examples
