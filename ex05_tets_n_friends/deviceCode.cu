@@ -77,7 +77,7 @@ inline __device__ bool sampleVolume(const Volume &vol, vec3f pos, float &value)
   // on non-RT hardware we resort to just linearly
   // iterating over all primitives (veeeryy slow...)
   for (unsigned i=0; i<vol.numTets; ++i) {
-    if (evalTet(value,pos,tets[i]))
+    if (evalTet(value,pos,vol.tets[i]))
       return true;
   }
 #endif
