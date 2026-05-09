@@ -141,9 +141,11 @@ struct Pipeline {
   typedef std::function<void(const Transfunc *,int)> TransfuncUpdateHandler;
   void setTransfuncUpdateHandler(TransfuncUpdateHandler tuh);
 
+  // Private impl - the declaration is public for compatibility with CUDA
+  // device lambdas; don't create objects outside of this class!
+  struct Impl;
  private:
 
-  struct Impl;
   std::unique_ptr<Impl> impl;
 
   bool running{false};
