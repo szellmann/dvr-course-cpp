@@ -27,7 +27,6 @@ OWLVarDecl launchParams_owl[]
 = {
    // volume
    { "volume.handle", OWL_GROUP, OWL_OFFSETOF(LaunchParams,volume.handle) },
-   { "volume.useTriangles", OWL_BOOL, OWL_OFFSETOF(LaunchParams,volume.useTriangles) },
    { "volume.tets", OWL_RAW_POINTER, OWL_OFFSETOF(LaunchParams,volume.tets) },
    { "volume.numTets", OWL_INT, OWL_OFFSETOF(LaunchParams,volume.numTets) },
    { "volume.bounds", OWL_USER_TYPE(box3f), OWL_OFFSETOF(LaunchParams,volume.bounds) },

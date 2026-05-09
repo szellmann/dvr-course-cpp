@@ -21,9 +21,8 @@ struct {
   std::string filepath;
   Transfunc transfunc;
   float unitDistance{1.f};
-  bool useOptixTriangles;
 #ifdef RTCORE
-  OWLGroup trianglesTLAS, userGeomTLAS;
+  OWLGroup userGeomTLAS;
 #endif
 } g_appState;
 
@@ -32,7 +31,6 @@ namespace ex05_tets_n_friends {
 extern "C" char ptxCode[];
 #else
 extern void woodcockTrackingAE();
-extern void woodcockTrackingWithAccel();
 #endif
 
 void printUsage() {
@@ -175,93 +173,43 @@ extern "C" int main(int argc, char *argv[]) {
 
   pl.uiParam("Unit distance", &g_appState.unitDistance, 0.01f, 5.f);
 
-  g_appState.useOptixTriangles = true;
-  pl.uiParam("Use OptiX triangle sampler", &g_appState.useOptixTriangles);
-
 #ifdef RTCORE
-  pl.setRayGen(ptxCode, "woodcockTrackingWithAccel");
+  pl.setRayGen(ptxCode, "woodcockTrackingAE");
   pl.setLaunchParamsDecl(launchParams_owl, sizeof(LaunchParams));
 #else
-  pl.setRayGen(woodcockTrackingWithAccel);
+  pl.setRayGen(woodcockTrackingAE);
 #endif
 
   LaunchParams parms;
 
 #ifdef RTCORE
   // ######################################################
-  // variant with triangle geometry
-  // ######################################################
-
-  std::vector<vec3f> vertex;
-  std::vector<vec3i> index;
-  for (size_t i=0; i<cells.size(); ++i) {
-    const ICONCell &cell = cells[i];
-    vec3f v1 = toCartesian({cell.height[0],cell.lat.x,cell.lon.x});
-    vec3f v2 = toCartesian({cell.height[0],cell.lat.y,cell.lon.y});
-    vec3f v3 = toCartesian({cell.height[0],cell.lat.z,cell.lon.z});
-    vertex.push_back(v1);
-    vertex.push_back(v2);
-    vertex.push_back(v3);
-    index.push_back({int(i)*3,int(i)*3+1,int(i)*3+2});
-  }
-
-  OWLVarDecl trianglesGeomVars[] = {
-    { "index",  OWL_BUFPTR, OWL_OFFSETOF(ICONTriangleGeom,index)},
-    { "vertex", OWL_BUFPTR, OWL_OFFSETOF(ICONTriangleGeom,vertex)},
-    { nullptr /* sentinel to mark end of list */ }
-  };
-  OWLGeomType trianglesGeomType = owlGeomTypeCreate(pl.owlContext(),
-                                                    OWL_TRIANGLES,
-                                                    sizeof(ICONTriangleGeom),
-                                                    trianglesGeomVars,-1);
-  owlGeomTypeSetClosestHit(trianglesGeomType, 0, pl.owlModule(), "TetTrianglesClosestHit");
-  OWLBuffer vertexBuffer
-    = owlDeviceBufferCreate(pl.owlContext(),OWL_FLOAT3,vertex.size(),vertex.data());
-  OWLBuffer indexBuffer
-    = owlDeviceBufferCreate(pl.owlContext(),OWL_INT3,index.size(),index.data());
-
-  OWLGeom trianglesGeom = owlGeomCreate(pl.owlContext(),trianglesGeomType);
-
-  owlTrianglesSetVertices(trianglesGeom,vertexBuffer,vertex.size(),sizeof(vec3f),0);
-  owlTrianglesSetIndices(trianglesGeom,indexBuffer,index.size(),sizeof(vec3i),0);
-
-  owlGeomSetBuffer(trianglesGeom,"vertex",vertexBuffer);
-  owlGeomSetBuffer(trianglesGeom,"index",indexBuffer);
-
-  OWLGroup trianglesBLAS = owlTrianglesGeomGroupCreate(pl.owlContext(),1,&trianglesGeom);
-  owlGroupBuildAccel(trianglesBLAS);
-
-  g_appState.trianglesTLAS = owlInstanceGroupCreate(pl.owlContext(),1,&trianglesBLAS);
-  owlGroupBuildAccel(g_appState.trianglesTLAS);
-
-
-  // ######################################################
   // variant with user geometry
   // ######################################################
 
-  OWLVarDecl iconGeomVars[]
+  OWLVarDecl tetsGeomVars[]
   = {
-     { "cells",  OWL_BUFPTR, OWL_OFFSETOF(ICONGrid,cells)},
-     { "numCells",  OWL_UINT, OWL_OFFSETOF(ICONGrid,numCells)},
+     { "tets",  OWL_BUFPTR, OWL_OFFSETOF(TetMesh,tets)},
+     { "numTets",  OWL_INT, OWL_OFFSETOF(TetMesh,numTets)},
      { nullptr /* sentinel to mark end of list */ }
   };
   OWLGeomType userGeomType = owlGeomTypeCreate(pl.owlContext(),
                                                OWL_GEOM_USER,
-                                               sizeof(ICONGrid),
-                                               iconGeomVars, -1);
+                                               sizeof(TetMesh),
+                                               tetsGeomVars, -1);
   owlGeomTypeSetBoundsProg(userGeomType, pl.owlModule(), "TetBounds");
   owlGeomTypeSetIntersectProg(userGeomType, 0, pl.owlModule(), "TetIntersect");
   owlGeomTypeSetClosestHit(userGeomType, 0, pl.owlModule(), "TetClosestHit");
 
   OWLGeom userGeom = owlGeomCreate(pl.owlContext(), userGeomType);
-  owlGeomSetPrimCount(userGeom, cells.size());
+  owlGeomSetPrimCount(userGeom, tets.size());
 
-  OWLBuffer cellBuffer = owlDeviceBufferCreate(pl.owlContext(),
-                                               OWL_USER_TYPE(ICONCell{}),
-                                               cells.size(),
-                                               cells.data());
-  owlGeomSetBuffer(userGeom, "tets", cellBuffer);
-  owlGeomSet1ui(userGeom, "numTets", (unsigned)cells.size());
+  OWLBuffer tetBuffer = owlDeviceBufferCreate(pl.owlContext(),
+                                              OWL_USER_TYPE(Tet{}),
+                                              tets.size(),
+                                              tets.data());
+  owlGeomSetBuffer(userGeom, "tets", tetBuffer);
+  owlGeomSet1i(userGeom, "numTets", (int)tets.size());
 
   owlBuildPrograms(pl.owlContext());
 
@@ -276,8 +224,7 @@ extern "C" int main(int argc, char *argv[]) {
 
   // volume
 #ifdef RTCORE
-  owlParamsSetGroup(pl.owlLaunchParams(), "volume.handle", g_appState.trianglesTLAS);
-  pl.launchParam("volume.useTriangles", parms.volume.useTriangles) = true;
+  owlParamsSetGroup(pl.owlLaunchParams(), "volume.handle", g_appState.userGeomTLAS);
 #endif
   pl.launchParam("volume.tets", (RawPointer &)parms.volume.tets) = deviceTets.data();
   pl.launchParam("volume.numTets", parms.volume.numTets) = (int)deviceTets.size();

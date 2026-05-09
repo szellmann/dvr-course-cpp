@@ -46,6 +46,11 @@ inline  __device__ Ray generateRay(const vec2f screen, Random &rnd)
   return Ray(org,dir,0.f,1e10f);
 }
 
+inline __device__ bool evalTet(float &value, vec3f P, const Tet &tet)
+{
+  return false;
+}
+
 #ifdef RTCORE
 struct PRD {
   float value;
@@ -56,42 +61,24 @@ struct PRD {
 inline __device__ bool sampleVolume(const Volume &vol, vec3f pos, float &value)
 {
 #ifdef RTCORE
-  if (vol.useTriangles) {
-    PRD prd;
-    prd.value = 0.f;
-    prd.primID = ~0u;
-    owl::Ray ray;
-    ray.origin = owl::vec3f(pos.x,pos.y,pos.z);
-    ray.direction = -normalize(ray.origin);
-    owl::traceRay(vol.handle,ray,prd,OPTIX_RAY_FLAG_CULL_BACK_FACING_TRIANGLES);
-    if (prd.primID != ~0u) {
-      const ICONCell &cell = vol.cells[prd.primID];
-      const vec3f spherical = toSpherical(pos);
-      if (spherical.x < cell.height[0] || spherical.x > cell.height[cell.numLayers])
-        return false;
-      value = cell.getValue(spherical.x);
-      return true;
-    }
-  } else {
-    PRD prd;
-    prd.value = 0.f;
-    prd.primID = ~0u;
-    owl::Ray ray;
-    ray.origin = owl::vec3f(pos.x,pos.y,pos.z);
-    ray.direction = owl::vec3f(1.f);
-    ray.tmin = ray.tmax = 0.f;
-    owl::traceRay(vol.handle,ray,prd,OPTIX_RAY_FLAG_DISABLE_ANYHIT);
-    if (prd.primID != ~0u) {
-      value = prd.value;
-      return true;
-    }
+  PRD prd;
+  prd.value = 0.f;
+  prd.primID = ~0u;
+  owl::Ray ray;
+  ray.origin = owl::vec3f(pos.x,pos.y,pos.z);
+  ray.direction = owl::vec3f(1.f);
+  ray.tmin = ray.tmax = 0.f;
+  owl::traceRay(vol.handle,ray,prd,OPTIX_RAY_FLAG_DISABLE_ANYHIT);
+  if (prd.primID != ~0u) {
+    value = prd.value;
+    return true;
   }
 #else
   // on non-RT hardware we resort to just linearly
   // iterating over all primitives (veeeryy slow...)
   for (unsigned i=0; i<vol.numTets; ++i) {
-    //if (evalTet(value,pos,tets[i]))
-    //  return true;
+    if (evalTet(value,pos,tets[i]))
+      return true;
   }
 #endif
   return false;
@@ -112,9 +99,11 @@ inline __device__ float woodcockTracking(const Ray &ray,
                                          float majorant,
                                          //output:
                                          vec3f &albedo,
-                                         float &extinction)
+                                         float &transmission)
 {
   auto &lp = optixLaunchParams;
+
+  transmission = 1.f;
 
   float t=ray.tmin;
 
@@ -138,7 +127,7 @@ inline __device__ float woodcockTracking(const Ray &ray,
     float u = rnd();
     if (sample.w >= u * majorant) {
       albedo = vec3f(sample.x,sample.y,sample.z);
-      extinction = sample.w;
+      transmission = 0.f;
       break;
     }
   }
@@ -154,16 +143,18 @@ OPTIX_BOUNDS_PROGRAM(TetBounds)(const void *geomData,
                                 owl::box3f &result, // mind the owl:: namespace!
                                 int leafID)
 {
-  const ICONGrid &self = *(const ICONGrid *)geomData;
-  //result = ...[leafID];
-  auto b = self.cells[leafID].getBounds();
-  result = owl::box3f({b.lower.x,b.lower.y,b.lower.z},
-                      {b.upper.x,b.upper.y,b.upper.z});
+  const TetMesh &self = *(const TetMesh *)geomData;
+  const Tet &tet = self.tets[leafID];
+  result = owl::box3f(1e20f,-1e20f);
+  result.extend((const owl::vec3f &)tet.v0);
+  result.extend((const owl::vec3f &)tet.v1);
+  result.extend((const owl::vec3f &)tet.v2);
+  result.extend((const owl::vec3f &)tet.v3);
 }
 
 OPTIX_INTERSECT_PROGRAM(TetIntersect)()
 {
-  const ICONGrid &self = owl::getProgramData<ICONGrid>();
+  const TetMesh &self = owl::getProgramData<TetMesh>();
   int leafID = optixGetPrimitiveIndex();
   owl::Ray ray(optixGetObjectRayOrigin(),
                optixGetObjectRayDirection(),
@@ -172,7 +163,7 @@ OPTIX_INTERSECT_PROGRAM(TetIntersect)()
 
   vec3f pos(ray.origin.x,ray.origin.y,ray.origin.z);
   float value{0.f};
-  if (sample(self.cells[leafID],pos,value)) {
+  if (evalTet(value,pos,self.tets[leafID])) {
     if (optixReportIntersection(ray.tmin, 0)) {
       PRD &prd = owl::getPRD<PRD>();
       prd.value = value;
@@ -184,13 +175,6 @@ OPTIX_INTERSECT_PROGRAM(TetIntersect)()
 OPTIX_CLOSEST_HIT_PROGRAM(TetClosestHit)()
 {
   // empty
-}
-
-// CH used with triangle geom:
-OPTIX_CLOSEST_HIT_PROGRAM(TetTrianglesClosestHit)()
-{
-  PRD &prd = owl::getPRD<PRD>();
-  prd.primID = optixGetPrimitiveIndex();
 }
 #endif
 
@@ -220,7 +204,7 @@ bool intersectSphere(const Ray &ray, float radius, float &tnear, float &tfar) {
 }
 
 // ========================================================
-// Ray gen prog (woodcock tracking, A+E, no accel)
+// Ray gen prog (woodcock tracking, A+E)
 // ========================================================
 RAYGEN_PROGRAM(woodcockTrackingAE)()
 {
@@ -243,71 +227,13 @@ RAYGEN_PROGRAM(woodcockTrackingAE)()
   const float majorant = 1.f;
 
   vec3f albedo = 0.f;
-  float extinction = 0.f;
+  float transmission = 1.f;
 
-  float t = woodcockTracking(ray, rnd, majorant, albedo, extinction);
+  float t = woodcockTracking(ray, rnd, majorant, albedo, transmission);
 
   vec3f color = albedo * lp.ambientColor * lp.ambientRadiance;
-  float alpha = extinction > 0.f ? 1.f : 0.f;
+  float alpha = 1.f-transmission;
 
-  float accum = 1.f/(lp.accumID+1);
-  lp.accumBuffer[pixelID] = lerp(vec4f(color,alpha), lp.accumBuffer[pixelID], accum);
-
-  vec4f accumColor = lp.accumBuffer[pixelID];
-  accumColor.r = linear_to_srgb(accumColor.r);
-  accumColor.g = linear_to_srgb(accumColor.g);
-  accumColor.b = linear_to_srgb(accumColor.b);
-  lp.fbPointer[pixelID] = make_rgba(accumColor);
-}
-
-
-// ========================================================
-// Ray gen prog (woodcock tracking, A+E, with naive accel)
-// ========================================================
-RAYGEN_PROGRAM(woodcockTrackingWithAccel)()
-{
-  auto &lp = optixLaunchParams;
-  const vec2i threadIndex = getLaunchIndex();
-  const vec2i launchDim = getLaunchDims();
-  const int pixelID = threadIndex.x + getLaunchDims().x * threadIndex.y;
-
-  Random rnd(lp.accumID*launchDim.x*launchDim.y+(unsigned)threadIndex.x,
-             (unsigned)threadIndex.y);
-
-  Ray ray = generateRay(vec2f(threadIndex)+vec2f(.5f), rnd);
-
-  float t0, t1;
-  if (!boxTest(ray, lp.volume.bounds, t0, t1))
-    return;
-
-  ray.tmin = t0, ray.tmax = t1;
-
-  float tnear, tfar;
-  vec3f color{0.f};
-  float alpha{0.f};
-  //while (traverseAccel(ray, tnear, tfar)) {
-  while (1) {
-    const float majorant = 1.f;
-
-    vec3f albedo = 0.f;
-    float extinction = 0.f;
-
-    ray.tmin = fmaxf(ray.tmin,tnear);
-    ray.tmax = tfar;
-    float t = woodcockTracking(ray, rnd, majorant, albedo, extinction);
-    if (t < tfar) {
-      color = albedo * lp.ambientColor * lp.ambientRadiance;
-      alpha = extinction > 0.f ? 1.f : 0.f;
-      break;
-    }
-    // makeshift epsilon to avoid intersecting the same
-    // spherical shell again (there are better ways to do this..)
-    const float sceneEPS = 1e-3f;
-    ray.tmin = tfar+sceneEPS;
-    ////////////////
-    break; // TODO!!
-    ////////////////
-  }
   float accum = 1.f/(lp.accumID+1);
   lp.accumBuffer[pixelID] = lerp(vec4f(color,alpha), lp.accumBuffer[pixelID], accum);
 
