@@ -197,7 +197,7 @@ RAYGEN_PROGRAM(woodcockTrackingSS)()
   ray.tmin = t0, ray.tmax = t1;
 
   vec3f albedo = 0.f;
-  float transmission;
+  float transmission = 1.f;
 
   const float majorant = 1.f;
 
