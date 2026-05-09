@@ -22,7 +22,7 @@
 using namespace dvr_course;
 
 // ========================================================
-// device code for example 05: hey_icon
+// device code for example 05: tets_n_friends
 // ========================================================
 namespace ex05_tets_n_friends {
 
@@ -90,8 +90,8 @@ inline __device__ bool sampleVolume(const Volume &vol, vec3f pos, float &value)
   // on non-RT hardware we resort to just linearly
   // iterating over all primitives (veeeryy slow...)
   for (unsigned i=0; i<vol.numTets; ++i) {
-    if (vol.tets[i].sample(pos,value))
-      return true;
+    //if (evalTet(value,pos,tets[i]))
+    //  return true;
   }
 #endif
   return false;

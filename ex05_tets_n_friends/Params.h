@@ -18,8 +18,6 @@
 
 // common
 #include <vecmath.h>
-// ours
-#include "tets.h"
 
 using namespace vecmath;
 
@@ -28,6 +26,13 @@ using namespace vecmath;
 // to safely cross host/device borders
 // ========================================================
 namespace ex05_tets_n_friends {
+
+// ========================================================
+// most simple tetrahedron type, we store the four corners
+// plus the per vertex values of each corner in the 'w'
+// coordinate of the vector
+// ========================================================
+struct Tet { vec4f v0, v1, v2, v3; };
 
 struct Volume {
 #ifdef RTCORE
