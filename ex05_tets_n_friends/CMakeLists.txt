@@ -10,15 +10,20 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(${PROJECT_NAME})
-if (DVR_COURSE_WITH_FAKE_OWL)
+
+if (DVR_COURSE_WITH_CUDA)
+  enable_language(CUDA)
+else()
   configure_cuda_src(deviceCode.cu)
+endif()
+
+if (DVR_COURSE_WITH_FAKE_OWL)
   fake_owl_compile_and_embed(ptxCode
     deviceCode.cu
     LINK_LIBRARIES dvr_course-common
   )
   target_sources(${PROJECT_NAME} PRIVATE hostCode.cpp ${ptxCode})
 elseif (DVR_COURSE_WITH_OWL)
-  enable_language(CUDA)
   target_sources(${PROJECT_NAME} PRIVATE hostCode.cpp)
   embed_ptx(
     OUTPUT_TARGET ex05_deviceCode-ptx
@@ -29,6 +34,6 @@ elseif (DVR_COURSE_WITH_OWL)
   target_link_libraries(${PROJECT_NAME} PRIVATE ex05_deviceCode-ptx)
 else()
   target_sources(${PROJECT_NAME} PRIVATE hostCode.cpp deviceCode.cu)
-  configure_cuda_src(deviceCode.cu)
 endif()
+
 target_link_libraries(${PROJECT_NAME} PRIVATE dvr_course-common)
