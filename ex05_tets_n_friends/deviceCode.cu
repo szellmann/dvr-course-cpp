@@ -46,9 +46,46 @@ inline  __device__ Ray generateRay(const vec2f screen, Random &rnd)
   return Ray(org,dir,0.f,1e10f);
 }
 
+// ========================================================
+// evalTet() implementation using four plane tests
+// ========================================================
+using Plane = vec4f;
+
+inline __device__ Plane makePlane(vec3f a, vec3f b, vec3f c)
+{
+  vec3f N = cross(b-a,c-a);
+  return { N,dot(a,N) };
+}
+
+inline __device__ float evalPlane(Plane p, vec3f v)
+{ return dot(v,p.xyz)-p.w; }
+
 inline __device__ bool evalTet(float &value, vec3f P, const Tet &tet)
 {
-  return false;
+  vec3f va = vec3f(tet.v0)-P;
+  vec3f vb = vec3f(tet.v1)-P;
+  vec3f vc = vec3f(tet.v2)-P;
+  vec3f vd = vec3f(tet.v3)-P;
+
+  Plane pa = makePlane(vb,vd,vc);
+  Plane pb = makePlane(va,vc,vd);
+  Plane pc = makePlane(va,vd,vb);
+  Plane pd = makePlane(va,vb,vc);
+
+  float fa = evalPlane(pa,vec3f(0.f))/evalPlane(pa,va);
+  if (fa < 0.f || fa > 1.f) return false;
+  
+  float fb = evalPlane(pb,vec3f(0.f))/evalPlane(pb,vb);
+  if (fb < 0.f || fa > 1.f) return false;
+  
+  float fc = evalPlane(pc,vec3f(0.f))/evalPlane(pc,vc);
+  if (fc < 0.f || fa > 1.f) return false;
+  
+  float fd = evalPlane(pd,vec3f(0.f))/evalPlane(pd,vd);
+  if (fd < 0.f || fa > 1.f) return false;
+
+  value = fa*tet.v0.w + fb*tet.v1.w + fc*tet.v2.w + fd*tet.v3.w;
+  return true;
 }
 
 #ifdef RTCORE

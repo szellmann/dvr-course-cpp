@@ -111,6 +111,7 @@ static std::vector<Tet> loadTets(std::ifstream &in) {
     tet.v1 = vec4f(v1,s1);
     tet.v2 = vec4f(v2,s2);
     tet.v3 = vec4f(v3,s3);
+    tets.push_back(tet);
   }
   return tets;
 }
@@ -137,6 +138,8 @@ extern "C" int main(int argc, char *argv[]) {
 
   std::vector<Tet> tets = loadTets(in);
 
+  Buffer deviceTets(tets.size(), tets.data());
+
   box3f volbounds(
     {INFINITY,INFINITY,INFINITY},
     {-INFINITY,-INFINITY,-INFINITY}
@@ -144,7 +147,14 @@ extern "C" int main(int argc, char *argv[]) {
 
   box1f dataRange(INFINITY, -INFINITY);
 
-  Buffer deviceTets(tets.size(), tets.data());
+  for (size_t i=0; i<tets.size(); ++i) {
+    volbounds.extend(tets[i].v0.xyz); dataRange.extend(tets[i].v0.w);
+    volbounds.extend(tets[i].v1.xyz); dataRange.extend(tets[i].v1.w);
+    volbounds.extend(tets[i].v2.xyz); dataRange.extend(tets[i].v2.w);
+    volbounds.extend(tets[i].v3.xyz); dataRange.extend(tets[i].v3.w);
+  }
+
+  std::cout << volbounds << dataRange << '\n';
 
   Pipeline pl(argc, argv, "ex05_tets_n_friends");
 
