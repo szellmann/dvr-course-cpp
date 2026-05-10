@@ -80,7 +80,7 @@ if (DVR_COURSE_PIPELINE_INTERACTIVE)
   set(dvr_course_imgui_SOURCE ${CMAKE_BINARY_DIR}/deps/source/dvr_course_imgui)
   FetchContent_Populate(
     NAME dvr_course_imgui
-    URL https://github.com/ocornut/imgui/archive/refs/tags/v1.91.7-docking.zip
+    URL https://github.com/ocornut/imgui/archive/refs/tags/v1.92.7-docking.zip
     SOURCE_DIR ${dvr_course_imgui_SOURCE}
   )
   set(dvr_course_imgui_LOCATION ${dvr_course_imgui_SOURCE})
