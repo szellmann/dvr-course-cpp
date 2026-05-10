@@ -10,7 +10,14 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(${PROJECT_NAME})
-if (DVR_COURSE_WITH_OWL)
+if (DVR_COURSE_WITH_FAKE_OWL)
+  configure_cuda_src(deviceCode.cu)
+  fake_owl_compile_and_embed(ptxCode
+    deviceCode.cu
+    LINK_LIBRARIES dvr_course-common
+  )
+  target_sources(${PROJECT_NAME} PRIVATE hostCode.cpp ${ptxCode})
+elseif (DVR_COURSE_WITH_OWL)
   enable_language(CUDA)
   target_sources(${PROJECT_NAME} PRIVATE hostCode.cpp)
   set_source_files_properties(deviceCode.cu
