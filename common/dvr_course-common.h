@@ -30,6 +30,12 @@
 #include "fb.h"
 #include "vecmath.h"
 
+#if defined(RTCORE) && defined(OWL_IS_FAKE)
+// fakeOwl extensions (make device buffer behave as host buffer)
+#include "owl/owl_ext.h"
+#define owlDeviceBufferCreate owlBufferCreateEXT
+#endif
+
 namespace dvr_course {
 using namespace vecmath;
 

@@ -22,7 +22,7 @@
 #include <cstdio>
 #include <cstring>
 // cuda
-#ifdef RTCORE
+#ifdef WITH_CUDA
 #include <cuda_runtime.h>
 #endif
 
@@ -37,7 +37,7 @@ struct Buffer {
 
   Buffer(size_t size, const T *ptr) : size_(size)
   {
-#ifdef RTCORE
+#ifdef WITH_CUDA
     cudaMalloc(&data_,size_*sizeof(T));
     cudaMemcpy(data_,ptr,size_*sizeof(T),cudaMemcpyDefault);
 #else
@@ -47,7 +47,7 @@ struct Buffer {
   }
 
   ~Buffer() {
-#ifdef RTCORE
+#ifdef WITH_CUDA
     cudaFree(data_);
 #else
     std::free(data_);
@@ -57,7 +57,7 @@ struct Buffer {
   Buffer(const Buffer &other) : size_(other.size_)
   {
     if (&other != this) {
-#ifdef RTCORE
+#ifdef WITH_CUDA
       cudaMalloc(&data_,size_*sizeof(T));
       cudaMemcpy(data_,other.data_,size_*sizeof(T),cudaMemcpyDefault);
 #else
@@ -70,7 +70,7 @@ struct Buffer {
   Buffer(Buffer &&other) : size_(other.size_)
   {
     if (&other != this) {
-#ifdef RTCORE
+#ifdef WITH_CUDA
       cudaMalloc(&data_,size_*sizeof(T));
       cudaMemcpy(data_,other.data_,size_*sizeof(T),cudaMemcpyDefault);
 #else
@@ -86,7 +86,7 @@ struct Buffer {
   {
     if (&other != this) {
       size_ = other.size_;
-#ifdef RTCORE
+#ifdef WITH_CUDA
       cudaMalloc(&data_,size_*sizeof(T));
       cudaMemcpy(data_,other.data_,size_*sizeof(T),cudaMemcpyDefault);
 #else
@@ -101,7 +101,7 @@ struct Buffer {
   {
     if (&other != this) {
       size_ = other.size_;
-#ifdef RTCORE
+#ifdef WITH_CUDA
       cudaMalloc(&data_,size_*sizeof(T));
       cudaMemcpy(data_,other.data_,size_*sizeof(T),cudaMemcpyDefault);
 #else

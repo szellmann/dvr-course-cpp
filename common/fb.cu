@@ -21,7 +21,7 @@ namespace dvr_course {
 
 Frame::Frame(int w, int h) : width(w), height(h)
 {
-#ifdef RTCORE
+#ifdef WITH_CUDA
   cudaMalloc(&fbPointer,w*h*sizeof(uint32_t));
   cudaMalloc(&fbDepth,w*h*sizeof(float));
   cudaMalloc(&accumBuffer,w*h*sizeof(vec4f));
@@ -34,7 +34,7 @@ Frame::Frame(int w, int h) : width(w), height(h)
 
 Frame::~Frame()
 {
-#ifdef RTCORE
+#ifdef WITH_CUDA
   cudaFree(fbPointer);
   cudaFree(fbDepth);
   cudaFree(accumBuffer);
@@ -48,7 +48,7 @@ Frame::~Frame()
 void Frame::resize(int w, int h)
 {
   width = w; height = h;
-#ifdef RTCORE
+#ifdef WITH_CUDA
   cudaFree(fbPointer);
   cudaFree(fbDepth);
   cudaFree(accumBuffer);

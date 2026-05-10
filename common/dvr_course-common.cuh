@@ -33,6 +33,10 @@ namespace dvr_course {
 using namespace vecmath;
 } // dvr_course
 
+#ifdef OWL_IS_FAKE
+#undef __CUDACC__
+#endif
+
 #ifndef __CUDACC__
 #define __constant__
 #define __shared__

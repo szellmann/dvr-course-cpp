@@ -27,7 +27,7 @@ Transfunc::Transfunc(const Transfunc &other)
     relRange(other.relRange),
     size(other.size) {
   if (&other != this) {
-#ifdef RTCORE
+#ifdef WITH_CUDA
     cudaMalloc(&rgbaLUT,sizeof(rgbaLUT[0])*size);
     cudaMemcpy(rgbaLUT,other.rgbaLUT,sizeof(rgbaLUT[0])*size,cudaMemcpyDefault);
 #else
@@ -43,7 +43,7 @@ Transfunc::Transfunc(Transfunc &&other)
     relRange(other.relRange),
     size(other.size) {
   if (&other != this) {
-#ifdef RTCORE
+#ifdef WITH_CUDA
     cudaMalloc(&rgbaLUT,sizeof(rgbaLUT[0])*size);
     cudaMemcpy(rgbaLUT,other.rgbaLUT,sizeof(rgbaLUT[0])*size,cudaMemcpyDefault);
 #else
@@ -63,7 +63,7 @@ Transfunc &Transfunc::operator=(const Transfunc &other) {
     valueRange = other.valueRange;
     relRange = other.relRange;
     size = other.size;
-#ifdef RTCORE
+#ifdef WITH_CUDA
     cudaMalloc(&rgbaLUT,sizeof(rgbaLUT[0])*size);
     cudaMemcpy(rgbaLUT,other.rgbaLUT,sizeof(rgbaLUT[0])*size,cudaMemcpyDefault);
 #else
@@ -80,7 +80,7 @@ Transfunc &Transfunc::operator=(Transfunc &&other) {
     valueRange = other.valueRange;
     relRange = other.relRange;
     size = other.size;
-#ifdef RTCORE
+#ifdef WITH_CUDA
     cudaMalloc(&rgbaLUT,sizeof(rgbaLUT[0])*size);
     cudaMemcpy(rgbaLUT,other.rgbaLUT,sizeof(rgbaLUT[0])*size,cudaMemcpyDefault);
 #else
@@ -96,7 +96,7 @@ Transfunc &Transfunc::operator=(Transfunc &&other) {
 }
 
 Transfunc::~Transfunc() {
-#ifdef RTCORE
+#ifdef WITH_CUDA
   cudaFree(rgbaLUT);
 #else
   std::free(rgbaLUT);
@@ -105,7 +105,7 @@ Transfunc::~Transfunc() {
 
 void Transfunc::setLUT(const std::vector<vec4f> &lut) {
   if (lut.size() != size) {
-#ifdef RTCORE
+#ifdef WITH_CUDA
     cudaFree(rgbaLUT);
     cudaMalloc(&rgbaLUT,sizeof(lut[0])*lut.size());
 #else
@@ -115,7 +115,7 @@ void Transfunc::setLUT(const std::vector<vec4f> &lut) {
     size = (int)lut.size();
   }
 
-#ifdef RTCORE
+#ifdef WITH_CUDA
   cudaMemcpy(rgbaLUT,lut.data(),sizeof(lut[0])*lut.size(),
              cudaMemcpyHostToDevice);
 #else
@@ -127,7 +127,7 @@ std::vector<vec4f> Transfunc::getLUT() const {
   if (size <= 0) return {};
 
   std::vector<vec4f> lut(size);
-#ifdef RTCORE
+#ifdef WITH_CUDA
   cudaMemcpy(lut.data(),rgbaLUT,sizeof(lut[0])*size,
              cudaMemcpyDeviceToHost);
 #else

@@ -55,6 +55,9 @@
 #ifdef RTCORE
 #include <owl/owl.h>
 #endif
+#ifdef OWL_IS_FAKE
+# undef __CUDACC__
+#endif
 // ours
 #include "pipeline.h"
 #include "thread_pool.h"
@@ -272,9 +275,12 @@ struct Pipeline::Impl
     }
 #endif
 
-#ifdef RTCORE
+#ifdef WITH_CUDA
     cudaEventCreate(&last);
     cudaEventCreate(&now);
+#endif
+
+#ifdef RTCORE
     initOWL();
 #endif
   }
@@ -393,7 +399,9 @@ struct Pipeline::Impl
     owlModuleRelease(owl.module);
     owlRayGenRelease(owl.rayGen);
     owlContextDestroy(owl.context);
+#endif
 
+#ifdef WITH_CUDA
     cudaEventDestroy(last);
     cudaEventDestroy(now);
 #endif
@@ -405,7 +413,7 @@ struct Pipeline::Impl
     auto *fbPointer = fb->fbPointer;
     auto *fbDepth = fb->fbDepth;
     auto *accumBuffer = fb->accumBuffer;
-  #ifdef RTCORE
+  #ifdef WITH_CUDA
     cuda::for_each(/*TODO: stream*/0, 0, width, 0, height,
   #elif defined(__EMSCRIPTEN__)
     serial::for_each(0, width, 0, height,
@@ -581,7 +589,7 @@ struct Pipeline::Impl
 
   void beginTiming()
   {
-#ifdef RTCORE
+#ifdef WITH_CUDA
     cudaEventRecord(last);
 #else
     t_last = getCurrentTime();
@@ -590,7 +598,7 @@ struct Pipeline::Impl
 
   void endTiming()
   {
-#ifdef RTCORE
+#ifdef WITH_CUDA
     cudaEventRecord(now);
     cudaEventSynchronize(now);
     float ms = 0.0f;
@@ -794,7 +802,7 @@ struct Pipeline::Impl
   thread_pool pool{std::thread::hardware_concurrency()};
 #endif
   // timing:
-#ifdef RTCORE
+#ifdef WITH_CUDA
   cudaEvent_t last, now;
   double avg_t;
 #else
@@ -1153,7 +1161,7 @@ void Pipeline::present() const {
     abort();
   }
 
-#ifdef RTCORE
+#ifdef WITH_CUDA
   std::vector<uint32_t> hostData(fb->width*fb->height);
   cudaMemcpy(hostData.data(), fb->fbPointer, fb->width*fb->height*sizeof(uint32_t),
              cudaMemcpyDeviceToHost);

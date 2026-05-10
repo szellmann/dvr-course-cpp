@@ -43,7 +43,12 @@ typedef struct _OWLLaunchParams *OWLLaunchParams, *OWLParams, *OWLGlobals;
 typedef _OWLModule *OWLModule;
 typedef _OWLVarDecl OWLVarDecl;
 
+#ifdef OWL_IS_FAKE
+#include <owl/fakeOwl/fake/owl.h>
+typedef fake::TraversableHandle OptixTraversableHandle;
+#else
 typedef unsigned long long OptixTraversableHandle;
+#endif
 
 // ========================================================
 // Common render pipeline class for DVR
