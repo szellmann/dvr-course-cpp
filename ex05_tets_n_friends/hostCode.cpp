@@ -154,8 +154,6 @@ extern "C" int main(int argc, char *argv[]) {
     volbounds.extend(tets[i].v3.xyz); dataRange.extend(tets[i].v3.w);
   }
 
-  std::cout << volbounds << dataRange << '\n';
-
   Pipeline pl(argc, argv, "ex05_tets_n_friends");
 
   int imgWidth=512, imgHeight=512;
