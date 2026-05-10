@@ -29,24 +29,6 @@ namespace ex05_tets_n_friends {
 extern "C" __constant__ LaunchParams optixLaunchParams;
 
 // ========================================================
-// Helpers
-// ========================================================
-inline  __device__ Ray generateRay(const vec2f screen, Random &rnd)
-{
-  auto &lp = optixLaunchParams;
-  vec3f org = lp.camera.org;
-  vec3f dir
-    = lp.camera.dir_00
-    + (screen.u+rnd()) * lp.camera.dir_du
-    + (screen.v+rnd()) * lp.camera.dir_dv;
-  dir = normalize(dir);
-  if (fabsf(dir.x) < 1e-5f) dir.x = 1e-5f;
-  if (fabsf(dir.y) < 1e-5f) dir.y = 1e-5f;
-  if (fabsf(dir.z) < 1e-5f) dir.z = 1e-5f;
-  return Ray(org,dir,0.f,1e10f);
-}
-
-// ========================================================
 // evalTet() implementation using four plane tests
 // ========================================================
 using Plane = vec4f;
@@ -95,6 +77,9 @@ struct PRD {
 };
 #endif
 
+// ========================================================
+// sampleVolume function used in isect prog
+// ========================================================
 inline __device__ bool sampleVolume(const Volume &vol, vec3f pos, float &value)
 {
 #ifdef RTCORE
@@ -119,6 +104,24 @@ inline __device__ bool sampleVolume(const Volume &vol, vec3f pos, float &value)
   }
 #endif
   return false;
+}
+
+// ========================================================
+// Helpers
+// ========================================================
+inline  __device__ Ray generateRay(const vec2f screen, Random &rnd)
+{
+  auto &lp = optixLaunchParams;
+  vec3f org = lp.camera.org;
+  vec3f dir
+    = lp.camera.dir_00
+    + (screen.u+rnd()) * lp.camera.dir_du
+    + (screen.v+rnd()) * lp.camera.dir_dv;
+  dir = normalize(dir);
+  if (fabsf(dir.x) < 1e-5f) dir.x = 1e-5f;
+  if (fabsf(dir.y) < 1e-5f) dir.y = 1e-5f;
+  if (fabsf(dir.z) < 1e-5f) dir.z = 1e-5f;
+  return Ray(org,dir,0.f,1e10f);
 }
 
 inline __device__ vec4f postClassify(Transfunc tf, float v)
