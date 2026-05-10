@@ -19,6 +19,8 @@ add_subdirectory(ex02_woodcock)
 add_subdirectory(ex03_multi_volume)
 add_subdirectory(ex04_lights_on)
 add_subdirectory(ex05_tets_n_friends)
+#add_subdirectory(ex06_xxxx) # space skipping example
+add_subdirectory(ex07_render_graph)
 
 # cmdline tools used for data wrangling, etc.
 # we don't usually need these to run the examples
