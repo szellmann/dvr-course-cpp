@@ -5,7 +5,6 @@ set(DVR_COURSE_COMMON_DIR "${CMAKE_CURRENT_LIST_DIR}/..")
 
 if (TARGET dvr_course-common)
   get_target_property(DVR_COURSE_WITH_CUDA dvr_course-common DVR_COURSE_WITH_CUDA)
-  get_target_property(DVR_COURSE_WITH_OWL dvr_course-common DVR_COURSE_WITH_OWL)
   get_target_property(DVR_COURSE_WITH_FAKE_OWL dvr_course-common DVR_COURSE_WITH_FAKE_OWL)
 endif()
 
