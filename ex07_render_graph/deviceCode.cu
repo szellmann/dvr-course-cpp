@@ -194,6 +194,22 @@ inline __device__ float woodcockTracking(const Ray &ray,
   return INFINITY;
 }
 
+inline __device__ vec3f cosineSampleHemisphere(float u1, float u2)
+{
+  float r = sqrtf(u1);
+  float theta = float(M_PI*2.f) * u2;
+  return { r*cosf(theta), r*sinf(theta), sqrtf(1.f-u1) };
+}
+
+inline __device__ vec3f uniformSampleSphere(float u1, float u2)
+{
+  float z = 1.f-2.f*u1;
+  float r = sqrtf(fmaxf(0.f,1.f-z*z));
+  float phi = float(M_PI*2.f) * u2;
+  return { r*cosf(phi), r*sinf(phi), z };
+}
+
+
 // ========================================================
 // OptiX Tetty geometry (only when using OWL!)
 // ========================================================
@@ -318,6 +334,7 @@ HitRec worldIntersection(Ray ray, Random &rnd)
       hitRec.hitT      = prd.t;
       hitRec.color.xyz = vec3f(0.8f)*fmaxf(0.f,dot(prd.Ng,-ray.dir));
       hitRec.color.w   = 1.f;
+      hitRec.Ng        = prd.Ng;
     }
   }
 #endif
@@ -341,16 +358,55 @@ HitRec worldIntersection(Ray ray, Random &rnd)
       hitRec.hitT      = prd.t;
       hitRec.color.xyz = albedo * lp.ambientColor * lp.ambientRadiance;
       hitRec.color.w   = 1.f-transmission;
+      hitRec.Ng        = uniformSampleSphere(rnd(),rnd());
     }
   }
 
   return hitRec;
 }
 
+inline __device__ float ambientOcclusion(vec3f hitPos, vec3f n, Random &rnd)
+{
+  auto &lp = optixLaunchParams;
+ 
+  float ao = 0.f;
+  float aoWeights = 0.f;
+  for (int sample=0; sample<lp.ambientSamples; ++sample) {
+    vec3f u, v, w = n;
+    make_orthonormal_basis(u,v,w);
+    vec3f sp = cosineSampleHemisphere(rnd(),rnd());
+    vec3f dir = normalize(sp.x*u + sp.y*v + sp.z*w);
+
+    Ray aoRay;
+    aoRay.org = hitPos + n*1e-3f;
+    aoRay.dir = dir;
+    aoRay.tmin = 0.f;
+    aoRay.tmax = lp.occlusionDistance;
+
+    vec3f albedo = 0.f;
+    float transmission = 1.f;
+
+    const float majorant = 1.f;
+
+    HitRec hitRec = worldIntersection(aoRay, rnd);
+    float t = hitRec.hitT;
+
+    float weight = fmaxf(0.f, dot(aoRay.dir,n));
+    if (t < aoRay.tmax)
+      ao += weight;
+    aoWeights += weight;
+  }
+
+  if (aoWeights > 0.f)
+    return ao/aoWeights;
+  else
+    return 0.f;
+}
+
 // ========================================================
-// Ray gen prog (woodcock tracking, A+E)
+// Ray gen prog (direct light path tracer)
 // ========================================================
-RAYGEN_PROGRAM(woodcockTrackingAE)()
+RAYGEN_PROGRAM(directLighting)()
 {
   auto &lp = optixLaunchParams;
   const vec2i threadIndex = getLaunchIndex();
@@ -363,6 +419,11 @@ RAYGEN_PROGRAM(woodcockTrackingAE)()
   Ray ray = generateRay(vec2f(threadIndex)+vec2f(.5f), rnd);
 
   HitRec hitRec = worldIntersection(ray,rnd);
+
+  if (hitRec.hitType != HitRec::None) {
+    float aoV = 1.f-ambientOcclusion(ray.eval(hitRec.hitT), hitRec.Ng, rnd);
+    hitRec.color.xyz *= aoV;
+  }
 
   float accum = 1.f/(lp.accumID+1);
   lp.accumBuffer[pixelID] = lerp(hitRec.color, lp.accumBuffer[pixelID], accum);

@@ -36,6 +36,9 @@ struct {
   std::vector<std::pair<Buffer<vec3f>,Buffer<vec3i>>> deviceMeshes;
   std::vector<Transfunc> transfuncs;
   float unitDistance{1.f};
+  // AO:
+  int ambientSamples{1};
+  float occlusionDistance{2.f};
 #ifdef RTCORE
   OWLGroup triangleTLAS;
 #endif
@@ -45,7 +48,7 @@ namespace ex07_render_graph {
 #ifdef RTCORE
 extern "C" char ptxCode[];
 #else
-extern void woodcockTrackingAE();
+extern void directLighting();
 #endif
 
 void printUsage() {
@@ -157,13 +160,15 @@ extern "C" int main(int argc, char *argv[]) {
     pl.setTransfunc(&g_appState.transfuncs[i],i);
   }
 
-  pl.uiParam("Unit distance", &g_appState.unitDistance, 0.01f, 5.f);
+  pl.uiParam("Unit distance", &g_appState.unitDistance, 0.001f, 5.f);
+  pl.uiParam("Ambient samples", &g_appState.ambientSamples, 0, 1024);
+  pl.uiParam("Occlusion distance", &g_appState.occlusionDistance, 0.1f, 64.f);
 
 #ifdef RTCORE
-  pl.setRayGen(ptxCode, "woodcockTrackingAE");
+  pl.setRayGen(ptxCode, "directLighting");
   pl.setLaunchParamsDecl(launchParams_owl, sizeof(LaunchParams));
 #else
-  pl.setRayGen(woodcockTrackingAE);
+  pl.setRayGen(directLighting);
 #endif
 
   LaunchParams parms;
@@ -262,9 +267,6 @@ extern "C" int main(int argc, char *argv[]) {
 #ifdef RTCORE
   owlParamsSetGroup(pl.owlLaunchParams(), "triangleTLAS", g_appState.triangleTLAS);
 #endif
-  // lighting
-  pl.launchParam("ambientColor", parms.ambientColor) = vec3f(1.f);
-  pl.launchParam("ambientRadiance", parms.ambientRadiance) = 1.f;
 
   // Render and present...
   // For default (PNG image) pipeline this
@@ -295,6 +297,11 @@ extern "C" int main(int argc, char *argv[]) {
     pl.launchParam("fbPointer", (RawPointer &)parms.fbPointer) = fb.fbPointer;
     pl.launchParam("fbDepth", (RawPointer &)parms.fbDepth) = fb.fbDepth;
     pl.launchParam("accumBuffer", (RawPointer &)parms.accumBuffer) = fb.accumBuffer;
+    // update lighting params:
+    pl.launchParam("ambientColor", parms.ambientColor) = vec3f(1.f);
+    pl.launchParam("ambientRadiance", parms.ambientRadiance) = 1.f;
+    pl.launchParam("ambientSamples", parms.ambientSamples) = g_appState.ambientSamples;
+    pl.launchParam("occlusionDistance", parms.occlusionDistance) = g_appState.occlusionDistance;
     // update DVR params:
     pl.launchParam("unitDistance", parms.unitDistance) = g_appState.unitDistance;
     // update accum:
