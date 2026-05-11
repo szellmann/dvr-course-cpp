@@ -285,24 +285,23 @@ bool intersectSphere(const Ray &ray, float radius, float &tnear, float &tfar) {
   return true;
 }
 
-// ========================================================
-// Ray gen prog (woodcock tracking, A+E)
-// ========================================================
-RAYGEN_PROGRAM(woodcockTrackingAE)()
+struct HitRec {
+  enum HitType { Surface, Volume, None, };
+  HitType hitType;
+  float hitT;
+  vec4f color;
+  vec3f Ng;
+};
+
+inline __device__
+HitRec worldIntersection(Ray ray, Random &rnd)
 {
   auto &lp = optixLaunchParams;
-  const vec2i threadIndex = getLaunchIndex();
-  const vec2i launchDim = getLaunchDims();
-  const int pixelID = threadIndex.x + getLaunchDims().x * threadIndex.y;
 
-  Random rnd(lp.accumID*launchDim.x*launchDim.y+(unsigned)threadIndex.x,
-             (unsigned)threadIndex.y);
-
-  Ray ray = generateRay(vec2f(threadIndex)+vec2f(.5f), rnd);
-
-  float hitT = INFINITY;
-  vec3f color = 0.f;
-  float alpha = 0.f;
+  HitRec hitRec;
+  hitRec.hitType = HitRec::None;
+  hitRec.hitT = INFINITY;
+  hitRec.color = 0.f;
 
 #ifdef RTCORE
   TrianglePRD prd;
@@ -314,10 +313,11 @@ RAYGEN_PROGRAM(woodcockTrackingAE)()
   owlRay.tmax = INFINITY;
   owl::traceRay(lp.triangleTLAS,owlRay,prd,OPTIX_RAY_FLAG_DISABLE_ANYHIT);
   if (prd.primID != ~0u) {
-    if (prd.t < hitT) {
-      color = vec3f(0.8f)*fmaxf(0.f,dot(prd.Ng,-ray.dir));
-      alpha = 1.f;
-      hitT = prd.t;
+    if (prd.t < hitRec.hitT) {
+      hitRec.hitType   = HitRec::Surface;
+      hitRec.hitT      = prd.t;
+      hitRec.color.xyz = vec3f(0.8f)*fmaxf(0.f,dot(prd.Ng,-ray.dir));
+      hitRec.color.w   = 1.f;
     }
   }
 #endif
@@ -336,15 +336,36 @@ RAYGEN_PROGRAM(woodcockTrackingAE)()
 
     float t = woodcockTracking(ray, rnd, majorant, i, albedo, transmission);
 
-    if (t < hitT) {
-      color = albedo * lp.ambientColor * lp.ambientRadiance;
-      alpha = 1.f-transmission;
-      hitT = t;
+    if (t < hitRec.hitT) {
+      hitRec.hitType   = HitRec::Surface;
+      hitRec.hitT      = prd.t;
+      hitRec.color.xyz = albedo * lp.ambientColor * lp.ambientRadiance;
+      hitRec.color.w   = 1.f-transmission;
     }
   }
 
+  return hitRec;
+}
+
+// ========================================================
+// Ray gen prog (woodcock tracking, A+E)
+// ========================================================
+RAYGEN_PROGRAM(woodcockTrackingAE)()
+{
+  auto &lp = optixLaunchParams;
+  const vec2i threadIndex = getLaunchIndex();
+  const vec2i launchDim = getLaunchDims();
+  const int pixelID = threadIndex.x + getLaunchDims().x * threadIndex.y;
+
+  Random rnd(lp.accumID*launchDim.x*launchDim.y+(unsigned)threadIndex.x,
+             (unsigned)threadIndex.y);
+
+  Ray ray = generateRay(vec2f(threadIndex)+vec2f(.5f), rnd);
+
+  HitRec hitRec = worldIntersection(ray,rnd);
+
   float accum = 1.f/(lp.accumID+1);
-  lp.accumBuffer[pixelID] = lerp(vec4f(color,alpha), lp.accumBuffer[pixelID], accum);
+  lp.accumBuffer[pixelID] = lerp(hitRec.color, lp.accumBuffer[pixelID], accum);
 
   vec4f accumColor = lp.accumBuffer[pixelID];
   accumColor.r = linear_to_srgb(accumColor.r);
