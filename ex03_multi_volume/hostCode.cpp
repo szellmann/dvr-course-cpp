@@ -104,20 +104,26 @@ extern "C" int main(int argc, char *argv[]) {
     g_appState.volumes.push_back(volume);
 
     worldBounds.extend(volbounds);
+  }
 
-    // construct transfuncs:
+  // assign volume handles:
+  for (int i=0; i<g_appState.deviceGrids.size(); ++i) {
+    Volume &volume = g_appState.volumes[i];
+    volume.handle = (nanovdb::NanoGrid<float> *)g_appState.deviceGrids[i].data();
+  }
 
-    // TODO: this won't allow us to load TFs from file anymore!!
-    // ...is this even a to-do?!
+  // construct transfuncs:
+  for (int i=0; i<g_appState.volumes.size(); ++i) {
     if (!pl.transfuncValid(i)) {
+      const Volume &volume = g_appState.volumes[i];
       dvr_course::Transfunc tf;
-      tf.valueRange = {gridHandle.grid<float>()->tree().root().minimum(),
-                       gridHandle.grid<float>()->tree().root().maximum()};
+      tf.valueRange = {volume.handle->tree().root().minimum(),
+                       volume.handle->tree().root().maximum()};
 
       tf.valueRange.lower
-        = fminf(tf.valueRange.lower, gridHandle.grid<float>()->tree().root().background());
+        = fminf(tf.valueRange.lower, volume.handle->tree().root().background());
       tf.valueRange.upper
-        = fmaxf(tf.valueRange.upper, gridHandle.grid<float>()->tree().root().background());
+        = fmaxf(tf.valueRange.upper, volume.handle->tree().root().background());
 
       vec3f rgb = 0.f;
       rgb[i%3] = 1.f;
@@ -128,12 +134,6 @@ extern "C" int main(int argc, char *argv[]) {
       }));
       g_appState.transfuncs.push_back(tf);
     }
-  }
-
-  // assign volume handles:
-  for (int i=0; i<g_appState.deviceGrids.size(); ++i) {
-    Volume &volume = g_appState.volumes[i];
-    volume.handle = (nanovdb::NanoGrid<float> *)g_appState.deviceGrids[i].data();
   }
 
   int imgWidth=512, imgHeight=512;
