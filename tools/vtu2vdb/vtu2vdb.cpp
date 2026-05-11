@@ -25,6 +25,7 @@
 #include <vtkCellArray.h>
 #include <vtkCellData.h>
 #include <vtkDataArray.h>
+#include <vtkDataSetTriangleFilter.h>
 #include <vtkIdList.h>
 #include <vtkPointData.h>
 #include <vtkPoints.h>
@@ -68,6 +69,8 @@ static std::vector<float> firstScalarArray(vtkDataSetAttributes *data)
     for (vtkIdType j=0; j<numTuples; ++j) {
       result.push_back(static_cast<float>(array->GetTuple1(j)));
     }
+
+    break;
   }
 
   return result;
@@ -221,22 +224,28 @@ int main(int argc, char **argv)
   auto reader = vtkSmartPointer<vtkXMLUnstructuredGridReader>::New();
   auto legacyReader = vtkSmartPointer<vtkUnstructuredGridReader>::New();
 
-  vtkUnstructuredGrid *grid{nullptr};
+  vtkUnstructuredGrid *inputGrid{nullptr};
   if (reader->CanReadFile(g_appState.inFileName.c_str())) {
     reader->SetFileName(g_appState.inFileName.c_str());
     reader->Update();
-    grid = reader->GetOutput();
+    inputGrid = reader->GetOutput();
   } else {
     legacyReader->SetFileName(g_appState.inFileName.c_str());
     legacyReader->Update();
-    grid = legacyReader->GetOutput();
+    inputGrid = legacyReader->GetOutput();
   }
 
-  if (!grid) {
+  if (!inputGrid) {
     printUsage();
     std::cerr << "Error, failed to load VTK file: " << g_appState.inFileName << '\n';
     exit(1);
   }
+
+  auto triangleFilter = vtkSmartPointer<vtkDataSetTriangleFilter>::New();
+  triangleFilter->SetInputData(inputGrid);
+  triangleFilter->Update();
+  vtkUnstructuredGrid *grid
+      = vtkUnstructuredGrid::SafeDownCast(triangleFilter->GetOutput());
 
   // Assemble VTK input:
   vtkIdType numPoints = grid->GetNumberOfPoints();
@@ -277,8 +286,8 @@ int main(int argc, char **argv)
   openvdb::FloatGrid::Ptr vdbGrid = openvdb::FloatGrid::create(0.f);
   vdbGrid->setName("density");
   openvdb::math::Mat4d matrix = openvdb::math::Mat4d::identity();
-  matrix.setTranslation(openvdb::math::Vec3d(origin.x,origin.y,origin.z));
   matrix.setToScale(openvdb::math::Vec3d(spacing.x,spacing.y,spacing.z));
+  matrix.setTranslation(openvdb::math::Vec3d(origin.x,origin.y,origin.z));
   auto xfm = openvdb::math::Transform::createLinearTransform(matrix);
   vdbGrid->setTransform(xfm);
   auto &tree = vdbGrid->tree();

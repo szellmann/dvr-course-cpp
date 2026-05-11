@@ -23,6 +23,7 @@
 #include <vtkCellArray.h>
 #include <vtkCellData.h>
 #include <vtkDataArray.h>
+#include <vtkDataSetTriangleFilter.h>
 #include <vtkIdList.h>
 #include <vtkPointData.h>
 #include <vtkPoints.h>
@@ -115,22 +116,28 @@ int main(int argc, char **argv)
   auto reader = vtkSmartPointer<vtkXMLUnstructuredGridReader>::New();
   auto legacyReader = vtkSmartPointer<vtkUnstructuredGridReader>::New();
 
-  vtkUnstructuredGrid *grid{nullptr};
+  vtkUnstructuredGrid *inputGrid{nullptr};
   if (reader->CanReadFile(g_appState.inFileName.c_str())) {
     reader->SetFileName(g_appState.inFileName.c_str());
     reader->Update();
-    grid = reader->GetOutput();
+    inputGrid = reader->GetOutput();
   } else {
     legacyReader->SetFileName(g_appState.inFileName.c_str());
     legacyReader->Update();
-    grid = legacyReader->GetOutput();
+    inputGrid = legacyReader->GetOutput();
   }
 
-  if (!grid) {
+  if (!inputGrid) {
     printUsage();
     std::cerr << "Error, failed to load VTK file: " << g_appState.inFileName << '\n';
     exit(1);
   }
+
+  auto triangleFilter = vtkSmartPointer<vtkDataSetTriangleFilter>::New();
+  triangleFilter->SetInputData(inputGrid);
+  triangleFilter->Update();
+  vtkUnstructuredGrid *grid
+      = vtkUnstructuredGrid::SafeDownCast(triangleFilter->GetOutput());
 
   // Assemble VTK input:
   vtkIdType numPoints = grid->GetNumberOfPoints();
