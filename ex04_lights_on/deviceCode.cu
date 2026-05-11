@@ -107,11 +107,11 @@ inline __device__ float woodcockTracking(const Ray &ray,
     if (sample.w >= u * majorant) {
       albedo = vec3f(sample.x,sample.y,sample.z);
       transmission = 0.f;
-      break;
+      return t;
     }
   }
 
-  return fminf(t,ray.tmax);
+  return INFINITY;
 }
 
 inline __device__ vec3f cosineSampleHemisphere(float u1, float u2)

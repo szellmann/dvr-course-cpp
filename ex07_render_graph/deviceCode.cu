@@ -187,11 +187,11 @@ inline __device__ float woodcockTracking(const Ray &ray,
     if (sample.w >= u * majorant) {
       albedo = vec3f(sample.x,sample.y,sample.z);
       transmission = 0.f;
-      break;
+      return t;
     }
   }
 
-  return fminf(t,ray.tmax);
+  return INFINITY;
 }
 
 // ========================================================
@@ -311,7 +311,7 @@ RAYGEN_PROGRAM(woodcockTrackingAE)()
   owlRay.origin = owl::vec3f(ray.org.x,ray.org.y,ray.org.z);
   owlRay.direction = owl::vec3f(ray.dir.x,ray.dir.y,ray.dir.z);
   owlRay.tmin = 0.f;
-  owlRay.tmax = 1e30f;
+  owlRay.tmax = INFINITY;
   owl::traceRay(lp.triangleTLAS,owlRay,prd,OPTIX_RAY_FLAG_DISABLE_ANYHIT);
   if (prd.primID != ~0u) {
     if (prd.t < hitT) {
