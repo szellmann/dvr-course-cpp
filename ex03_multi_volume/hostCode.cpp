@@ -133,6 +133,8 @@ extern "C" int main(int argc, char *argv[]) {
         {rgb.r,rgb.g,rgb.b,1.f }
       }));
       g_appState.transfuncs.push_back(tf);
+    } else {
+      g_appState.transfuncs.push_back(*pl.getTransfunc(i));
     }
   }
 

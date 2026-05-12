@@ -141,6 +141,8 @@ extern "C" int main(int argc, char *argv[]) {
         {0.f,1.f,0.f,0.1f }
       }));
       g_appState.transfuncs.push_back(tf);
+    } else {
+      g_appState.transfuncs.push_back(*pl.getTransfunc(i));
     }
   }
 
