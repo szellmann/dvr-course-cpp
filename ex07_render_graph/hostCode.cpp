@@ -67,6 +67,8 @@ static void parseCommandLine(int argc, char *argv[]) {
       } else if (endsWith(arg,".bin")) {
         g_appState.tetMeshFiles.push_back(arg);
       }
+    } else if (arg == "--unit-distance") {
+      g_appState.unitDistance = std::stof(argv[++i]);
     }
   }
 }
