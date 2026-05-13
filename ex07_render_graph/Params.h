@@ -109,6 +109,9 @@ struct LaunchParams {
   vec4f    *accumBuffer;
   int       accumID;
 
+  // renderer:
+  vec4f backgroundColor;
+
   // lighting:
   vec3f ambientColor;
   float ambientRadiance;

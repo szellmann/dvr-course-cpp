@@ -209,6 +209,11 @@ inline __device__ vec3f uniformSampleSphere(float u1, float u2)
   return { r*cosf(phi), r*sinf(phi), z };
 }
 
+inline  __device__ vec4f over(const vec4f &A, const vec4f &B)
+{
+  return A + (1.f-A.w)*B;
+}
+
 
 // ========================================================
 // OptiX Tetty geometry (only when using OWL!)
@@ -433,8 +438,10 @@ RAYGEN_PROGRAM(directLighting)()
     hitRec.color.xyz *= 1.f-shadowRec.color.w;
   }
 
+  vec4f finalColor = over(hitRec.color, lp.backgroundColor);
+
   float accum = 1.f/(lp.accumID+1);
-  lp.accumBuffer[pixelID] = lerp(hitRec.color, lp.accumBuffer[pixelID], accum);
+  lp.accumBuffer[pixelID] = lerp(finalColor, lp.accumBuffer[pixelID], accum);
 
   vec4f accumColor = lp.accumBuffer[pixelID];
   accumColor.r = linear_to_srgb(accumColor.r);

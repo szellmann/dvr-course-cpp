@@ -37,6 +37,8 @@ OWLVarDecl launchParams_owl[]
    { "camera.dir_00", OWL_FLOAT3, OWL_OFFSETOF(LaunchParams,camera.dir_00) },
    { "camera.dir_du", OWL_FLOAT3, OWL_OFFSETOF(LaunchParams,camera.dir_du) },
    { "camera.dir_dv", OWL_FLOAT3, OWL_OFFSETOF(LaunchParams,camera.dir_dv) },
+   // renderer
+   { "backgroundColor", OWL_FLOAT4, OWL_OFFSETOF(LaunchParams,backgroundColor) },
    // framebuffer
    { "fbPointer",   OWL_RAW_POINTER, OWL_OFFSETOF(LaunchParams,fbPointer) },
    { "fbDepth",   OWL_RAW_POINTER, OWL_OFFSETOF(LaunchParams,fbDepth) },
