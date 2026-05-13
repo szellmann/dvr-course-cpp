@@ -701,6 +701,16 @@ struct Pipeline::Impl
             parent->resetAccumulation();
           }
         }
+        if (p.type == UIParam::Vec2f) {
+          if (ImGui::SliderFloat(
+                (p.name+"_X").c_str(), &p.asVec2f.v->x, p.asVec2f.minv.x, p.asVec2f.maxv.x)) {
+            parent->resetAccumulation();
+          }
+          if (ImGui::SliderFloat(
+                (p.name+"_Y").c_str(), &p.asVec2f.v->y, p.asVec2f.minv.y, p.asVec2f.maxv.y)) {
+            parent->resetAccumulation();
+          }
+        }
         if (p.type == UIParam::Vec3i) {
           if (ImGui::InputInt((p.name+"_X").c_str(), &p.asVec3i.v->x)) {
             p.asVec3i.v->x = clamp(p.asVec3i.v->x, p.asVec3i.minv.x, p.asVec3i.maxv.x);
@@ -825,7 +835,7 @@ struct Pipeline::Impl
   struct UIParam
   {
     std::string name;
-    enum { Bool, Int, Float, Vec3i, Vec3f, Select, Func, } type;
+    enum { Bool, Int, Float, Vec2f, Vec3i, Vec3f, Select, Func, } type;
     struct {
       bool *b;
     } asBool;
@@ -839,6 +849,11 @@ struct Pipeline::Impl
       float minf;
       float maxf;
     } asFloat;
+    struct {
+      vec2f *v;
+      vec2f minv;
+      vec2f maxv;
+    } asVec2f;
     struct {
       vec3i *v;
       vec3i minv;
@@ -1027,13 +1042,13 @@ void Pipeline::uiParam(std::string name, float *f, float minf, float maxf) {
   impl->uiParam(parm);
 }
 
-void Pipeline::uiParam(std::string name, vec3f *v, vec3f minv, vec3f maxv) {
+void Pipeline::uiParam(std::string name, vec2f *v, vec2f minv, vec2f maxv) {
   Impl::UIParam parm;
   parm.name = name;
-  parm.type = Impl::UIParam::Vec3f;
-  parm.asVec3f.v = v;
-  parm.asVec3f.minv = minv;
-  parm.asVec3f.maxv = maxv;
+  parm.type = Impl::UIParam::Vec2f;
+  parm.asVec2f.v = v;
+  parm.asVec2f.minv = minv;
+  parm.asVec2f.maxv = maxv;
   impl->uiParam(parm);
 }
 
@@ -1044,6 +1059,16 @@ void Pipeline::uiParam(std::string name, vec3i *v, vec3i minv, vec3i maxv) {
   parm.asVec3i.v = v;
   parm.asVec3i.minv = minv;
   parm.asVec3i.maxv = maxv;
+  impl->uiParam(parm);
+}
+
+void Pipeline::uiParam(std::string name, vec3f *v, vec3f minv, vec3f maxv) {
+  Impl::UIParam parm;
+  parm.name = name;
+  parm.type = Impl::UIParam::Vec3f;
+  parm.asVec3f.v = v;
+  parm.asVec3f.minv = minv;
+  parm.asVec3f.maxv = maxv;
   impl->uiParam(parm);
 }
 

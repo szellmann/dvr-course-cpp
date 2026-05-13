@@ -127,6 +127,7 @@ struct Pipeline {
   void uiParam(std::string name, bool *b);
   void uiParam(std::string name, int *i, int mini, int maxi);
   void uiParam(std::string name, float *f, float minf, float maxf);
+  void uiParam(std::string name, vec2f *v, vec2f minv, vec2f maxv);
   void uiParam(std::string name, vec3i *v, vec3i minv, vec3i maxv);
   void uiParam(std::string name, vec3f *v, vec3f minv, vec3f maxv);
   void uiParam(std::string name, const std::vector<std::string> &options, int *o);
