@@ -47,6 +47,9 @@ OWLVarDecl launchParams_owl[]
    { "ambientRadiance", OWL_FLOAT, OWL_OFFSETOF(LaunchParams,ambientRadiance) },
    { "ambientSamples", OWL_INT, OWL_OFFSETOF(LaunchParams,ambientSamples) },
    { "occlusionDistance", OWL_FLOAT, OWL_OFFSETOF(LaunchParams,occlusionDistance) },
+   { "directionalLight.dir", OWL_FLOAT3, OWL_OFFSETOF(LaunchParams,directionalLight.dir) },
+   { "directionalLight.color", OWL_FLOAT3, OWL_OFFSETOF(LaunchParams,directionalLight.color) },
+   { "directionalLight.intensity", OWL_FLOAT, OWL_OFFSETOF(LaunchParams,directionalLight.intensity) },
    // render settings
    { "unitDistance", OWL_FLOAT, OWL_OFFSETOF(LaunchParams,unitDistance) },
    { nullptr /* sentinel to mark end of list */ }

@@ -306,6 +306,7 @@ extern "C" int main(int argc, char *argv[]) {
     pl.launchParam("ambientRadiance", parms.ambientRadiance) = 1.f;
     pl.launchParam("ambientSamples", parms.ambientSamples) = g_appState.ambientSamples;
     pl.launchParam("occlusionDistance", parms.occlusionDistance) = g_appState.occlusionDistance;
+    pl.launchParam("directionalLight.dir", parms.directionalLight.dir) = vec3f(-1.f,1.f,0.f);
     // update DVR params:
     pl.launchParam("unitDistance", parms.unitDistance) = g_appState.unitDistance;
     // update accum:

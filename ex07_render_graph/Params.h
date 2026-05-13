@@ -114,6 +114,11 @@ struct LaunchParams {
   float ambientRadiance;
   int   ambientSamples;
   float occlusionDistance;
+  struct {
+    vec3f dir;
+    vec3f color;
+    float intensity;
+  } directionalLight;
 
   // DVR:
   float unitDistance;

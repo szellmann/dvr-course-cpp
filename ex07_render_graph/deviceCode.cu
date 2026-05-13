@@ -355,7 +355,7 @@ HitRec worldIntersection(Ray ray, Random &rnd)
 
     if (t < hitRec.hitT) {
       hitRec.hitType   = HitRec::Surface;
-      hitRec.hitT      = prd.t;
+      hitRec.hitT      = t;
       hitRec.color.xyz = albedo * lp.ambientColor * lp.ambientRadiance;
       hitRec.color.w   = 1.f-transmission;
       hitRec.Ng        = uniformSampleSphere(rnd(),rnd());
@@ -423,6 +423,14 @@ RAYGEN_PROGRAM(directLighting)()
   if (hitRec.hitType != HitRec::None) {
     float aoV = 1.f-ambientOcclusion(ray.eval(hitRec.hitT), hitRec.Ng, rnd);
     hitRec.color.xyz *= aoV;
+
+    Ray shadowRay;
+    shadowRay.org = ray.eval(hitRec.hitT) + hitRec.Ng*1e-3f;
+    shadowRay.dir = normalize(lp.directionalLight.dir);
+    shadowRay.tmin = 0.f;
+    shadowRay.tmax = INFINITY;
+    HitRec shadowRec = worldIntersection(shadowRay, rnd);
+    hitRec.color.xyz *= 1.f-shadowRec.color.w;
   }
 
   float accum = 1.f/(lp.accumID+1);
