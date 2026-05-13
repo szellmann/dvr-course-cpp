@@ -254,7 +254,7 @@ extern "C" int main(int argc, char *argv[]) {
   }
 
   std::string libName = "environment";
-  if (!getenv("ANARI_LIBRARY")) libName = "ex09_anari_device";
+  if (!getenv("ANARI_LIBRARY")) libName = "ex09_anari";
   auto library = anari::loadLibrary(libName.c_str(), statusFunc);
   auto device = anari::newDevice(library, "default");
 
