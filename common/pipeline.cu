@@ -286,21 +286,25 @@ struct Pipeline::Impl
   }
 
 #ifdef RTCORE
-  void initOWLContext()
+  bool initOWLContext()
   {
     if (!owl.context) {
       owl.context = owlContextCreate(nullptr,1);
     }
+
+    return owl.context != nullptr;
   }
 
-  void initOWLModule()
+  bool initOWLModule()
   {
     if (!owl.module && owl.ptxCode!=nullptr) {
       owl.module = owlModuleCreate(owl.context,owl.ptxCode);
     }
+
+    return owl.module != nullptr;
   }
 
-  void initOWLRayGen()
+  bool initOWLRayGen()
   {
     if (!owl.rayGen && owl.module && owl.rayGenName) {
       owl.rayGen = owlRayGenCreate(owl.context,
@@ -309,9 +313,11 @@ struct Pipeline::Impl
                                    sizeof(RayGenData),
                                    rayGenVars,-1);
     }
+
+    return owl.rayGen != nullptr;
   }
 
-  void initOWLLaunchParams()
+  bool initOWLLaunchParams()
   {
     if (!owl.launchParams && owl.context && owl.launchParamsDecl) {
       owl.launchParams = owlParamsCreate(owl.context,
@@ -319,17 +325,20 @@ struct Pipeline::Impl
                                          owl.launchParamsDecl,
                                          -1);
     }
+
+    return owl.launchParams != nullptr;
   }
 
-  void initOWL()
+  bool initOWL()
   {
-    initOWLContext();
-    initOWLModule();
-    initOWLRayGen();
-    initOWLLaunchParams();
+    if (!initOWLContext()) return false;
+    if (!initOWLModule()) return false;
+    if (!initOWLRayGen()) return false;
+    if (!initOWLLaunchParams()) return false;
     owlBuildPrograms(owl.context);
     owlBuildPipeline(owl.context);
     owlBuildSBT(owl.context);
+    return true;
   }
 
   void updateLaunchParams()
@@ -1163,7 +1172,9 @@ void Pipeline::launch() {
   if (frameID < impl->sampleLimit) {
     impl->beginTiming();
 #ifdef RTCORE
-    owlLaunch2D(impl->owl.rayGen, fb->width, fb->height, impl->owl.launchParams);
+    if (impl->owl.rayGen) {
+      owlLaunch2D(impl->owl.rayGen, fb->width, fb->height, impl->owl.launchParams);
+    }
 #else
 #ifndef __EMSCRIPTEN__
     parallel::for_each(impl->pool, 0, fb->width, 0, fb->height,
