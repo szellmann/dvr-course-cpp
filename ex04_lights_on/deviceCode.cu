@@ -225,7 +225,8 @@ RAYGEN_PROGRAM(woodcockTrackingSS)()
     V = shadowTransmission;
   }
 
-  vec3f color = albedo * V * lp.ambientColor * lp.ambientRadiance * aoV;
+  vec3f color = albedo * V * lp.directionalLight.intensity
+              * lp.ambientColor * lp.ambientRadiance * aoV;
   float alpha = 1.f-transmission;
 
   float accum = 1.f/(lp.accumID+1);

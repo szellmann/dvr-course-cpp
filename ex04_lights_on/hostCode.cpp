@@ -137,6 +137,9 @@ extern "C" int main(int argc, char *argv[]) {
   vec2f lightDir(0,240);
   pl.uiParam("Light dir", &lightDir, vec2f(0.f), vec2f(360.f));
 
+  float lightIntensity{1.f};
+  pl.uiParam("Light intensity", &lightIntensity, 0.f, 32.f);
+
 #ifdef RTCORE
   pl.setRayGen(ptxCode, "woodcockTrackingSS");
   pl.setLaunchParamsDecl(launchParams_owl, sizeof(LaunchParams));
@@ -180,6 +183,7 @@ extern "C" int main(int argc, char *argv[]) {
     pl.launchParam("occlusionDistance", parms.occlusionDistance) = g_appState.occlusionDistance;
     pl.launchParam("directionalLight.dir", parms.directionalLight.dir)
         = toCartesian({1.f,deg2rad(lightDir.x),deg2rad(lightDir.y)});
+    pl.launchParam("directionalLight.intensity", parms.directionalLight.intensity) = lightIntensity;
     // update DVR params:
     pl.launchParam("unitDistance", parms.unitDistance) = g_appState.unitDistance;
     // update accum:
