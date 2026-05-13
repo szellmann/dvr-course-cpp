@@ -25,6 +25,8 @@ if (DVR_COURSE_WITH_FAKE_OWL)
   target_sources(${PROJECT_NAME} PRIVATE hostCode.cpp ${ptxCode})
 elseif (DVR_COURSE_WITH_OWL)
   target_sources(${PROJECT_NAME} PRIVATE hostCode.cpp)
+  set_source_files_properties(deviceCode.cu
+    PROPERTIES COMPILE_FLAGS "--extended-lambda --expt-relaxed-constexpr")
   embed_ptx(
     OUTPUT_TARGET ex07_deviceCode-ptx
     PTX_LINK_LIBRARIES dvr_course-common $<BUILD_INTERFACE:nanovdb>
