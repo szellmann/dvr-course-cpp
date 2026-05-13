@@ -5,6 +5,7 @@
 
 #include "helium/BaseObject.h"
 #include "helium/BaseFrame.h"
+
 namespace ex09_anari {
 
 typedef helium::BaseGlobalDeviceState GlobalState;
@@ -37,9 +38,28 @@ struct Camera : public Object
 struct Frame : public helium::BaseFrame
 {
   Frame(GlobalState *s);
-  virtual ~Frame() = default;
+  ~Frame() = default;
+
+  bool isValid() const override;
+
+  bool getProperty(const std::string_view &name,
+      ANARIDataType type,
+      void *ptr,
+      uint64_t size,
+      uint32_t flags) override;
+
+  void commitParameters() override;
+  void finalize() override;
 
   void renderFrame() override;
+
+  void *map(std::string_view channel,
+      uint32_t *width,
+      uint32_t *height,
+      ANARIDataType *pixelType) override;
+  void unmap(std::string_view channel) override;
+  int frameReady(ANARIWaitMask m) override;
+  void discard() override;
 };
 
 struct Renderer : public Object

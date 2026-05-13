@@ -61,6 +61,59 @@ World::World(GlobalState *s) : Object(ANARI_WORLD, s)
 Frame::Frame(GlobalState *s) : helium::BaseFrame(s)
 {}
 
+bool Frame::isValid() const
+{
+}
+
+void Frame::commitParameters()
+{
+}
+
+void Frame::finalize()
+{
+}
+
+bool Frame::getProperty(
+    const std::string_view &name, ANARIDataType type, void *ptr, uint64_t size, uint32_t flags)
+{
+}
+
+void *Frame::map(std::string_view channel,
+    uint32_t *width,
+    uint32_t *height,
+    ANARIDataType *pixelType)
+{
+  *width = 0;
+  *height = 0;
+
+  if (channel == "color" || channel == "channel.color") {
+    *pixelType = ANARI_UFIXED8_RGBA_SRGB;
+    return 0;//mapColorBuffer();
+  } else if (channel == "depth" || channel == "channel.depth") {
+    *pixelType = ANARI_FLOAT32;
+    return 0;//mapDepthBuffer();
+  } else {
+    *width = 0;
+    *height = 0;
+    *pixelType = ANARI_UNKNOWN;
+    return nullptr;
+  }
+}
+
+void Frame::unmap(std::string_view channel)
+{
+  // no-op
+}
+int Frame::frameReady(ANARIWaitMask m)
+{
+  return 1;
+}
+
+void Frame::discard()
+{
+  // no-op
+}
+
 void Frame::renderFrame()
 {
 }
