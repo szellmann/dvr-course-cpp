@@ -40,6 +40,21 @@ extern "C" char ptxCode[];
 extern void woodcockTrackingSS();
 #endif
 
+inline float deg2rad(float d) {
+  return d*float(M_PI)/180.f;
+}
+
+inline vec3f toCartesian(const vec3f spherical) {
+  const float r = spherical.x;
+  const float lat = spherical.y;
+  const float lon = spherical.z;
+
+  float x = r * cosf(lat) * cosf(lon);
+  float y = r * cosf(lat) * sinf(lon);
+  float z = r * sinf(lat);
+  return {x,y,z};
+}
+
 void printUsage() {
   fprintf(stderr, "%s", "Usage: ex04_lights_on file.nvdb\n");
 }
@@ -119,6 +134,9 @@ extern "C" int main(int argc, char *argv[]) {
   pl.uiParam("Ambient samples", &g_appState.ambientSamples, 0, 1024);
   pl.uiParam("Occlusion distance", &g_appState.occlusionDistance, 0.1f, 64.f);
 
+  vec2f lightDir(0,240);
+  pl.uiParam("Light dir", &lightDir, vec2f(0.f), vec2f(360.f));
+
 #ifdef RTCORE
   pl.setRayGen(ptxCode, "woodcockTrackingSS");
   pl.setLaunchParamsDecl(launchParams_owl, sizeof(LaunchParams));
@@ -160,6 +178,8 @@ extern "C" int main(int argc, char *argv[]) {
     pl.launchParam("ambientRadiance", parms.ambientRadiance) = 1.f;
     pl.launchParam("ambientSamples", parms.ambientSamples) = g_appState.ambientSamples;
     pl.launchParam("occlusionDistance", parms.occlusionDistance) = g_appState.occlusionDistance;
+    pl.launchParam("directionalLight.dir", parms.directionalLight.dir)
+        = toCartesian({1.f,deg2rad(lightDir.x),deg2rad(lightDir.y)});
     // update DVR params:
     pl.launchParam("unitDistance", parms.unitDistance) = g_appState.unitDistance;
     // update accum:

@@ -205,7 +205,27 @@ RAYGEN_PROGRAM(woodcockTrackingSS)()
   // use random sample as normal vector:
   vec3f N = uniformSampleSphere(rnd(),rnd());
   float aoV = 1.f-ambientOcclusion(ray.eval(t), N, rnd);
-  vec3f color = albedo * lp.ambientColor * lp.ambientRadiance * aoV;
+
+  float V = 1.f;
+  Ray shadowRay;
+  shadowRay.org = ray.eval(t) + N*1e-3f;
+  shadowRay.dir = normalize(lp.directionalLight.dir);
+  shadowRay.tmin = 0.f;
+  shadowRay.tmax = INFINITY;
+
+  float ts0, ts1;
+  boxTest(shadowRay, lp.volume.bounds, ts0, ts1);
+  if (ts0 < ts1) {
+    shadowRay.tmax = fminf(shadowRay.tmax, ts1);
+
+    vec3f shadowAlbedo = 0.f;
+    float shadowTransmission = 1.f;
+    woodcockTracking(shadowRay, rnd, majorant, shadowAlbedo, shadowTransmission);
+
+    V = shadowTransmission;
+  }
+
+  vec3f color = albedo * V * lp.ambientColor * lp.ambientRadiance * aoV;
   float alpha = 1.f-transmission;
 
   float accum = 1.f/(lp.accumID+1);
