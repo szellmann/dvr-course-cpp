@@ -11,7 +11,7 @@
 #include "Device.h"
 #include "Objects.h"
 
-#include "ex09_anari_device_queries.h"
+#include "anari_library_ex09_anari_queries.h"
 
 namespace ex09_anari {
 
@@ -19,30 +19,12 @@ namespace ex09_anari {
 
 void *Device::mapArray(ANARIArray a)
 {
-#ifdef WITH_CUDA
-  // TODO: set device
-#elif defined(WITH_HIP)
-  // TODO: set device
-#elif defined(WITH_SYCL)
-  // TODO: ?
-#else
-  deviceState()->renderingSemaphore.arrayMapAcquire();
-#endif
   return helium::BaseDevice::mapArray(a);
 }
 
 void Device::unmapArray(ANARIArray a)
 {
   helium::BaseDevice::unmapArray(a);
-#ifdef WITH_CUDA
-  // TODO: set device
-#elif defined(WITH_HIP)
-  // TODO: set device
-#elif defined(WITH_SYCL)
-  // TODO: ?
-#else
-  deviceState()->renderingSemaphore.arrayMapRelease();
-#endif
 }
 
 // API Objects ////////////////////////////////////////////////////////////////

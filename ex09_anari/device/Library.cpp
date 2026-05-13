@@ -3,7 +3,7 @@
 
 #include "Device.h"
 #include "anari/backend/LibraryImpl.h"
-#include "ex09_anari_device_export.h"
+#include "anari_library_ex09_anari_export.h"
 
 namespace ex09_anari {
 
