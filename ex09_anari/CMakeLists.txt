@@ -45,7 +45,7 @@ if (DVR_COURSE_WITH_FAKE_OWL)
     device/deviceCode.cu
     LINK_LIBRARIES dvr_course-common
   )
-  target_sources(anari_library_${PROJECT_NAME} ${ptxCode})
+  target_sources(anari_library_${PROJECT_NAME} PRIVATE ${ptxCode})
 elseif (DVR_COURSE_WITH_OWL)
   set_source_files_properties(device/deviceCode.cu
     PROPERTIES COMPILE_FLAGS "--extended-lambda --expt-relaxed-constexpr")
