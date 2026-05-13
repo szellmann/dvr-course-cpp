@@ -66,4 +66,31 @@ void Frame::resize(int w, int h)
 
 }
 
+void Frame::uploadColor(const uint32_t *pointer)
+{
+#ifdef WITH_CUDA
+  cudaMemcpy(fbPointer,pointer,width*height*sizeof(pointer[0]),cudaMemcpyHostToDevice);
+#else
+  memcpy(fbPointer,pointer,width*height*sizeof(pointer[0]));
+#endif
+}
+
+void Frame::uploadDepth(const float *pointer)
+{
+#ifdef WITH_CUDA
+  cudaMemcpy(fbDepth,pointer,width*height*sizeof(pointer[0]),cudaMemcpyHostToDevice);
+#else
+  memcpy(fbDepth,pointer,width*height*sizeof(pointer[0]));
+#endif
+}
+
+void Frame::uploadAccum(const vec4f *pointer)
+{
+#ifdef WITH_CUDA
+  cudaMemcpy(accumBuffer,pointer,width*height*sizeof(pointer[0]),cudaMemcpyHostToDevice);
+#else
+  memcpy(accumBuffer,pointer,width*height*sizeof(pointer[0]));
+#endif
+}
+
 } // namespace dvr_course

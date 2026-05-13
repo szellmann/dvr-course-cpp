@@ -41,6 +41,11 @@ struct Frame
 
   void resize(int w, int h);
 
+  // upload functions (wrap memcpy/cudaMemcpy depending on how we compiled)
+  void uploadColor(const uint32_t *pointer);
+  void uploadDepth(const float *pointer);
+  void uploadAccum(const vec4f *pointer);
+
   uint32_t *fbPointer{nullptr};
   float    *fbDepth{nullptr};
   vec4f    *accumBuffer{nullptr};
