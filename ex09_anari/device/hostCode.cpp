@@ -3,6 +3,8 @@
 
 #include "hostCode.h"
 
+using namespace vecmath;
+
 namespace ex09_anari {
 
 // Object definitions /////////////////////////////////////////////////////////
@@ -45,7 +47,7 @@ GlobalState *Object::deviceState() const
   return (GlobalState *)helium::BaseObject::m_state;
 }
 
-// Structural  ////////////////////////////////////////////////////////////////
+// Nodes  /////////////////////////////////////////////////////////////////////
 
 Instance::Instance(GlobalState *s) : Object(ANARI_INSTANCE, s)
 {}
@@ -53,13 +55,52 @@ Instance::Instance(GlobalState *s) : Object(ANARI_INSTANCE, s)
 Group::Group(GlobalState *s) : Object(ANARI_GROUP, s)
 {}
 
+// Structural  ////////////////////////////////////////////////////////////////
+
 World::World(GlobalState *s) : Object(ANARI_WORLD, s)
 {}
+
+// Renderer ///////////////////////////////////////////////////////////////////
+
+Renderer::Renderer(GlobalState *s) : Object(ANARI_RENDERER, s)
+{}
+
+// Perspective camera /////////////////////////////////////////////////////////
+
+Camera::Camera(GlobalState *s) : Object(ANARI_CAMERA, s)
+{}
+
+void Camera::commitParameters()
+{
+  m_pos = getParam<anari::math::float3>("position", anari::math::float3(0.f));
+  m_dir = normalize(getParam<anari::math::float3>("direction", anari::math::float3(0.f, 0.f, 1.f)));
+  m_up = normalize(getParam<anari::math::float3>("up", anari::math::float3(0.f, 1.f, 0.f)));
+  if (!getParam("fovy", ANARI_FLOAT32, &m_fovy))
+    m_fovy = 60.f * float(M_PI)/180.f;
+}
+
+void Camera::finalize()
+{
+}
+
+dvr_course::Camera Camera::getCamera() const
+{
+  dvr_course::Camera cam;
+  auto poi = m_pos+m_dir;
+  cam.setOrientation(vec3f(m_pos.x,m_pos.y,m_pos.z),
+                     vec3f(poi.x,poi.y,poi.z),
+                     vec3f(m_up.x,m_up.y,m_up.z),
+                     m_fovy);
+  return cam;
+}
 
 // Frame //////////////////////////////////////////////////////////////////////
 
 Frame::Frame(GlobalState *s) : helium::BaseFrame(s)
-{}
+{
+  m_impl.pipeline.setFrame(&m_impl.frame);
+  m_impl.pipeline.setCamera(&m_impl.camera);
+}
 
 bool Frame::isValid() const
 {
@@ -67,10 +108,48 @@ bool Frame::isValid() const
 
 void Frame::commitParameters()
 {
+  m_renderer = getParamObject<Renderer>("renderer");
+  m_camera = getParamObject<Camera>("camera");
+  m_world = getParamObject<World>("world");
+
+  m_size = getParam<anari::math::uint2>("size", anari::math::uint2(10));
+  m_colorType = getParam<anari::DataType>("channel.color", ANARI_UNKNOWN);
+  m_depthType = getParam<anari::DataType>("channel.depth", ANARI_UNKNOWN);
 }
 
 void Frame::finalize()
 {
+  if (!m_renderer) {
+    reportMessage(ANARI_SEVERITY_WARNING,
+        "missing required parameter 'renderer' on frame");
+  }
+
+  if (!m_camera) {
+    reportMessage(
+        ANARI_SEVERITY_WARNING, "missing required parameter 'camera' on frame");
+  }
+
+  if (!m_world) {
+    reportMessage(
+        ANARI_SEVERITY_WARNING, "missing required parameter 'world' on frame");
+  }
+
+  if (m_colorType != ANARI_UFIXED8_RGBA_SRGB) {
+    reportMessage(
+        ANARI_SEVERITY_WARNING, "Unsupported color type on frame");
+  }
+
+  if (m_colorType != ANARI_FLOAT32) {
+    reportMessage(
+        ANARI_SEVERITY_WARNING, "Unsupported color type on frame");
+  }
+
+  m_impl.frame.resize(m_size.x,m_size.y);
+  auto cam = m_camera->getCamera();
+  m_impl.camera.setOrientation(cam.getPosition(),
+                               cam.getPOI(),
+                               cam.getUp(),
+                               cam.getFovyInRadians());
 }
 
 bool Frame::getProperty(
@@ -83,15 +162,16 @@ void *Frame::map(std::string_view channel,
     uint32_t *height,
     ANARIDataType *pixelType)
 {
-  *width = 0;
-  *height = 0;
+  *width = m_impl.frame.width;
+  *height = m_impl.frame.height;
 
   if (channel == "color" || channel == "channel.color") {
     *pixelType = ANARI_UFIXED8_RGBA_SRGB;
-    return 0;//mapColorBuffer();
+    *width = m_impl.frame.width;
+    return m_impl.frame.fbPointer;
   } else if (channel == "depth" || channel == "channel.depth") {
     *pixelType = ANARI_FLOAT32;
-    return 0;//mapDepthBuffer();
+    return m_impl.frame.fbDepth;
   } else {
     *width = 0;
     *height = 0;
@@ -116,17 +196,9 @@ void Frame::discard()
 
 void Frame::renderFrame()
 {
+  // only launch (ANARI takes over the 'present()' part):
+  m_impl.pipeline.launch();
 }
-
-// Renderer ///////////////////////////////////////////////////////////////////
-
-Renderer::Renderer(GlobalState *s) : Object(ANARI_RENDERER, s)
-{}
-
-// Perspective camera /////////////////////////////////////////////////////////
-
-Camera::Camera(GlobalState *s) : Object(ANARI_CAMERA, s)
-{}
 
 // TF1D volume ////////////////////////////////////////////////////////////////
 

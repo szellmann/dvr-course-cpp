@@ -32,12 +32,42 @@ struct Object : public helium::BaseObject
   GlobalState *deviceState() const;
 };
 
+struct Renderer : public Object
+{
+  Renderer(GlobalState *s);
+  virtual ~Renderer() = default;
+};
+
 struct Camera : public Object
 {
   Camera(GlobalState *s);
   virtual ~Camera() = default;
+
+  void commitParameters() override;
+  void finalize() override;
+
+  dvr_course::Camera getCamera() const;
+ private:
+  anari::math::float3 m_pos;
+  anari::math::float3 m_dir;
+  anari::math::float3 m_up;
+  float m_fovy{0.f};
 };
 
+struct World : public Object
+{
+  World(GlobalState *s);
+  virtual ~World() = default;
+};
+
+//=========================================================
+// In ANARI, the frame is the object connecting world,
+// renderer, and camera; so that's where we put the
+// "pipeline" object from the previous samples. The
+// frame is also involved when calling renderFrame()
+// and will this be the central object for the lib's
+// control flow on the host:
+//=========================================================
 struct Frame : public helium::BaseFrame
 {
   Frame(GlobalState *s);
@@ -63,18 +93,21 @@ struct Frame : public helium::BaseFrame
   void unmap(std::string_view channel) override;
   int frameReady(ANARIWaitMask m) override;
   void discard() override;
-};
+ private:
+  helium::IntrusivePtr<Renderer> m_renderer;
+  helium::IntrusivePtr<Camera> m_camera;
+  helium::IntrusivePtr<World> m_world;
 
-struct Renderer : public Object
-{
-  Renderer(GlobalState *s);
-  virtual ~Renderer() = default;
-};
+  anari::math::uint2 m_size{0u,0u};
+  anari::DataType m_colorType{ANARI_UNKNOWN};
+  anari::DataType m_depthType{ANARI_UNKNOWN};
+  int m_frameID{0};
 
-struct World : public Object
-{
-  World(GlobalState *s);
-  virtual ~World() = default;
+  struct {
+    dvr_course::Pipeline pipeline;
+    dvr_course::Camera   camera;
+    dvr_course::Frame    frame;
+  } m_impl;
 };
 
 struct Group : public Object
@@ -103,5 +136,19 @@ struct SpatialField : public Object
 
 } // ex09_anari
 
+// macros to make a type known to ANARI as Object:
+#define DVR_COURSE_ANARI_TYPEFOR_SPECIALIZATION(type, anari_type)              \
+  namespace anari {                                                            \
+  ANARI_TYPEFOR_SPECIALIZATION(type, anari_type);                              \
+  }
+
+#define DVR_COURSE_ANARI_TYPEFOR_DEFINITION(type)                              \
+  namespace anari {                                                            \
+  ANARI_TYPEFOR_DEFINITION(type);                                              \
+  }
+
+DVR_COURSE_ANARI_TYPEFOR_SPECIALIZATION(ex09_anari::Camera *, ANARI_CAMERA);
+DVR_COURSE_ANARI_TYPEFOR_SPECIALIZATION(ex09_anari::Renderer *, ANARI_RENDERER);
+DVR_COURSE_ANARI_TYPEFOR_SPECIALIZATION(ex09_anari::World *, ANARI_WORLD);
 
 
