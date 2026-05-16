@@ -9,7 +9,7 @@
 
 // ours
 #include "Device.h"
-#include "Objects.h"
+#include "hostCode.h"
 
 #include "anari_library_ex09_anari_queries.h"
 

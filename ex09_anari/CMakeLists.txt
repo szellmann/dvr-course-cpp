@@ -19,7 +19,7 @@ add_library(anari_library_${PROJECT_NAME} SHARED)
 target_sources(anari_library_${PROJECT_NAME} PRIVATE
   device/Device.cpp
   device/Library.cpp
-  device/Objects.cpp
+  device/hostCode.cpp
 )
 
 anari_generate_queries(

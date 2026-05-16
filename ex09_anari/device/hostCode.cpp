@@ -1,7 +1,7 @@
 // Copyright 2025-2026 Stefan Zellmann
 // SPDX-License-Identifier: Apache-2.0
 
-#include "Objects.h"
+#include "hostCode.h"
 
 namespace ex09_anari {
 
