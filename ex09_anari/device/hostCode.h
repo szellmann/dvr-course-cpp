@@ -4,6 +4,7 @@
 #pragma once
 
 // anari
+#include "helium/array/ObjectArray.h"
 #include "helium/BaseObject.h"
 #include "helium/BaseFrame.h"
 // ours
@@ -34,16 +35,10 @@ struct Object : public helium::BaseObject
   GlobalState *deviceState() const;
 };
 
-struct Group : public Object
+struct SpatialField : public Object
 {
-  Group(GlobalState *s);
-  virtual ~Group() = default;
-};
-
-struct Instance : public Object
-{
-  Instance(GlobalState *s);
-  virtual ~Instance() = default;
+  SpatialField(GlobalState *s);
+  virtual ~SpatialField() = default;
 };
 
 struct TF1D : public Object
@@ -52,10 +47,35 @@ struct TF1D : public Object
   virtual ~TF1D() = default;
 };
 
-struct SpatialField : public Object
+struct Group : public Object
 {
-  SpatialField(GlobalState *s);
-  virtual ~SpatialField() = default;
+  Group(GlobalState *s);
+  virtual ~Group() = default;
+
+  void commitParameters() override;
+  void finalize() override;
+
+  std::vector<TF1D *> &volumes()
+  { return m_volumes; }
+
+ private:
+  helium::IntrusivePtr<helium::ObjectArray> m_volumeData;
+  std::vector<TF1D *> m_volumes;
+};
+
+struct Instance : public Object
+{
+  Instance(GlobalState *s);
+  virtual ~Instance() = default;
+
+  void commitParameters() override;
+  void finalize() override;
+
+  Group *group()
+  { return m_group.ptr; }
+
+ private:
+  helium::IntrusivePtr<Group> m_group;
 };
 
 struct Renderer : public Object
@@ -85,8 +105,14 @@ struct World : public Object
   World(GlobalState *s);
   virtual ~World() = default;
 
+  void commitParameters() override;
+  void finalize() override;
+
+ private:
+  helium::IntrusivePtr<helium::ObjectArray> m_volumeData;
+  helium::IntrusivePtr<helium::ObjectArray> m_instanceData;
+
   std::vector<TF1D *> m_volumes;
-  std::vector<Instance *> m_instances;
 };
 
 //=========================================================
@@ -154,8 +180,9 @@ struct Frame : public helium::BaseFrame
   }
 
 DVR_COURSE_ANARI_TYPEFOR_SPECIALIZATION(ex09_anari::Object *, ANARI_OBJECT);
+DVR_COURSE_ANARI_TYPEFOR_SPECIALIZATION(ex09_anari::Group *, ANARI_GROUP);
+DVR_COURSE_ANARI_TYPEFOR_SPECIALIZATION(ex09_anari::World *, ANARI_WORLD);
 DVR_COURSE_ANARI_TYPEFOR_SPECIALIZATION(ex09_anari::Camera *, ANARI_CAMERA);
 DVR_COURSE_ANARI_TYPEFOR_SPECIALIZATION(ex09_anari::Renderer *, ANARI_RENDERER);
-DVR_COURSE_ANARI_TYPEFOR_SPECIALIZATION(ex09_anari::World *, ANARI_WORLD);
 
 

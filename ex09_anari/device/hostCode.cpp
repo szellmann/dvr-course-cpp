@@ -61,14 +61,6 @@ GlobalState *Object::deviceState() const
   return (GlobalState *)helium::BaseObject::m_state;
 }
 
-// Nodes  /////////////////////////////////////////////////////////////////////
-
-Group::Group(GlobalState *s) : Object(ANARI_GROUP, s)
-{}
-
-Instance::Instance(GlobalState *s) : Object(ANARI_INSTANCE, s)
-{}
-
 // TF1D volume ////////////////////////////////////////////////////////////////
 
 TF1D::TF1D(GlobalState *s) : Object(ANARI_VOLUME, s)
@@ -79,10 +71,95 @@ TF1D::TF1D(GlobalState *s) : Object(ANARI_VOLUME, s)
 SpatialField::SpatialField(GlobalState *s) : Object(ANARI_SPATIAL_FIELD, s)
 {}
 
+// Nodes  /////////////////////////////////////////////////////////////////////
+
+Group::Group(GlobalState *s) : Object(ANARI_GROUP, s)
+{}
+
+void Group::commitParameters()
+{
+  m_volumeData = getParamObject<helium::ObjectArray>("volume");
+}
+
+void Group::finalize()
+{
+  m_volumes.clear();
+
+  if (m_volumeData) {
+    std::for_each(m_volumeData->handlesBegin(),
+        m_volumeData->handlesEnd(),
+        [&](auto *o) {
+          if (o && o->isValid()) {
+            auto *vol = (TF1D *)o;
+            m_volumes.push_back(vol);
+          }
+        });
+  }
+}
+
+Instance::Instance(GlobalState *s) : Object(ANARI_INSTANCE, s)
+{}
+
+void Instance::commitParameters()
+{
+  m_group = getParamObject<Group>("group");
+}
+
+void Instance::finalize()
+{
+  if (!m_group)
+    reportMessage(ANARI_SEVERITY_WARNING, "missing 'group' on ANARIInstance");
+}
+
 // Structural  ////////////////////////////////////////////////////////////////
 
 World::World(GlobalState *s) : Object(ANARI_WORLD, s)
 {}
+
+void World::commitParameters()
+{
+  m_volumeData = getParamObject<helium::ObjectArray>("volume");
+  m_instanceData = getParamObject<helium::ObjectArray>("instance");
+}
+
+void World::finalize()
+{
+  m_volumes.clear();
+
+  // volume data set on the world directly:
+  if (m_volumeData) {
+    std::for_each(m_volumeData->handlesBegin(),
+        m_volumeData->handlesEnd(),
+        [&](auto *o) {
+          if (o && o->isValid()) {
+            auto *vol = (TF1D *)o;
+            m_volumes.push_back(vol);
+          }
+        });
+  }
+
+  // volume data coming through instances:
+
+  // we don't support real instancing but just traverse the instances given and
+  // grab the volume underneath (if any). A real ANARI device would implement
+  // some instantation logic here:
+  if (m_instanceData) {
+    std::for_each(m_instanceData->handlesBegin(),
+        m_instanceData->handlesEnd(),
+        [&](auto *o) {
+          if (o && o->isValid()) {
+            auto *inst = (Instance *)o;
+            if (inst->group()) {
+              std::for_each(inst->group()->volumes().begin(),
+                  inst->group()->volumes().end(),
+                  [&](auto *v) {
+                    m_volumes.push_back(v);
+                  });
+            }
+          }
+        });
+  }
+}
 
 // Renderer ///////////////////////////////////////////////////////////////////
 
@@ -253,9 +330,10 @@ void Frame::renderFrame()
 } // namespace ex09_anari
 
 DVR_COURSE_ANARI_TYPEFOR_DEFINITION(ex09_anari::Object *);
+DVR_COURSE_ANARI_TYPEFOR_DEFINITION(ex09_anari::Group *);
+DVR_COURSE_ANARI_TYPEFOR_DEFINITION(ex09_anari::World *);
 DVR_COURSE_ANARI_TYPEFOR_DEFINITION(ex09_anari::Camera *);
 DVR_COURSE_ANARI_TYPEFOR_DEFINITION(ex09_anari::Renderer *);
-DVR_COURSE_ANARI_TYPEFOR_DEFINITION(ex09_anari::World *);
 
 
 
