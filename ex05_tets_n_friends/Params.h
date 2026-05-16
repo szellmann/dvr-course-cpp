@@ -50,14 +50,6 @@ struct Transfunc {
   int size;
 };
 
-struct TetTriangleGeom
-{
-  /*! array/buffer of vertex indices */
-  vec3i *index;
-  /*! array/buffer of vertex positions */
-  vec3f *vertex;
-};
-
 struct LaunchParams {
   // volume:
   Volume volume;
