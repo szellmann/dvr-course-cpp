@@ -3,8 +3,11 @@
 
 #pragma once
 
+// anari
 #include "helium/BaseObject.h"
 #include "helium/BaseFrame.h"
+// ours
+#include <dvr_course-common.h>
 
 namespace ex09_anari {
 

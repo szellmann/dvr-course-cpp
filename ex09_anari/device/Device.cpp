@@ -17,19 +17,19 @@ namespace ex09_anari {
 
 // Data Arrays ////////////////////////////////////////////////////////////////
 
-void *Device::mapArray(ANARIArray a)
+void *DVRCourseDevice::mapArray(ANARIArray a)
 {
   return helium::BaseDevice::mapArray(a);
 }
 
-void Device::unmapArray(ANARIArray a)
+void DVRCourseDevice::unmapArray(ANARIArray a)
 {
   helium::BaseDevice::unmapArray(a);
 }
 
 // API Objects ////////////////////////////////////////////////////////////////
 
-ANARIArray1D Device::newArray1D(const void *appMemory,
+ANARIArray1D DVRCourseDevice::newArray1D(const void *appMemory,
     ANARIMemoryDeleter deleter,
     const void *userData,
     ANARIDataType type,
@@ -50,7 +50,7 @@ ANARIArray1D Device::newArray1D(const void *appMemory,
     return (ANARIArray1D) new helium::Array1D(deviceState(), md);
 }
 
-ANARIArray2D Device::newArray2D(const void *appMemory,
+ANARIArray2D DVRCourseDevice::newArray2D(const void *appMemory,
     ANARIMemoryDeleter deleter,
     const void *userData,
     ANARIDataType type,
@@ -70,7 +70,7 @@ ANARIArray2D Device::newArray2D(const void *appMemory,
   return (ANARIArray2D) new helium::Array2D(deviceState(), md);
 }
 
-ANARIArray3D Device::newArray3D(const void *appMemory,
+ANARIArray3D DVRCourseDevice::newArray3D(const void *appMemory,
     ANARIMemoryDeleter deleter,
     const void *userData,
     ANARIDataType type,
@@ -92,74 +92,74 @@ ANARIArray3D Device::newArray3D(const void *appMemory,
   return (ANARIArray3D) new helium::Array3D(deviceState(), md);
 }
 
-ANARICamera Device::newCamera(const char * /*subtype*/)
+ANARICamera DVRCourseDevice::newCamera(const char * /*subtype*/)
 {
   initDevice();
   return (ANARICamera) new Camera(deviceState());
 }
 
-ANARIFrame Device::newFrame()
+ANARIFrame DVRCourseDevice::newFrame()
 {
   initDevice();
   return (ANARIFrame) new Frame(deviceState());
 }
 
-ANARIGroup Device::newGroup()
+ANARIGroup DVRCourseDevice::newGroup()
 {
   initDevice();
   return (ANARIGroup) new Group(deviceState());
 }
 
-ANARILight Device::newLight(const char * /*subtype*/)
+ANARILight DVRCourseDevice::newLight(const char * /*subtype*/)
 {
   return {};
 }
 
-ANARIMaterial Device::newMaterial(const char * /*subtype*/)
+ANARIMaterial DVRCourseDevice::newMaterial(const char * /*subtype*/)
 {
   return {};
 }
 
-ANARIGeometry Device::newGeometry(const char * /*subtype*/)
+ANARIGeometry DVRCourseDevice::newGeometry(const char * /*subtype*/)
 {
   return {};
 }
 
-ANARIInstance Device::newInstance(const char * /*subtype*/)
+ANARIInstance DVRCourseDevice::newInstance(const char * /*subtype*/)
 {
   initDevice();
   return (ANARIInstance) new Instance(deviceState());
 }
 
-ANARIRenderer Device::newRenderer(const char * /*subtype*/)
+ANARIRenderer DVRCourseDevice::newRenderer(const char * /*subtype*/)
 {
   initDevice();
   return (ANARIRenderer) new Renderer(deviceState());
 }
 
-ANARISampler Device::newSampler(const char * /*subtype*/)
+ANARISampler DVRCourseDevice::newSampler(const char * /*subtype*/)
 {
   return {};
 }
 
-ANARISpatialField Device::newSpatialField(const char * /*subtype*/)
+ANARISpatialField DVRCourseDevice::newSpatialField(const char * /*subtype*/)
 {
   initDevice();
   return (ANARISpatialField) new SpatialField(deviceState());
 }
 
-ANARISurface Device::newSurface()
+ANARISurface DVRCourseDevice::newSurface()
 {
   return {};
 }
 
-ANARIVolume Device::newVolume(const char * /*subtype*/)
+ANARIVolume DVRCourseDevice::newVolume(const char * /*subtype*/)
 {
   initDevice();
   return (ANARIVolume) new Volume(deviceState());
 }
 
-ANARIWorld Device::newWorld()
+ANARIWorld DVRCourseDevice::newWorld()
 {
   initDevice();
   return (ANARIWorld) new World(deviceState());
@@ -167,12 +167,12 @@ ANARIWorld Device::newWorld()
 
 // Query functions ////////////////////////////////////////////////////////////
 
-const char **Device::getObjectSubtypes(ANARIDataType objectType)
+const char **DVRCourseDevice::getObjectSubtypes(ANARIDataType objectType)
 {
   return ex09_anari::query_object_types(objectType);
 }
 
-const void *Device::getObjectInfo(ANARIDataType objectType,
+const void *DVRCourseDevice::getObjectInfo(ANARIDataType objectType,
     const char *objectSubtype,
     const char *infoName,
     ANARIDataType infoType)
@@ -181,7 +181,7 @@ const void *Device::getObjectInfo(ANARIDataType objectType,
       objectType, objectSubtype, infoName, infoType);
 }
 
-const void *Device::getParameterInfo(ANARIDataType objectType,
+const void *DVRCourseDevice::getParameterInfo(ANARIDataType objectType,
     const char *objectSubtype,
     const char *parameterName,
     ANARIDataType parameterType,
@@ -198,20 +198,20 @@ const void *Device::getParameterInfo(ANARIDataType objectType,
 
 // Other Device definitions ///////////////////////////////////////////////
 
-Device::Device(ANARIStatusCallback cb, const void *ptr)
+DVRCourseDevice::DVRCourseDevice(ANARIStatusCallback cb, const void *ptr)
     : helium::BaseDevice(cb, ptr)
 {
   m_state = std::make_unique<helium::BaseGlobalDeviceState>(this_device());
   deviceCommitParameters();
 }
 
-Device::Device(ANARILibrary l) : helium::BaseDevice(l)
+DVRCourseDevice::DVRCourseDevice(ANARILibrary l) : helium::BaseDevice(l)
 {
   m_state = std::make_unique<helium::BaseGlobalDeviceState>(this_device());
   deviceCommitParameters();
 }
 
-Device::~Device()
+DVRCourseDevice::~DVRCourseDevice()
 {
   auto &state = *deviceState();
 
@@ -222,7 +222,7 @@ Device::~Device()
   // TODO: clear context?!
 }
 
-void Device::initDevice()
+void DVRCourseDevice::initDevice()
 {
   if (m_initialized)
     return;
@@ -235,14 +235,14 @@ void Device::initDevice()
   m_initialized = true;
 }
 
-void Device::deviceCommitParameters()
+void DVRCourseDevice::deviceCommitParameters()
 {
   auto &state = *deviceState();
 
   helium::BaseDevice::deviceCommitParameters();
 }
 
-int Device::deviceGetProperty(
+int DVRCourseDevice::deviceGetProperty(
     const char *name, ANARIDataType type, void *mem, uint64_t size, uint32_t mask)
 {
   std::string_view prop = name;
@@ -256,7 +256,7 @@ int Device::deviceGetProperty(
   return 0;
 }
 
-helium::BaseGlobalDeviceState *Device::deviceState() const
+helium::BaseGlobalDeviceState *DVRCourseDevice::deviceState() const
 {
   return (helium::BaseGlobalDeviceState *)helium::BaseDevice::m_state.get();
 }

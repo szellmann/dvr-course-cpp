@@ -8,7 +8,7 @@
 
 namespace ex09_anari {
 
-struct Device : public helium::BaseDevice
+struct DVRCourseDevice : public helium::BaseDevice
 {
   /////////////////////////////////////////////////////////////////////////////
   // Main interface to accepting API calls
@@ -71,9 +71,9 @@ struct Device : public helium::BaseDevice
   // Helper/other functions and data members
   /////////////////////////////////////////////////////////////////////////////
 
-  Device(ANARIStatusCallback defaultCallback, const void *userPtr);
-  Device(ANARILibrary);
-  ~Device() override;
+  DVRCourseDevice(ANARIStatusCallback defaultCallback, const void *userPtr);
+  DVRCourseDevice(ANARILibrary);
+  ~DVRCourseDevice() override;
 
   void initDevice();
 

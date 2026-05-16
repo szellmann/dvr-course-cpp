@@ -27,7 +27,7 @@ Library::Library(
 
 ANARIDevice Library::newDevice(const char * /*subtype*/)
 {
-  return (ANARIDevice) new Device(this_library());
+  return (ANARIDevice) new DVRCourseDevice(this_library());
 }
 
 const char **Library::getDeviceExtensions(const char * /*deviceType*/)
@@ -48,5 +48,5 @@ extern "C" DVR_COURSE_DEVICE_INTERFACE ANARI_DEFINE_LIBRARY_ENTRYPOINT(
 extern "C" DVR_COURSE_DEVICE_INTERFACE ANARIDevice anariNewDVRCourseDevice(
     ANARIStatusCallback defaultCallback, const void *userPtr)
 {
-  return (ANARIDevice) new ex09_anari::Device(defaultCallback, userPtr);
+  return (ANARIDevice) new ex09_anari::DVRCourseDevice(defaultCallback, userPtr);
 }
