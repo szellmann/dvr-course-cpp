@@ -34,6 +34,30 @@ struct Object : public helium::BaseObject
   GlobalState *deviceState() const;
 };
 
+struct Group : public Object
+{
+  Group(GlobalState *s);
+  virtual ~Group() = default;
+};
+
+struct Instance : public Object
+{
+  Instance(GlobalState *s);
+  virtual ~Instance() = default;
+};
+
+struct TF1D : public Object
+{
+  TF1D(GlobalState *s);
+  virtual ~TF1D() = default;
+};
+
+struct SpatialField : public Object
+{
+  SpatialField(GlobalState *s);
+  virtual ~SpatialField() = default;
+};
+
 struct Renderer : public Object
 {
   Renderer(GlobalState *s);
@@ -60,6 +84,9 @@ struct World : public Object
 {
   World(GlobalState *s);
   virtual ~World() = default;
+
+  std::vector<TF1D *> m_volumes;
+  std::vector<Instance *> m_instances;
 };
 
 //=========================================================
@@ -111,30 +138,6 @@ struct Frame : public helium::BaseFrame
     dvr_course::Frame    frame;
     LaunchParams         parms;
   } m_impl;
-};
-
-struct Group : public Object
-{
-  Group(GlobalState *s);
-  virtual ~Group() = default;
-};
-
-struct Instance : public Object
-{
-  Instance(GlobalState *s);
-  virtual ~Instance() = default;
-};
-
-struct TF1D : public Object
-{
-  TF1D(GlobalState *s);
-  virtual ~TF1D() = default;
-};
-
-struct SpatialField : public Object
-{
-  SpatialField(GlobalState *s);
-  virtual ~SpatialField() = default;
 };
 
 } // ex09_anari

@@ -63,10 +63,20 @@ GlobalState *Object::deviceState() const
 
 // Nodes  /////////////////////////////////////////////////////////////////////
 
+Group::Group(GlobalState *s) : Object(ANARI_GROUP, s)
+{}
+
 Instance::Instance(GlobalState *s) : Object(ANARI_INSTANCE, s)
 {}
 
-Group::Group(GlobalState *s) : Object(ANARI_GROUP, s)
+// TF1D volume ////////////////////////////////////////////////////////////////
+
+TF1D::TF1D(GlobalState *s) : Object(ANARI_VOLUME, s)
+{}
+
+// Unstructured field /////////////////////////////////////////////////////////
+
+SpatialField::SpatialField(GlobalState *s) : Object(ANARI_SPATIAL_FIELD, s)
 {}
 
 // Structural  ////////////////////////////////////////////////////////////////
@@ -239,16 +249,6 @@ void Frame::renderFrame()
   // only launch (ANARI takes over the 'present()' part):
   m_impl.pipeline.launch();
 }
-
-// TF1D volume ////////////////////////////////////////////////////////////////
-
-TF1D::TF1D(GlobalState *s) : Object(ANARI_VOLUME, s)
-{}
-
-// Unstructured field /////////////////////////////////////////////////////////
-
-SpatialField::SpatialField(GlobalState *s) : Object(ANARI_SPATIAL_FIELD, s)
-{}
 
 } // namespace ex09_anari
 
