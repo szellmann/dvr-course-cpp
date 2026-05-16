@@ -156,7 +156,7 @@ ANARISurface DVRCourseDevice::newSurface()
 ANARIVolume DVRCourseDevice::newVolume(const char * /*subtype*/)
 {
   initDevice();
-  return (ANARIVolume) new Volume(deviceState());
+  return (ANARIVolume) new TF1D(deviceState());
 }
 
 ANARIWorld DVRCourseDevice::newWorld()

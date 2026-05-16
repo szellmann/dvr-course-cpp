@@ -1,11 +1,25 @@
 // Copyright 2025-2026 Stefan Zellmann
 // SPDX-License-Identifier: Apache-2.0
 
+// ex09:
 #include "hostCode.h"
+#ifdef RTCORE
+#include "Params-owl.h"
+#endif
 
-using namespace vecmath;
+// common namespace for helper classes:
+// Camera, FB, wrappers for RTX execution model, etc. etc.
+using namespace dvr_course;
+
+DECL_LAUNCH_PARAMS(ex09_anari::LaunchParams)
 
 namespace ex09_anari {
+
+#ifdef RTCORE
+extern "C" char ptxCode[];
+#else
+extern void directLighting();
+#endif
 
 // Object definitions /////////////////////////////////////////////////////////
 
@@ -100,6 +114,12 @@ Frame::Frame(GlobalState *s) : helium::BaseFrame(s)
 {
   m_impl.pipeline.setFrame(&m_impl.frame);
   m_impl.pipeline.setCamera(&m_impl.camera);
+#ifdef RTCORE
+  m_impl.pipeline.setRayGen(ptxCode, "directLighting");
+  m_impl.pipeline.setLaunchParamsDecl(launchParams_owl, sizeof(LaunchParams));
+#else
+  m_impl.pipeline.setRayGen(directLighting);
+#endif
 }
 
 bool Frame::isValid() const
@@ -150,6 +170,23 @@ void Frame::finalize()
                                cam.getPOI(),
                                cam.getUp(),
                                cam.getFovyInRadians());
+
+  struct {
+    vec3f lower_left, horizontal, vertical;
+  } screen;
+  cam.getScreen(screen.lower_left,screen.horizontal,screen.vertical);
+
+  // update camera:
+  m_impl.pipeline.launchParam("camera.org", m_impl.parms.camera.org) = cam.getPosition();
+  m_impl.pipeline.launchParam("camera.dir_00", m_impl.parms.camera.dir_00) = screen.lower_left;
+  m_impl.pipeline.launchParam("camera.dir_du", m_impl.parms.camera.dir_du) = screen.horizontal / m_size.x;
+  m_impl.pipeline.launchParam("camera.dir_dv", m_impl.parms.camera.dir_dv) = screen.vertical / m_size.y;
+  // update framebuffer:
+  m_impl.pipeline.launchParam("fbPointer", (RawPointer &)m_impl.parms.fbPointer) = m_impl.frame.fbPointer;
+  m_impl.pipeline.launchParam("fbDepth", (RawPointer &)m_impl.parms.fbDepth) = m_impl.frame.fbDepth;
+  m_impl.pipeline.launchParam("accumBuffer", (RawPointer &)m_impl.parms.accumBuffer) = m_impl.frame.accumBuffer;
+  // update renderer params:
+  m_impl.pipeline.launchParam("backgroundColor", m_impl.parms.backgroundColor) = vec4f(0.f);
 }
 
 bool Frame::getProperty(
@@ -196,13 +233,16 @@ void Frame::discard()
 
 void Frame::renderFrame()
 {
+  // set params:
+  SET_LAUNCH_PARAMS(m_impl.parms);
+
   // only launch (ANARI takes over the 'present()' part):
   m_impl.pipeline.launch();
 }
 
 // TF1D volume ////////////////////////////////////////////////////////////////
 
-Volume::Volume(GlobalState *s) : Object(ANARI_VOLUME, s)
+TF1D::TF1D(GlobalState *s) : Object(ANARI_VOLUME, s)
 {}
 
 // Unstructured field /////////////////////////////////////////////////////////
@@ -211,6 +251,12 @@ SpatialField::SpatialField(GlobalState *s) : Object(ANARI_SPATIAL_FIELD, s)
 {}
 
 } // namespace ex09_anari
+
+DVR_COURSE_ANARI_TYPEFOR_DEFINITION(ex09_anari::Object *);
+DVR_COURSE_ANARI_TYPEFOR_DEFINITION(ex09_anari::Camera *);
+DVR_COURSE_ANARI_TYPEFOR_DEFINITION(ex09_anari::Renderer *);
+DVR_COURSE_ANARI_TYPEFOR_DEFINITION(ex09_anari::World *);
+
 
 
 

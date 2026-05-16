@@ -8,6 +8,8 @@
 #include "helium/BaseFrame.h"
 // ours
 #include <dvr_course-common.h>
+// ex09:
+#include "Params.h"
 
 namespace ex09_anari {
 
@@ -107,6 +109,7 @@ struct Frame : public helium::BaseFrame
     dvr_course::Pipeline pipeline;
     dvr_course::Camera   camera;
     dvr_course::Frame    frame;
+    LaunchParams         parms;
   } m_impl;
 };
 
@@ -122,10 +125,10 @@ struct Instance : public Object
   virtual ~Instance() = default;
 };
 
-struct Volume : public Object
+struct TF1D : public Object
 {
-  Volume(GlobalState *s);
-  virtual ~Volume() = default;
+  TF1D(GlobalState *s);
+  virtual ~TF1D() = default;
 };
 
 struct SpatialField : public Object
@@ -147,6 +150,7 @@ struct SpatialField : public Object
   ANARI_TYPEFOR_DEFINITION(type);                                              \
   }
 
+DVR_COURSE_ANARI_TYPEFOR_SPECIALIZATION(ex09_anari::Object *, ANARI_OBJECT);
 DVR_COURSE_ANARI_TYPEFOR_SPECIALIZATION(ex09_anari::Camera *, ANARI_CAMERA);
 DVR_COURSE_ANARI_TYPEFOR_SPECIALIZATION(ex09_anari::Renderer *, ANARI_RENDERER);
 DVR_COURSE_ANARI_TYPEFOR_SPECIALIZATION(ex09_anari::World *, ANARI_WORLD);

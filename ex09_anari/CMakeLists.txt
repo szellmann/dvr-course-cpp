@@ -55,6 +55,8 @@ elseif (DVR_COURSE_WITH_OWL)
     SOURCES device/deviceCode.cu
   )
   target_link_libraries(anari_library_${PROJECT_NAME} PRIVATE ex09_deviceCode-ptx)
+else()
+  target_sources(anari_library_${PROJECT_NAME} PRIVATE device/deviceCode.cu)
 endif()
 target_link_libraries(anari_library_${PROJECT_NAME}
 PUBLIC 
