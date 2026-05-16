@@ -335,7 +335,7 @@ HitRec worldIntersection(Ray ray, Random &rnd)
     float t = woodcockTracking(ray, rnd, majorant, i, albedo, transmission);
 
     if (t < hitRec.hitT) {
-      hitRec.hitType   = HitRec::Surface;
+      hitRec.hitType   = HitRec::Volume;
       hitRec.hitT      = t;
       hitRec.color.xyz = albedo * lp.ambientColor * lp.ambientRadiance;
       hitRec.color.w   = 1.f-transmission;
