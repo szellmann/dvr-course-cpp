@@ -49,10 +49,8 @@ static void statusFunc(const void * /*userData*/,
     fprintf(stderr, "[ERROR][%p] %s\n", source, message);
   } else if (severity == ANARI_SEVERITY_WARNING) {
     fprintf(stderr, "[WARN ][%p] %s\n", source, message);
-  } else if (severity == ANARI_SEVERITY_PERFORMANCE_WARNING) {
-    fprintf(stderr, "[PERF ][%p] %s\n", source, message);
   }
-  // Ignore INFO/DEBUG messages
+  // Ignore INFO/PERF//DEBUG messages
 }
 
 static void updateAnariTransfunc(anari::Device device)
