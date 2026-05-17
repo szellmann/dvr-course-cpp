@@ -61,62 +61,215 @@ GlobalState *Object::deviceState() const
   return (GlobalState *)helium::BaseObject::m_state;
 }
 
+Pipeline &Object::pipeline()
+{
+  return deviceState()->pipeline();
+}
+
+LaunchParams &Object::parms()
+{
+  return deviceState()->parms();
+}
+
+// Unstructured field /////////////////////////////////////////////////////////
+
+SpatialField::SpatialField(GlobalState *s) : Object(ANARI_SPATIAL_FIELD, s)
+{}
+
+void SpatialField::commitParameters()
+{
+  m_params.vertexPosition = getParamObject<helium::Array1D>("vertex.position");
+  m_params.vertexData = getParamObject<helium::Array1D>("vertex.data");
+  m_params.index = getParamObject<helium::Array1D>("index");
+  m_params.cellIndex = getParamObject<helium::Array1D>("cell.index");
+  m_params.cellType = getParamObject<helium::Array1D>("cell.type");
+  m_params.cellData = getParamObject<helium::Array1D>("cell.data");
+}
+
+void SpatialField::finalize()
+{
+  if (!m_params.vertexPosition) {
+    reportMessage(ANARI_SEVERITY_WARNING,
+        "missing required parameter 'vertex.position' on unstructured spatial field");
+    return;
+  }
+
+  if (!(m_params.vertexData || m_params.cellData)) {
+    reportMessage(ANARI_SEVERITY_WARNING,
+        "missing required parameter 'vertex.data' (or 'cellData') on unstructured spatial field");
+    return;
+  }
+
+  if (!m_params.index) {
+    reportMessage(ANARI_SEVERITY_WARNING,
+        "missing required parameter 'index' on unstructured spatial field");
+    return;
+  }
+
+  if (!m_params.cellIndex) {
+    reportMessage(ANARI_SEVERITY_WARNING,
+        "missing required parameter(s) 'cell.index' on unstructured spatial field");
+    return;
+  }
+
+  if (!m_params.cellType) {
+    reportMessage(ANARI_SEVERITY_WARNING,
+        "missing required parameter(s) 'cell.type' on unstructured spatial field");
+    return;
+  }
+
+  auto *cellTypes = m_params.cellType->beginAs<uint8_t>();
+  auto *vertices = m_params.vertexPosition->beginAs<anari::math::float3>();
+  auto *vertexValues = m_params.vertexData->beginAs<float>();
+  auto *connectivity = m_params.index->beginAs<uint32_t>();
+  auto *cellIndices = m_params.cellIndex->beginAs<uint32_t>();
+  auto *cellValues = m_params.cellData->beginAs<float>();
+
+  // assemble tets:
+  std::vector<Tet> tets;
+  box3f bounds(INFINITY,-INFINITY);
+  box1f range(INFINITY,-INFINITY);
+  for (size_t i=0; i<m_params.cellType->size(); ++i) {
+    #define VTK_TET_ 10
+    if (cellTypes[i] != VTK_TET_) continue;
+    uint32_t i0 = connectivity[cellIndices[i]];
+    uint32_t i1 = connectivity[cellIndices[i]+1];
+    uint32_t i2 = connectivity[cellIndices[i]+2];
+    uint32_t i3 = connectivity[cellIndices[i]+3];
+    auto v0 = vertices[i0];
+    auto v1 = vertices[i1];
+    auto v2 = vertices[i2];
+    auto v3 = vertices[i3];
+    float s0, s1, s2, s3;
+    if (vertexValues != nullptr) {
+      s0 = vertexValues[i0];
+      s1 = vertexValues[i1];
+      s2 = vertexValues[i2];
+      s3 = vertexValues[i3];
+    } else {
+      s0 = cellValues[cellIndices[i]/4];
+      s1 = cellValues[cellIndices[i]/4];
+      s2 = cellValues[cellIndices[i]/4];
+      s3 = cellValues[cellIndices[i]/4];
+    }
+
+    vec3f vv0(v0.x,v0.y,v0.z);
+    vec3f vv1(v1.x,v1.y,v1.z);
+    vec3f vv2(v2.x,v2.y,v2.z);
+    vec3f vv3(v3.x,v3.y,v3.z);
+
+    bounds.extend(vv0); bounds.extend(vv1); bounds.extend(vv2); bounds.extend(vv3);
+    range.extend(s0); range.extend(s1); range.extend(s2); range.extend(s3);
+
+    // Store tets in our simple, flattened format, i.e., values are encoded in
+    // the 'w' coordinate of the positional vectors
+    Tet tet;
+    tet.v0 = vec4f(vv0,s0);
+    tet.v1 = vec4f(vv1,s1);
+    tet.v2 = vec4f(vv2,s2);
+    tet.v3 = vec4f(vv3,s3);
+    tets.push_back(tet);
+  }
+
+  m_tets = dvr_course::Buffer(tets.size(),tets.data());
+
+  m_volume.type = Volume::TET;
+  m_volume.asTetMesh.tets = m_tets.data();
+  m_volume.asTetMesh.numTets = (int)m_tets.size();
+  m_volume.bounds = bounds;
+  m_volume.dataRange = range;
+
+#ifdef RTCORE
+  OWLVarDecl tetsGeomVars[]
+  = {
+     { "tets",  OWL_BUFPTR, OWL_OFFSETOF(TetMesh,tets)},
+     { "numTets",  OWL_INT, OWL_OFFSETOF(TetMesh,numTets)},
+     { nullptr /* sentinel to mark end of list */ }
+  };
+  OWLGeomType userGeomType = owlGeomTypeCreate(pipeline().owlContext(),
+                                               OWL_GEOM_USER,
+                                               sizeof(TetMesh),
+                                               tetsGeomVars, -1);
+  owlGeomTypeSetBoundsProg(userGeomType, pipeline().owlModule(), "TetBounds");
+  owlGeomTypeSetIntersectProg(userGeomType, 0, pipeline().owlModule(), "TetIntersect");
+  owlGeomTypeSetClosestHit(userGeomType, 0, pipeline().owlModule(), "TetClosestHit");
+
+  OWLGeom userGeom = owlGeomCreate(pipeline().owlContext(), userGeomType);
+  owlGeomSetPrimCount(userGeom, tets.size());
+
+  OWLBuffer tetBuffer = owlDeviceBufferCreate(pipeline().owlContext(),
+                                              OWL_USER_TYPE(Tet{}),
+                                              tets.size(),
+                                              tets.data());
+  owlGeomSetBuffer(userGeom, "tets", tetBuffer);
+  owlGeomSet1i(userGeom, "numTets", (int)tets.size());
+
+  owlBuildPrograms(pipeline().owlContext());
+
+  OWLGroup userGeomBLAS = owlUserGeomGroupCreate(pipeline().owlContext(), 1, &userGeom);
+  owlGroupBuildAccel(userGeomBLAS);
+
+  m_TLAS = owlInstanceGroupCreate(pipeline().owlContext(), 1);
+  owlInstanceGroupSetChild(m_TLAS, 0, userGeomBLAS);
+
+  owlGroupBuildAccel(m_TLAS);
+#endif
+}
+
 // TF1D volume ////////////////////////////////////////////////////////////////
 
 TF1D::TF1D(GlobalState *s)
-  : Object(ANARI_VOLUME, s),
-    m_colorData(this), // observe changes
-    m_opacityData(this) // observe changes
+  : Object(ANARI_VOLUME, s), m_params(this), m_transfunc(new dvr_course::Transfunc)
 {}
 
 void TF1D::commitParameters()
 {
-  m_field = getParamObject<SpatialField>("value");
+  m_params.field = getParamObject<SpatialField>("value");
 
   double valueRange_f[2] = {0.f, 1.f};
   double valueRange_d[2] = {0.0, 1.0};
   if (getParam("valueRange", ANARI_FLOAT32_BOX1, &valueRange_f[0])) {
-    m_valueRange.lower = valueRange_f[0];
-    m_valueRange.upper = valueRange_f[1];
+    m_params.valueRange.lower = valueRange_f[0];
+    m_params.valueRange.upper = valueRange_f[1];
   }
   if (getParam("valueRange", ANARI_FLOAT64_BOX1, &valueRange_d[0])) {
-    m_valueRange.lower = float(valueRange_d[0]);
-    m_valueRange.upper = float(valueRange_d[1]);
+    m_params.valueRange.lower = float(valueRange_d[0]);
+    m_params.valueRange.upper = float(valueRange_d[1]);
   }
 
-  m_colorData = getParamObject<helium::Array1D>("color");
-  m_uniformColor = vec4f(1.f);
-  getParam("color", ANARI_FLOAT32_VEC3, &m_uniformColor);
-  getParam("color", ANARI_FLOAT32_VEC4, &m_uniformColor);
-  m_opacityData = getParamObject<helium::Array1D>("opacity");
-  m_uniformOpacity = getParam<float>("opacity", 1.f) * m_uniformColor.w;
+  m_params.colorData = getParamObject<helium::Array1D>("color");
+  m_params.uniformColor = vec4f(1.f);
+  getParam("color", ANARI_FLOAT32_VEC3, &m_params.uniformColor);
+  getParam("color", ANARI_FLOAT32_VEC4, &m_params.uniformColor);
+  m_params.opacityData = getParamObject<helium::Array1D>("opacity");
+  m_params.uniformOpacity = getParam<float>("opacity", 1.f) * m_params.uniformColor.w;
 }
 
 void TF1D::finalize()
 {
-  if (!m_field) {
+  if (!m_params.field) {
     reportMessage(ANARI_SEVERITY_WARNING,
         "no spatial field provided to transferFunction1D volume");
     return;
   }
 
-  if (!m_field->isValid()) {
+  if (!m_params.field->isValid()) {
     reportMessage(ANARI_SEVERITY_WARNING,
         "invalid spatial field provided to transferFunction1D volume");
     return;
   }
 
   size_t numColorChannels{4};
-  if (m_colorData) { // TODO: more types
-    if (m_colorData->elementType() == ANARI_FLOAT32_VEC3)
+  if (m_params.colorData) { // TODO: more types
+    if (m_params.colorData->elementType() == ANARI_FLOAT32_VEC3)
       numColorChannels = 3;
   }
 
-  float *colorData = m_colorData ? (float *)m_colorData->data() : nullptr;
-  float *opacityData = m_opacityData ? (float *)m_opacityData->data() : nullptr;
+  float *colorData = m_params.colorData ? (float *)m_params.colorData->data() : nullptr;
+  float *opacityData = m_params.opacityData ? (float *)m_params.opacityData->data() : nullptr;
 
-  size_t numColors = m_colorData ? m_colorData->size() : 1;
-  size_t numOpacities = m_opacityData ? m_opacityData->size() : 1;
+  size_t numColors = m_params.colorData ? m_params.colorData->size() : 1;
+  size_t numOpacities = m_params.opacityData ? m_params.opacityData->size() : 1;
   size_t tfSize = max(numColors, numOpacities);
 
   // combine color and opacity data to single array:
@@ -125,13 +278,13 @@ void TF1D::finalize()
     float colorPos = tfSize > 1 ? (float(i)/(tfSize-1))*(numColors-1) : 0.f;
     float colorFrac = colorPos-floorf(colorPos);
 
-    vec4f color0(m_uniformColor.xyz, m_uniformOpacity);
-    vec4f color1(m_uniformColor.xyz, m_uniformOpacity);
+    vec4f color0(m_params.uniformColor.xyz, m_params.uniformOpacity);
+    vec4f color1(m_params.uniformColor.xyz, m_params.uniformOpacity);
     if (colorData) {
       if (numColorChannels == 3) {
         vec3f *colors = (vec3f *)colorData;
-        color0 = vec4f(colors[int(floorf(colorPos))], m_uniformOpacity);
-        color1 = vec4f(colors[int(ceilf(colorPos))], m_uniformOpacity);
+        color0 = vec4f(colors[int(floorf(colorPos))], m_params.uniformOpacity);
+        color1 = vec4f(colors[int(ceilf(colorPos))], m_params.uniformOpacity);
       }
       else if (numColorChannels == 4) {
         vec4f *colors = (vec4f *)colorData;
@@ -155,14 +308,9 @@ void TF1D::finalize()
     rgbaLUT[i] = color;
   }
 
-  m_impl.tf.valueRange = m_valueRange;
-  m_impl.tf.setLUT(rgbaLUT);
+  m_transfunc->valueRange = m_params.valueRange;
+  m_transfunc->setLUT(rgbaLUT);
 }
-
-// Unstructured field /////////////////////////////////////////////////////////
-
-SpatialField::SpatialField(GlobalState *s) : Object(ANARI_SPATIAL_FIELD, s)
-{}
 
 // Nodes  /////////////////////////////////////////////////////////////////////
 
@@ -208,6 +356,23 @@ void Instance::finalize()
 
 World::World(GlobalState *s) : Object(ANARI_WORLD, s)
 {}
+
+bool World::getProperty(
+    const std::string_view &name, ANARIDataType type, void *ptr, uint64_t size, uint32_t flags)
+{
+  if (name == "bounds" && type == ANARI_FLOAT32_BOX3) {
+    box3f bounds(INFINITY,-INFINITY);
+    for (auto vol: volumes()) {
+      auto field = vol->getField();
+      if (!field) continue;
+      bounds.extend(field->getVolume().bounds);
+    }
+    std::memcpy(ptr, &bounds, sizeof(bounds));
+    return true;
+  }
+
+  return Object::getProperty(name, type, ptr, size, flags);
+}
 
 void World::commitParameters()
 {
@@ -261,8 +426,10 @@ Renderer::Renderer(GlobalState *s) : Object(ANARI_RENDERER, s)
 
 // Perspective camera /////////////////////////////////////////////////////////
 
-Camera::Camera(GlobalState *s) : Object(ANARI_CAMERA, s)
-{}
+Camera::Camera(GlobalState *s) : Object(ANARI_CAMERA, s), m_camera(new dvr_course::Camera)
+{
+  pipeline().setCamera(m_camera.get());
+}
 
 void Camera::commitParameters()
 {
@@ -275,35 +442,44 @@ void Camera::commitParameters()
 
 void Camera::finalize()
 {
-}
-
-dvr_course::Camera Camera::getCamera() const
-{
-  dvr_course::Camera cam;
   auto poi = m_pos+m_dir;
-  cam.setOrientation(vec3f(m_pos.x,m_pos.y,m_pos.z),
-                     vec3f(poi.x,poi.y,poi.z),
-                     vec3f(m_up.x,m_up.y,m_up.z),
-                     m_fovy);
-  return cam;
+  m_camera->setOrientation(vec3f(m_pos.x,m_pos.y,m_pos.z),
+                           vec3f(poi.x,poi.y,poi.z),
+                           vec3f(m_up.x,m_up.y,m_up.z),
+                           m_fovy);
+  pipeline().resetAccumulation();
 }
 
 // Frame //////////////////////////////////////////////////////////////////////
 
-Frame::Frame(GlobalState *s) : helium::BaseFrame(s)
+Frame::Frame(GlobalState *s) : helium::BaseFrame(s), m_frame(new dvr_course::Frame)
 {
-  m_impl.pipeline.setFrame(&m_impl.frame);
-  m_impl.pipeline.setCamera(&m_impl.camera);
+  pipeline().setFrame(m_frame.get());
 #ifdef RTCORE
-  m_impl.pipeline.setRayGen(ptxCode, "directLighting");
-  m_impl.pipeline.setLaunchParamsDecl(launchParams_owl, sizeof(LaunchParams));
+  pipeline().setRayGen(ptxCode, "directLighting");
+  pipeline().setLaunchParamsDecl(launchParams_owl, sizeof(LaunchParams));
 #else
-  m_impl.pipeline.setRayGen(directLighting);
+  pipeline().setRayGen(directLighting);
 #endif
 }
 
 bool Frame::isValid() const
 {
+}
+
+GlobalState *Frame::deviceState() const
+{
+  return (GlobalState *)helium::BaseObject::m_state;
+}
+
+Pipeline &Frame::pipeline()
+{
+  return deviceState()->pipeline();
+}
+
+LaunchParams &Frame::parms()
+{
+  return deviceState()->parms();
 }
 
 void Frame::commitParameters()
@@ -344,32 +520,35 @@ void Frame::finalize()
         ANARI_SEVERITY_WARNING, "Unsupported color type on frame");
   }
 
-  m_impl.frame.resize(m_size.x,m_size.y);
-  auto cam = m_camera->getCamera();
-  m_impl.camera.setOrientation(cam.getPosition(),
-                               cam.getPOI(),
-                               cam.getUp(),
-                               cam.getFovyInRadians());
+  m_frame->resize(m_size.x,m_size.y);
 
-  for (auto &vol: m_world->volumes()) {
+  std::vector<Volume> volumes;
+  for (size_t i=0, validID=0; i<m_world->volumes().size(); ++i) {
+    auto vol = m_world->volumes()[i];
+    auto field = vol->getField();
+    if (!field) continue;
+    volumes.push_back(field->getVolume());
+    auto tf = vol->getTransfunc();
+    pipeline().setTransfunc(tf,validID);
+    if (validID<1ull) {
+      owlParamsSetGroup(pipeline().owlLaunchParams(), "volume0.asTetMesh.handle", field->getTLAS());
+      pipeline().launchParam("volume0.bounds", parms().volumes[0].bounds) = field->getVolume().bounds;
+    }
+    validID++;
   }
 
-  struct {
-    vec3f lower_left, horizontal, vertical;
-  } screen;
-  cam.getScreen(screen.lower_left,screen.horizontal,screen.vertical);
-
-  // update camera:
-  m_impl.pipeline.launchParam("camera.org", m_impl.parms.camera.org) = cam.getPosition();
-  m_impl.pipeline.launchParam("camera.dir_00", m_impl.parms.camera.dir_00) = screen.lower_left;
-  m_impl.pipeline.launchParam("camera.dir_du", m_impl.parms.camera.dir_du) = screen.horizontal / m_size.x;
-  m_impl.pipeline.launchParam("camera.dir_dv", m_impl.parms.camera.dir_dv) = screen.vertical / m_size.y;
+  // volumes
+  //pipeline().launchParam("volumes", (RawPointer &)m_impl.parms.volumes) = (Volume *)m_volumes.data();
+  pipeline().launchParam("numVolumes", parms().numVolumes) = 1ull;
+  // transfuncs
   // update framebuffer:
-  m_impl.pipeline.launchParam("fbPointer", (RawPointer &)m_impl.parms.fbPointer) = m_impl.frame.fbPointer;
-  m_impl.pipeline.launchParam("fbDepth", (RawPointer &)m_impl.parms.fbDepth) = m_impl.frame.fbDepth;
-  m_impl.pipeline.launchParam("accumBuffer", (RawPointer &)m_impl.parms.accumBuffer) = m_impl.frame.accumBuffer;
+  pipeline().launchParam("fbPointer", (RawPointer &)parms().fbPointer) = m_frame->fbPointer;
+  pipeline().launchParam("fbDepth", (RawPointer &)parms().fbDepth) = m_frame->fbDepth;
+  pipeline().launchParam("accumBuffer", (RawPointer &)parms().accumBuffer) = m_frame->accumBuffer;
+  // update DVR params:
+  pipeline().launchParam("unitDistance", parms().unitDistance) = 1.f;
   // update renderer params:
-  m_impl.pipeline.launchParam("backgroundColor", m_impl.parms.backgroundColor) = vec4f(0.f);
+  pipeline().launchParam("backgroundColor", parms().backgroundColor) = vec4f(0.f);
 }
 
 bool Frame::getProperty(
@@ -382,16 +561,16 @@ void *Frame::map(std::string_view channel,
     uint32_t *height,
     ANARIDataType *pixelType)
 {
-  *width = m_impl.frame.width;
-  *height = m_impl.frame.height;
+  *width = m_frame->width;
+  *height = m_frame->height;
 
   if (channel == "color" || channel == "channel.color") {
     *pixelType = ANARI_UFIXED8_RGBA_SRGB;
-    *width = m_impl.frame.width;
-    return m_impl.frame.fbPointer;
+    *width = m_frame->width;
+    return m_frame->fbPointer;
   } else if (channel == "depth" || channel == "channel.depth") {
     *pixelType = ANARI_FLOAT32;
-    return m_impl.frame.fbDepth;
+    return m_frame->fbDepth;
   } else {
     *width = 0;
     *height = 0;
@@ -416,11 +595,48 @@ void Frame::discard()
 
 void Frame::renderFrame()
 {
+  deviceState()->commitBuffer.flush();
+
+  auto cam = *m_camera->getCamera();
+  struct {
+    vec3f lower_left, horizontal, vertical;
+  } screen;
+  cam.getScreen(screen.lower_left,screen.horizontal,screen.vertical);
+
+  // update camera:
+  pipeline().launchParam("camera.org", parms().camera.org) = cam.getPosition();
+  pipeline().launchParam("camera.dir_00", parms().camera.dir_00) = screen.lower_left;
+  pipeline().launchParam("camera.dir_du", parms().camera.dir_du) = screen.horizontal / m_size.x;
+  pipeline().launchParam("camera.dir_dv", parms().camera.dir_dv) = screen.vertical / m_size.y;
+
+  // update transfuncs:
+  std::vector<ex09_anari::Transfunc> transfuncs;
+  for (size_t i=0, validID=0; i<m_world->volumes().size(); ++i) {
+    auto vol = m_world->volumes()[i];
+    auto field = vol->getField();
+    if (!field) continue;
+    auto tf = vol->getTransfunc();
+    transfuncs.push_back({tf->valueRange,tf->rgbaLUT,tf->size});
+  }
+  m_TFs = Buffer(transfuncs.size(),transfuncs.data());
+  pipeline().launchParam("transfuncs", (RawPointer &)parms().transfuncs) = m_TFs.data();
+
+  // lighting
+  pipeline().launchParam("ambientColor", parms().ambientColor) = vec3f(1.f);
+  pipeline().launchParam("ambientRadiance", parms().ambientRadiance) = 1.f;
+  pipeline().launchParam("ambientSamples", parms().ambientRadiance) = 2;
+  pipeline().launchParam("occlusionDistance", parms().occlusionDistance) = 2.f;
+
+  // update accum:
+  pipeline().launchParam("accumID", parms().accumID) = pipeline().frameID;
+
   // set params:
   SET_LAUNCH_PARAMS(m_impl.parms);
 
   // only launch (ANARI takes over the 'present()' part):
-  m_impl.pipeline.launch();
+  pipeline().launch();
+
+  pipeline().isRunning();
 }
 
 } // namespace ex09_anari
@@ -432,6 +648,7 @@ DVR_COURSE_ANARI_TYPEFOR_DEFINITION(ex09_anari::Group *);
 DVR_COURSE_ANARI_TYPEFOR_DEFINITION(ex09_anari::World *);
 DVR_COURSE_ANARI_TYPEFOR_DEFINITION(ex09_anari::Camera *);
 DVR_COURSE_ANARI_TYPEFOR_DEFINITION(ex09_anari::Renderer *);
+DVR_COURSE_ANARI_TYPEFOR_DEFINITION(ex09_anari::Frame *);
 
 
 

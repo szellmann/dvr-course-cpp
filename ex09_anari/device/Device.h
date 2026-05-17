@@ -5,6 +5,8 @@
 
 // helium
 #include "helium/BaseDevice.h"
+// ours
+#include "hostCode.h"
 
 namespace ex09_anari {
 
@@ -82,7 +84,7 @@ struct DVRCourseDevice : public helium::BaseDevice
       const char *name, ANARIDataType type, void *mem, uint64_t size, uint32_t mask) override;
 
  private:
-  helium::BaseGlobalDeviceState *deviceState() const;
+  GlobalState *deviceState() const;
 
   bool m_initialized{false};
 };

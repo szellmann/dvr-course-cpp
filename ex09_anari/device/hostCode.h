@@ -16,7 +16,22 @@
 
 namespace ex09_anari {
 
-typedef helium::BaseGlobalDeviceState GlobalState;
+struct GlobalState : public helium::BaseGlobalDeviceState
+{
+  GlobalState(ANARIDevice d) : helium::BaseGlobalDeviceState(d)
+  { m_pipeline.setHeadless(true); }
+
+  ~GlobalState() = default;
+
+  dvr_course::Pipeline &pipeline()
+  { return m_pipeline; }
+
+  LaunchParams &parms()
+  { return m_parms; }
+ private:
+  dvr_course::Pipeline m_pipeline;
+  LaunchParams         m_parms;
+};
 
 struct Object : public helium::BaseObject
 {
@@ -35,12 +50,42 @@ struct Object : public helium::BaseObject
   virtual bool isValid() const override;
 
   GlobalState *deviceState() const;
+  dvr_course::Pipeline &pipeline();
+  LaunchParams &parms();
 };
 
 struct SpatialField : public Object
 {
   SpatialField(GlobalState *s);
   virtual ~SpatialField() = default;
+
+  void commitParameters() override;
+  void finalize() override;
+
+#ifdef RTCORE
+  OWLGroup getTLAS()
+  { return m_TLAS; }
+#endif
+
+  Volume getVolume()
+  { return m_volume; }
+
+ private:
+  struct {
+    helium::IntrusivePtr<helium::Array1D> vertexPosition;
+    helium::IntrusivePtr<helium::Array1D> vertexData;
+    helium::IntrusivePtr<helium::Array1D> index;
+    helium::IntrusivePtr<helium::Array1D> cellIndex;
+    helium::IntrusivePtr<helium::Array1D> cellType;
+    helium::IntrusivePtr<helium::Array1D> cellData;
+  } m_params;
+
+#ifdef RTCORE
+  OWLGroup m_TLAS;
+#endif
+
+  dvr_course::Buffer<Tet> m_tets;
+  Volume m_volume;
 };
 
 struct TF1D : public Object
@@ -51,22 +96,26 @@ struct TF1D : public Object
   void commitParameters() override;
   void finalize() override;
 
-  dvr_course::Transfunc getTransfunc()
-  { return m_impl.tf; }
+  SpatialField *getField()
+  { return m_params.field.ptr; }
+
+  dvr_course::Transfunc *getTransfunc()
+  { return m_transfunc.get(); }
 
  private:
-  box1f m_valueRange{0.f, 1.f};
-  float m_unitDistance{1.f};
-  vec4f m_uniformColor{1.f, 1.f, 1.f, 1.f};
-  float m_uniformOpacity{1.f};
+  struct Params {
+    Params(TF1D *parent) : colorData(parent), opacityData(parent) {}
+    box1f valueRange{0.f, 1.f};
+    float unitDistance{1.f};
+    vec4f uniformColor{1.f, 1.f, 1.f, 1.f};
+    float uniformOpacity{1.f};
 
-  helium::IntrusivePtr<SpatialField> m_field;
-  helium::ChangeObserverPtr<helium::Array1D> m_colorData;
-  helium::ChangeObserverPtr<helium::Array1D> m_opacityData;
+    helium::IntrusivePtr<SpatialField> field;
+    helium::ChangeObserverPtr<helium::Array1D> colorData;
+    helium::ChangeObserverPtr<helium::Array1D> opacityData;
+  } m_params;
 
-  struct {
-    dvr_course::Transfunc tf;
-  } m_impl;
+  std::unique_ptr<dvr_course::Transfunc> m_transfunc;
 };
 
 struct Group : public Object
@@ -114,18 +163,28 @@ struct Camera : public Object
   void commitParameters() override;
   void finalize() override;
 
-  dvr_course::Camera getCamera() const;
+  dvr_course::Camera *getCamera()
+  { return m_camera.get(); }
+
  private:
   anari::math::float3 m_pos;
   anari::math::float3 m_dir;
   anari::math::float3 m_up;
   float m_fovy{0.f};
+
+  std::unique_ptr<dvr_course::Camera> m_camera;
 };
 
 struct World : public Object
 {
   World(GlobalState *s);
   virtual ~World() = default;
+
+  bool getProperty(const std::string_view &name,
+      ANARIDataType type,
+      void *ptr,
+      uint64_t size,
+      uint32_t flags) override;
 
   void commitParameters() override;
   void finalize() override;
@@ -155,6 +214,10 @@ struct Frame : public helium::BaseFrame
 
   bool isValid() const override;
 
+  GlobalState *deviceState() const;
+  dvr_course::Pipeline &pipeline();
+  LaunchParams &parms();
+
   bool getProperty(const std::string_view &name,
       ANARIDataType type,
       void *ptr,
@@ -183,12 +246,9 @@ struct Frame : public helium::BaseFrame
   anari::DataType m_depthType{ANARI_UNKNOWN};
   int m_frameID{0};
 
-  struct {
-    dvr_course::Pipeline pipeline;
-    dvr_course::Camera   camera;
-    dvr_course::Frame    frame;
-    LaunchParams         parms;
-  } m_impl;
+  dvr_course::Buffer<Transfunc> m_TFs;
+
+  std::unique_ptr<dvr_course::Frame> m_frame;
 };
 
 } // ex09_anari
@@ -211,5 +271,6 @@ DVR_COURSE_ANARI_TYPEFOR_SPECIALIZATION(ex09_anari::Group *, ANARI_GROUP);
 DVR_COURSE_ANARI_TYPEFOR_SPECIALIZATION(ex09_anari::World *, ANARI_WORLD);
 DVR_COURSE_ANARI_TYPEFOR_SPECIALIZATION(ex09_anari::Camera *, ANARI_CAMERA);
 DVR_COURSE_ANARI_TYPEFOR_SPECIALIZATION(ex09_anari::Renderer *, ANARI_RENDERER);
+DVR_COURSE_ANARI_TYPEFOR_SPECIALIZATION(ex09_anari::Frame *, ANARI_FRAME);
 
 

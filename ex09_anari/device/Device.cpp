@@ -201,13 +201,13 @@ const void *DVRCourseDevice::getParameterInfo(ANARIDataType objectType,
 DVRCourseDevice::DVRCourseDevice(ANARIStatusCallback cb, const void *ptr)
     : helium::BaseDevice(cb, ptr)
 {
-  m_state = std::make_unique<helium::BaseGlobalDeviceState>(this_device());
+  m_state = std::make_unique<GlobalState>(this_device());
   deviceCommitParameters();
 }
 
 DVRCourseDevice::DVRCourseDevice(ANARILibrary l) : helium::BaseDevice(l)
 {
-  m_state = std::make_unique<helium::BaseGlobalDeviceState>(this_device());
+  m_state = std::make_unique<GlobalState>(this_device());
   deviceCommitParameters();
 }
 
@@ -256,9 +256,9 @@ int DVRCourseDevice::deviceGetProperty(
   return 0;
 }
 
-helium::BaseGlobalDeviceState *DVRCourseDevice::deviceState() const
+GlobalState *DVRCourseDevice::deviceState() const
 {
-  return (helium::BaseGlobalDeviceState *)helium::BaseDevice::m_state.get();
+  return (GlobalState *)helium::BaseDevice::m_state.get();
 }
 
 } // namespace ex09_anari

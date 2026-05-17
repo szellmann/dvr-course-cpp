@@ -82,7 +82,7 @@ struct VolumePRD {
 // ========================================================
 inline __device__ bool sampleVolume(const Volume &vol, vec3f pos, float &value)
 {
-  if (vol.type == Volume::TET) {
+  if (1||vol.type == Volume::TET) {
 #ifdef RTCORE
     VolumePRD prd;
     prd.value = 0.f;
@@ -329,7 +329,6 @@ inline __device__ float ambientOcclusion(vec3f hitPos, vec3f n, Random &rnd)
 // ========================================================
 RAYGEN_PROGRAM(directLighting)()
 {
-  //if (debug()) std::cout << getLaunchIndex() << '\n';
   auto &lp = optixLaunchParams;
   const vec2i threadIndex = getLaunchIndex();
   const vec2i launchDim = getLaunchDims();
@@ -342,18 +341,18 @@ RAYGEN_PROGRAM(directLighting)()
 
   HitRec hitRec = worldIntersection(ray,rnd);
 
-  if (hitRec.hitType != HitRec::None) {
-    float aoV = 1.f-ambientOcclusion(ray.eval(hitRec.hitT), hitRec.Ng, rnd);
-    hitRec.color.xyz *= aoV;
+  // if (hitRec.hitType != HitRec::None) {
+  //   float aoV = 1.f-ambientOcclusion(ray.eval(hitRec.hitT), hitRec.Ng, rnd);
+  //   hitRec.color.xyz *= aoV;
 
-    Ray shadowRay;
-    shadowRay.org = ray.eval(hitRec.hitT) + hitRec.Ng*1e-3f;
-    shadowRay.dir = normalize(lp.directionalLight.dir);
-    shadowRay.tmin = 0.f;
-    shadowRay.tmax = INFINITY;
-    HitRec shadowRec = worldIntersection(shadowRay, rnd);
-    hitRec.color.xyz *= 1.f-shadowRec.color.w;
-  }
+  //   Ray shadowRay;
+  //   shadowRay.org = ray.eval(hitRec.hitT) + hitRec.Ng*1e-3f;
+  //   shadowRay.dir = normalize(lp.directionalLight.dir);
+  //   shadowRay.tmin = 0.f;
+  //   shadowRay.tmax = INFINITY;
+  //   HitRec shadowRec = worldIntersection(shadowRay, rnd);
+  //   hitRec.color.xyz *= 1.f-shadowRec.color.w;
+  // }
 
   vec4f finalColor = over(hitRec.color, lp.backgroundColor);
 
