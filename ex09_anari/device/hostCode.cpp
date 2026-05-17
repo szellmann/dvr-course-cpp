@@ -63,8 +63,101 @@ GlobalState *Object::deviceState() const
 
 // TF1D volume ////////////////////////////////////////////////////////////////
 
-TF1D::TF1D(GlobalState *s) : Object(ANARI_VOLUME, s)
+TF1D::TF1D(GlobalState *s)
+  : Object(ANARI_VOLUME, s),
+    m_colorData(this), // observe changes
+    m_opacityData(this) // observe changes
 {}
+
+void TF1D::commitParameters()
+{
+  m_field = getParamObject<SpatialField>("value");
+
+  double valueRange_f[2] = {0.f, 1.f};
+  double valueRange_d[2] = {0.0, 1.0};
+  if (getParam("valueRange", ANARI_FLOAT32_BOX1, &valueRange_f[0])) {
+    m_valueRange.lower = valueRange_f[0];
+    m_valueRange.upper = valueRange_f[1];
+  }
+  if (getParam("valueRange", ANARI_FLOAT64_BOX1, &valueRange_d[0])) {
+    m_valueRange.lower = float(valueRange_d[0]);
+    m_valueRange.upper = float(valueRange_d[1]);
+  }
+
+  m_colorData = getParamObject<helium::Array1D>("color");
+  m_uniformColor = vec4f(1.f);
+  getParam("color", ANARI_FLOAT32_VEC3, &m_uniformColor);
+  getParam("color", ANARI_FLOAT32_VEC4, &m_uniformColor);
+  m_opacityData = getParamObject<helium::Array1D>("opacity");
+  m_uniformOpacity = getParam<float>("opacity", 1.f) * m_uniformColor.w;
+}
+
+void TF1D::finalize()
+{
+  if (!m_field) {
+    reportMessage(ANARI_SEVERITY_WARNING,
+        "no spatial field provided to transferFunction1D volume");
+    return;
+  }
+
+  if (!m_field->isValid()) {
+    reportMessage(ANARI_SEVERITY_WARNING,
+        "invalid spatial field provided to transferFunction1D volume");
+    return;
+  }
+
+  size_t numColorChannels{4};
+  if (m_colorData) { // TODO: more types
+    if (m_colorData->elementType() == ANARI_FLOAT32_VEC3)
+      numColorChannels = 3;
+  }
+
+  float *colorData = m_colorData ? (float *)m_colorData->data() : nullptr;
+  float *opacityData = m_opacityData ? (float *)m_opacityData->data() : nullptr;
+
+  size_t numColors = m_colorData ? m_colorData->size() : 1;
+  size_t numOpacities = m_opacityData ? m_opacityData->size() : 1;
+  size_t tfSize = max(numColors, numOpacities);
+
+  // combine color and opacity data to single array:
+  std::vector<vec4f> rgbaLUT(tfSize);
+  for (size_t i=0; i<tfSize; ++i) {
+    float colorPos = tfSize > 1 ? (float(i)/(tfSize-1))*(numColors-1) : 0.f;
+    float colorFrac = colorPos-floorf(colorPos);
+
+    vec4f color0(m_uniformColor.xyz, m_uniformOpacity);
+    vec4f color1(m_uniformColor.xyz, m_uniformOpacity);
+    if (colorData) {
+      if (numColorChannels == 3) {
+        vec3f *colors = (vec3f *)colorData;
+        color0 = vec4f(colors[int(floorf(colorPos))], m_uniformOpacity);
+        color1 = vec4f(colors[int(ceilf(colorPos))], m_uniformOpacity);
+      }
+      else if (numColorChannels == 4) {
+        vec4f *colors = (vec4f *)colorData;
+        color0 = colors[int(floorf(colorPos))];
+        color1 = colors[int(ceilf(colorPos))];
+      }
+    }
+
+    vec4f color = lerp(color0, color1, colorFrac);
+
+    if (opacityData) {
+      float alphaPos = tfSize > 1 ? (float(i)/(tfSize-1))*(numOpacities-1) : 0.f;
+      float alphaFrac = alphaPos-floorf(alphaPos);
+
+      float alpha0 = opacityData[int(floorf(alphaPos))];
+      float alpha1 = opacityData[int(ceilf(alphaPos))];
+
+      color.w *= lerp(alpha0, alpha1, alphaFrac);
+    }
+
+    rgbaLUT[i] = color;
+  }
+
+  m_impl.tf.valueRange = m_valueRange;
+  m_impl.tf.setLUT(rgbaLUT);
+}
 
 // Unstructured field /////////////////////////////////////////////////////////
 
@@ -258,6 +351,9 @@ void Frame::finalize()
                                cam.getUp(),
                                cam.getFovyInRadians());
 
+  for (auto &vol: m_world->volumes()) {
+  }
+
   struct {
     vec3f lower_left, horizontal, vertical;
   } screen;
@@ -330,6 +426,8 @@ void Frame::renderFrame()
 } // namespace ex09_anari
 
 DVR_COURSE_ANARI_TYPEFOR_DEFINITION(ex09_anari::Object *);
+DVR_COURSE_ANARI_TYPEFOR_DEFINITION(ex09_anari::SpatialField *);
+DVR_COURSE_ANARI_TYPEFOR_DEFINITION(ex09_anari::TF1D *);
 DVR_COURSE_ANARI_TYPEFOR_DEFINITION(ex09_anari::Group *);
 DVR_COURSE_ANARI_TYPEFOR_DEFINITION(ex09_anari::World *);
 DVR_COURSE_ANARI_TYPEFOR_DEFINITION(ex09_anari::Camera *);

@@ -4,7 +4,9 @@
 #pragma once
 
 // anari
+#include "helium/array/Array1D.h"
 #include "helium/array/ObjectArray.h"
+#include "helium/utility/ChangeObserverPtr.h"
 #include "helium/BaseObject.h"
 #include "helium/BaseFrame.h"
 // ours
@@ -45,6 +47,26 @@ struct TF1D : public Object
 {
   TF1D(GlobalState *s);
   virtual ~TF1D() = default;
+
+  void commitParameters() override;
+  void finalize() override;
+
+  dvr_course::Transfunc getTransfunc()
+  { return m_impl.tf; }
+
+ private:
+  box1f m_valueRange{0.f, 1.f};
+  float m_unitDistance{1.f};
+  vec4f m_uniformColor{1.f, 1.f, 1.f, 1.f};
+  float m_uniformOpacity{1.f};
+
+  helium::IntrusivePtr<SpatialField> m_field;
+  helium::ChangeObserverPtr<helium::Array1D> m_colorData;
+  helium::ChangeObserverPtr<helium::Array1D> m_opacityData;
+
+  struct {
+    dvr_course::Transfunc tf;
+  } m_impl;
 };
 
 struct Group : public Object
@@ -107,6 +129,9 @@ struct World : public Object
 
   void commitParameters() override;
   void finalize() override;
+
+  std::vector<TF1D *> volumes()
+  { return m_volumes; }
 
  private:
   helium::IntrusivePtr<helium::ObjectArray> m_volumeData;
@@ -180,6 +205,8 @@ struct Frame : public helium::BaseFrame
   }
 
 DVR_COURSE_ANARI_TYPEFOR_SPECIALIZATION(ex09_anari::Object *, ANARI_OBJECT);
+DVR_COURSE_ANARI_TYPEFOR_SPECIALIZATION(ex09_anari::SpatialField *, ANARI_SPATIAL_FIELD);
+DVR_COURSE_ANARI_TYPEFOR_SPECIALIZATION(ex09_anari::TF1D *, ANARI_VOLUME);
 DVR_COURSE_ANARI_TYPEFOR_SPECIALIZATION(ex09_anari::Group *, ANARI_GROUP);
 DVR_COURSE_ANARI_TYPEFOR_SPECIALIZATION(ex09_anari::World *, ANARI_WORLD);
 DVR_COURSE_ANARI_TYPEFOR_SPECIALIZATION(ex09_anari::Camera *, ANARI_CAMERA);
