@@ -310,6 +310,8 @@ void TF1D::finalize()
 
   m_transfunc->valueRange = m_params.valueRange;
   m_transfunc->setLUT(rgbaLUT);
+
+  pipeline().resetAccumulation();
 }
 
 // Nodes  /////////////////////////////////////////////////////////////////////
