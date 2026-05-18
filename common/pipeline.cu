@@ -1169,8 +1169,13 @@ void Pipeline::launch() {
     // fall-through (first time is always running):
   }
 
+  // we can launch a pipeline w/o a rayGen or launch function set, but we won't
+  // proceed beyond this point (launching and timing the function, and we also
+  // don't clear the frame!):
 #ifdef RTCORE
   impl->updateLaunchParams();
+  if (!impl->owl.rayGen)
+    return;
 #else
   if (!func)
     return;
@@ -1182,9 +1187,7 @@ void Pipeline::launch() {
   if (frameID < impl->sampleLimit) {
     impl->beginTiming();
 #ifdef RTCORE
-    if (impl->owl.rayGen) {
-      owlLaunch2D(impl->owl.rayGen, fb->width, fb->height, impl->owl.launchParams);
-    }
+    owlLaunch2D(impl->owl.rayGen, fb->width, fb->height, impl->owl.launchParams);
 #else
 #ifndef __EMSCRIPTEN__
     parallel::for_each(impl->pool, 0, fb->width, 0, fb->height,
