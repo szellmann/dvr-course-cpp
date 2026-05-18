@@ -131,10 +131,10 @@ void SpatialField::finalize()
 
   auto *cellTypes = m_params.cellType->beginAs<uint8_t>();
   auto *vertices = m_params.vertexPosition->beginAs<anari::math::float3>();
-  auto *vertexValues = m_params.vertexData->beginAs<float>();
+  auto *vertexValues = m_params.vertexData? m_params.vertexData->beginAs<float>(): nullptr;
   auto *connectivity = m_params.index->beginAs<uint32_t>();
   auto *cellIndices = m_params.cellIndex->beginAs<uint32_t>();
-  auto *cellValues = m_params.cellData->beginAs<float>();
+  auto *cellValues = m_params.cellData? m_params.cellData->beginAs<float>(): nullptr;
 
   // assemble tets:
   std::vector<Tet> tets;
