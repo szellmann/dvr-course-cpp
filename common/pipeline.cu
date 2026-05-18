@@ -240,38 +240,40 @@ struct Pipeline::Impl
       }
     }
 #ifdef INTERACTIVE
-    manip = CameraManip(camera, width, height);
+    if (!headless) {
+      manip = CameraManip(camera, width, height);
 
-    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD))
-      throw std::runtime_error("failed to initialize SDL");
-  
-    Uint32 window_flags =
-        SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN;
-    sdl_window = SDL_CreateWindow(name.c_str(), width, height, window_flags);
-  
-    if (sdl_window == nullptr)
-      throw std::runtime_error("failed to create SDL window");
-  
-    sdl_renderer = SDL_CreateRenderer(sdl_window, nullptr);
-  
-    SDL_SetWindowPosition(
-        sdl_window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-    if (sdl_renderer == nullptr) {
-      SDL_DestroyWindow(sdl_window);
-      SDL_Quit();
-      throw std::runtime_error("Failed to create SDL renderer");
-    }
-  
-    SDL_ShowWindow(sdl_window);
+      if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD))
+        throw std::runtime_error("failed to initialize SDL");
+    
+      Uint32 window_flags =
+          SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN;
+      sdl_window = SDL_CreateWindow(name.c_str(), width, height, window_flags);
+    
+      if (sdl_window == nullptr)
+        throw std::runtime_error("failed to create SDL window");
+    
+      sdl_renderer = SDL_CreateRenderer(sdl_window, nullptr);
+    
+      SDL_SetWindowPosition(
+          sdl_window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+      if (sdl_renderer == nullptr) {
+        SDL_DestroyWindow(sdl_window);
+        SDL_Quit();
+        throw std::runtime_error("Failed to create SDL renderer");
+      }
+    
+      SDL_ShowWindow(sdl_window);
 
-    ImGui::CreateContext();
-    ImGui::StyleColorsDark();
+      ImGui::CreateContext();
+      ImGui::StyleColorsDark();
 
-    ImGui_ImplSDL3_InitForSDLRenderer(sdl_window, sdl_renderer);
-    ImGui_ImplSDLRenderer3_Init(sdl_renderer);
+      ImGui_ImplSDL3_InitForSDLRenderer(sdl_window, sdl_renderer);
+      ImGui_ImplSDLRenderer3_Init(sdl_renderer);
 
-    for (int i=0; i<tfe.size(); ++i) {
-      tfe[i].setSDL3Renderer(sdl_renderer);
+      for (int i=0; i<tfe.size(); ++i) {
+        tfe[i].setSDL3Renderer(sdl_renderer);
+      }
     }
 #endif
 
@@ -794,6 +796,7 @@ struct Pipeline::Impl
   }
 
   Pipeline *parent{nullptr};
+  bool headless{false}; // suppress window creation in interactive mode
 #ifdef INTERACTIVE
   SDL_Window *sdl_window{nullptr};
   SDL_Renderer *sdl_renderer{nullptr};
@@ -913,6 +916,10 @@ Pipeline::Pipeline(int argc, char *argv[], std::string name)
 
 Pipeline::~Pipeline() {
   impl->cleanup();
+}
+
+void Pipeline::setHeadless(bool headless) {
+  impl->headless = headless;
 }
 
 #ifdef RTCORE
@@ -1106,7 +1113,8 @@ bool Pipeline::isRunning() {
   }
 
   bool quit = false, cameraUpdate = false, windowResize = false;
-  impl->pollEvents(quit,cameraUpdate,windowResize);
+  if (!impl->headless)
+    impl->pollEvents(quit,cameraUpdate,windowResize);
   running = !quit;
 #ifndef INTERACTIVE
   running = (frameID < impl->sampleLimit-1);
@@ -1121,19 +1129,21 @@ bool Pipeline::isRunning() {
     resetAccum = true;
 
 #ifdef INTERACTIVE
-  int tfID = impl->tfID;
-  if (transfuncValid(tfID)) {
-    if (impl->tfe[tfID].lutUpdated()) {
-      impl->transfuncs[tfID]->setLUT(impl->tfe[tfID].getLUT());
-      resetAccum = true;
-    }
-    if (impl->tfe[tfID].rangeUpdated()) {
-      impl->transfuncs[tfID]->valueRange = impl->tfe[tfID].getRange();
-      resetAccum = true;
-    }
-    if (impl->tfe[tfID].scaleUpdated()) {
-      impl->transfuncs[tfID]->opacity = impl->tfe[tfID].getOpacityScale();
-      resetAccum = true;
+  if (!impl->headless) {
+    int tfID = impl->tfID;
+    if (transfuncValid(tfID)) {
+      if (impl->tfe[tfID].lutUpdated()) {
+        impl->transfuncs[tfID]->setLUT(impl->tfe[tfID].getLUT());
+        resetAccum = true;
+      }
+      if (impl->tfe[tfID].rangeUpdated()) {
+        impl->transfuncs[tfID]->valueRange = impl->tfe[tfID].getRange();
+        resetAccum = true;
+      }
+      if (impl->tfe[tfID].scaleUpdated()) {
+        impl->transfuncs[tfID]->opacity = impl->tfe[tfID].getOpacityScale();
+        resetAccum = true;
+      }
     }
   }
 #endif

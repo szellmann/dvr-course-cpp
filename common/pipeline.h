@@ -61,6 +61,9 @@ struct Pipeline {
   Pipeline(int argc, char *argv[], std::string name = "dvr-course-cpp");
   ~Pipeline();
 
+  // no window and event handling when compiled in interactive mode:
+  void setHeadless(bool headless);
+
 #ifdef RTCORE
   // for use with RTCORE (load from module)
 
