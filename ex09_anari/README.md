@@ -36,8 +36,8 @@ The ANARI app is, by intention, very simplistic. It can only load and render
 tetrahedral meshes as in prior examples, and for that requires an ANARI device
 that supports the ANARI extension `KHR_SPATIAL_FIELD_UNSTRUCTURED` added with
 spec v1.1. The device included here supports this extension; so do, e.g.,
-[Barney](https://github.com/NVIDIA/barney)) or
-[Visionaray](https://github.com/szellmann/anari-visionaray)). When calling the
+[Barney](https://github.com/NVIDIA/barney) or
+[Visionaray](https://github.com/szellmann/anari-visionaray). When calling the
 app without specific environment variables, the example device (`ex09_anari`, e.g.,
 `libanari_library_ex09_anari.so`) will be used. Other devices can be used by
 setting the environment variable `ANARI_LIBRARY` accordingly.
