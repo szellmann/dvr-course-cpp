@@ -112,17 +112,20 @@ ANARIGroup DVRCourseDevice::newGroup()
 
 ANARILight DVRCourseDevice::newLight(const char * /*subtype*/)
 {
-  return {};
+  initDevice();
+  return (ANARILight) new UnknownObject(ANARI_LIGHT, deviceState());
 }
 
 ANARIMaterial DVRCourseDevice::newMaterial(const char * /*subtype*/)
 {
-  return {};
+  initDevice();
+  return (ANARIMaterial) new UnknownObject(ANARI_MATERIAL, deviceState());
 }
 
 ANARIGeometry DVRCourseDevice::newGeometry(const char * /*subtype*/)
 {
-  return {};
+  initDevice();
+  return (ANARIGeometry) new UnknownObject(ANARI_GEOMETRY, deviceState());
 }
 
 ANARIInstance DVRCourseDevice::newInstance(const char * /*subtype*/)
@@ -139,7 +142,8 @@ ANARIRenderer DVRCourseDevice::newRenderer(const char * /*subtype*/)
 
 ANARISampler DVRCourseDevice::newSampler(const char * /*subtype*/)
 {
-  return {};
+  initDevice();
+  return (ANARISampler) new UnknownObject(ANARI_SAMPLER, deviceState());
 }
 
 ANARISpatialField DVRCourseDevice::newSpatialField(const char * /*subtype*/)
@@ -150,7 +154,8 @@ ANARISpatialField DVRCourseDevice::newSpatialField(const char * /*subtype*/)
 
 ANARISurface DVRCourseDevice::newSurface()
 {
-  return {};
+  initDevice();
+  return (ANARISurface) new UnknownObject(ANARI_SURFACE, deviceState());
 }
 
 ANARIVolume DVRCourseDevice::newVolume(const char * /*subtype*/)

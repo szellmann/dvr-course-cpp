@@ -71,6 +71,17 @@ LaunchParams &Object::parms()
   return deviceState()->parms();
 }
 
+// UnknownObject definitions //////////////////////////////////////////////////
+
+UnknownObject::UnknownObject(ANARIDataType type, GlobalState *s)
+    : Object(type, s)
+{}
+
+bool UnknownObject::isValid() const
+{
+  return false;
+}
+
 // Unstructured field /////////////////////////////////////////////////////////
 
 SpatialField::SpatialField(GlobalState *s) : Object(ANARI_SPATIAL_FIELD, s)

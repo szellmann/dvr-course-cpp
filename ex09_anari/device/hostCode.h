@@ -54,6 +54,13 @@ struct Object : public helium::BaseObject
   LaunchParams &parms();
 };
 
+struct UnknownObject : public Object
+{
+  UnknownObject(ANARIDataType type, GlobalState *s);
+  ~UnknownObject() override = default;
+  bool isValid() const override;
+};
+
 struct SpatialField : public Object
 {
   SpatialField(GlobalState *s);
