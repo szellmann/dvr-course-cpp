@@ -290,6 +290,10 @@ extern "C" int main(int argc, char *argv[]) {
   cam.viewAll(*(box3f *)&bounds);
   pl.setCamera(&cam);
 
+  pl.setTransfuncUpdateHandler([&](const dvr_course::Transfunc *tf, int /*tfID*/) {
+    updateAnariTransfunc(device);
+  });
+
   do {
     struct {
       vec3f lower_left, horizontal, vertical;
@@ -311,8 +315,6 @@ extern "C" int main(int argc, char *argv[]) {
     anari::math::uint2 imageSize = {(unsigned)fb.width, (unsigned)fb.height};
     anari::setParameter(device, frame, "size", imageSize);
     anari::commitParameters(device, frame);
-
-    updateAnariTransfunc(device);
 
     anari::render(device, frame);
     anari::wait(device, frame);
