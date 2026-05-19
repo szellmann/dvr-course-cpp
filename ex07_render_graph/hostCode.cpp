@@ -313,8 +313,8 @@ extern "C" int main(int argc, char *argv[]) {
     // update camera:
     pl.launchParam("camera.org", parms.camera.org) = cam.getPosition();
     pl.launchParam("camera.dir_00", parms.camera.dir_00) = screen.lower_left;
-    pl.launchParam("camera.dir_du", parms.camera.dir_du) = screen.horizontal / imgWidth;
-    pl.launchParam("camera.dir_dv", parms.camera.dir_dv) = screen.vertical / imgHeight;
+    pl.launchParam("camera.dir_du", parms.camera.dir_du) = screen.horizontal / fb.width;
+    pl.launchParam("camera.dir_dv", parms.camera.dir_dv) = screen.vertical / fb.height;
     // update transfuncs:
     pl.launchParam("transfuncs", (RawPointer &)parms.transfuncs)
         = (ex07_render_graph::Transfunc *)transfuncBuffer.data();

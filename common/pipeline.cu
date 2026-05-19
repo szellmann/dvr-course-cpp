@@ -1120,6 +1120,11 @@ bool Pipeline::isRunning() {
   running = (frameID < impl->sampleLimit-1);
 #endif
 
+  if (windowResize) {
+    camera->setAspect((float)fb->width/fb->height);
+    cameraUpdate = true;
+  }
+
   if (!running)
     return false;
 

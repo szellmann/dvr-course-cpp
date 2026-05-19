@@ -148,8 +148,8 @@ extern "C" int main(int argc, char *argv[]) {
     // update camera:
     pl.launchParam("camera.org", parms.camera.org) = cam.getPosition();
     pl.launchParam("camera.dir_00", parms.camera.dir_00) = screen.lower_left;
-    pl.launchParam("camera.dir_du", parms.camera.dir_du) = screen.horizontal / imgWidth;
-    pl.launchParam("camera.dir_dv", parms.camera.dir_dv) = screen.vertical / imgHeight;
+    pl.launchParam("camera.dir_du", parms.camera.dir_du) = screen.horizontal / fb.width;
+    pl.launchParam("camera.dir_dv", parms.camera.dir_dv) = screen.vertical / fb.height;
     // update transfunc:
     pl.launchParam("transfunc.valueRange", parms.transfunc.valueRange) = pl.getTransfunc()->valueRange;
     pl.launchParam("transfunc.size", parms.transfunc.size) = pl.getTransfunc()->size;

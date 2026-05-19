@@ -328,6 +328,8 @@ extern "C" int main(int argc, char *argv[]) {
     pl.launch();
     pl.present();
   } while (pl.isRunning());
+
+  return 0;
 }
 
 } // namespace ex09_anari
