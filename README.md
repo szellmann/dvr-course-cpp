@@ -63,7 +63,7 @@ details).
 ### Ex. 03: Multi volume
 ### Ex. 04: Lights on!!
 ### Ex. 05: Tets N' friends
-### Ex. 06 (TODO: on adaptive sampling and space skipping)
+### Ex. 06: Need for Speed
 ### Ex. 07: Render Graph
 ### Ex. 08 (TODO: on multi-GPU)
 ### Ex. 09: ANARI
