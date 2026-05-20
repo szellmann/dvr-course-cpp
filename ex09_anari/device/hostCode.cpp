@@ -322,7 +322,7 @@ void TF1D::finalize()
   m_transfunc->valueRange = m_params.valueRange;
   m_transfunc->setLUT(rgbaLUT);
 
-  pipeline().resetAccumulation();
+  pipeline().markTransfuncUpdate();
 }
 
 // Nodes  /////////////////////////////////////////////////////////////////////
@@ -460,7 +460,7 @@ void Camera::finalize()
                            vec3f(poi.x,poi.y,poi.z),
                            vec3f(m_up.x,m_up.y,m_up.z),
                            m_fovy);
-  pipeline().resetAccumulation();
+  pipeline().markCameraUpdate();
 }
 
 // Frame //////////////////////////////////////////////////////////////////////
@@ -549,6 +549,8 @@ void Frame::finalize()
     }
     validID++;
   }
+
+  pipeline().markFrameUpdate();
 
   // volumes
   //pipeline().launchParam("volumes", (RawPointer &)m_impl.parms.volumes) = (Volume *)m_volumes.data();

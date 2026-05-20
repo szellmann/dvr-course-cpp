@@ -64,6 +64,12 @@ struct Pipeline {
   // no window and event handling when compiled in interactive mode:
   void setHeadless(bool headless);
 
+  // for use in headless mode; need to manually notify the pipeline
+  // that camera or frame were updated:
+  void markCameraUpdate();
+  void markFrameUpdate();
+  void markTransfuncUpdate();
+
 #ifdef RTCORE
   // for use with RTCORE (load from module)
 

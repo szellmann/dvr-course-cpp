@@ -497,7 +497,7 @@ struct Pipeline::Impl
     }
   }
 
-  void pollEvents(bool &quit, bool &cameraUpdate, bool &windowResize)
+  void pollEvents(bool &quit)
   {
 #ifdef INTERACTIVE
     quit = false;
@@ -520,7 +520,7 @@ struct Pipeline::Impl
       if (event.type == SDL_EVENT_WINDOW_RESIZED) {
         if (fb != nullptr) {
           fb->resize(event.window.data1, event.window.data2);
-          windowResize = true;
+          updates.frameUpdate = true;
         }
       }
       // mouse events
@@ -553,7 +553,7 @@ struct Pipeline::Impl
         }
         if (event.type == SDL_EVENT_MOUSE_MOTION) {
           SDL_MouseMotionEvent motion = event.motion;
-          cameraUpdate = manip.handleMouseMove(motion.x,motion.y,mod);
+          updates.cameraUpdate = manip.handleMouseMove(motion.x,motion.y,mod);
         }
       }
       // keyboard events
@@ -596,6 +596,17 @@ struct Pipeline::Impl
       }
     }
 #endif
+  }
+
+  void checkForUpdates(bool &cameraUpdate, bool &frameUpdate, bool &transfuncUpdate)
+  {
+    cameraUpdate = updates.cameraUpdate;
+    frameUpdate = updates.frameUpdate;
+    transfuncUpdate = updates.transfuncUpdate;
+
+    updates.cameraUpdate = false;
+    updates.frameUpdate = false;
+    updates.transfuncUpdate = false;
   }
 
   void beginTiming()
@@ -907,6 +918,12 @@ struct Pipeline::Impl
     std::map<std::string,LP> lpMap;
   } owl;
 #endif
+
+  struct {
+    bool cameraUpdate{false};
+    bool frameUpdate{false};
+    bool transfuncUpdate{false};
+  } updates;
 };
 
 Pipeline::Pipeline(std::string name) : impl(new Impl(this,name)) {}
@@ -920,6 +937,18 @@ Pipeline::~Pipeline() {
 
 void Pipeline::setHeadless(bool headless) {
   impl->headless = headless;
+}
+
+void Pipeline::markCameraUpdate() {
+  impl->updates.cameraUpdate = true;
+}
+
+void Pipeline::markFrameUpdate() {
+  impl->updates.frameUpdate = true;
+}
+
+void Pipeline::markTransfuncUpdate() {
+  impl->updates.transfuncUpdate = true;
 }
 
 #ifdef RTCORE
@@ -1112,15 +1141,17 @@ bool Pipeline::isRunning() {
     abort();
   }
 
-  bool quit = false, cameraUpdate = false, windowResize = false;
+  bool quit = false, cameraUpdate = false, frameUpdate = false, transfuncUpdate = false;
   if (!impl->headless)
-    impl->pollEvents(quit,cameraUpdate,windowResize);
+    impl->pollEvents(quit);
   running = !quit;
 #ifndef INTERACTIVE
   running = (frameID < impl->sampleLimit-1);
 #endif
 
-  if (windowResize) {
+  impl->checkForUpdates(cameraUpdate,frameUpdate,transfuncUpdate);
+
+  if (frameUpdate) {
     camera->setAspect((float)fb->width/fb->height);
     cameraUpdate = true;
   }
@@ -1130,7 +1161,7 @@ bool Pipeline::isRunning() {
 
   bool resetAccum = false;
 
-  if (cameraUpdate || windowResize)
+  if (cameraUpdate || frameUpdate || transfuncUpdate)
     resetAccum = true;
 
 #ifdef INTERACTIVE
