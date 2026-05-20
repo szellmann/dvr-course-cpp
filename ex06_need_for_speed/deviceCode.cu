@@ -17,6 +17,7 @@
 // common
 #include <dvr_course-common.cuh>
 // ex06
+#include "GridAccel.h"
 #include "Params.h"
 
 using namespace dvr_course;

@@ -222,6 +222,11 @@ vec3i max(vec3i u, vec3i v) {
   return {max(u.x,v.x),max(u.y,v.y),max(u.z,v.z)};
 }
 
+inline __host__ __device__
+size_t linearIndex(const vec3i &index, const vec3i &dims) {
+  return index.z*dims.x*dims.y + index.y*size_t(dims.x) + index.x;
+}
+
 inline
 std::ostream& operator<<(std::ostream &out, vec3i v) {
   out << '(' << v.x << ',' << v.y <<',' << v.z << ')';
