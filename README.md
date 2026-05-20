@@ -8,7 +8,7 @@ The course discusses how to write modern volume renderers that are targeted at
 sci-vis:
 
 - The framework adopts a Monte Carlo approach.
-- Data values are mapped to color and opacity using an RGBA transferfunction.
+- Data values are mapped to color and opacity using an RGBA transfer function.
 - The data is expected to be large, potentially distributed across compute
   nodes.
 - Data items have non-trivial formats, e.g., tetrahedra, sparse voxels, etc.
