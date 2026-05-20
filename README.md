@@ -3,7 +3,7 @@
 ![dvr-course Teaser](teaser.png)
 
 This is the code repository for the Advanced Real-Time Volume Graphics
-[course presented at SIGGRAPH 2026](https://doi.org/10.1145/3799820.3812500)
+[course presented at SIGGRAPH 2026](https://doi.org/10.1145/3799820.3812500).
 The course discusses how to write modern volume renderers that are targeted at
 sci-vis:
 
