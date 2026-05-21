@@ -21,10 +21,18 @@
 
 namespace dvr_course {
 
+struct TFEConfig
+{
+  bool lut{true};
+  bool range{true};
+  bool relDomain{false};
+  bool opacityScale{false};
+};
+
 class TFE : private AlphaEditor
 {
  public:
-  void init(const Transfunc &transfunc);
+  void init(const Transfunc &transfunc, const TFEConfig &config = {});
   bool drawImmediate();
 
   // Set SDL3 renderer
@@ -65,6 +73,8 @@ class TFE : private AlphaEditor
   bool rangeUpdated_{false};
   bool domainUpdated_{false};
   bool scaleUpdated_{false};
+
+  TFEConfig config_;
 };
 
 } // dvr_course

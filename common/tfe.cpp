@@ -19,7 +19,8 @@
 
 namespace dvr_course {
 
-void TFE::init(const Transfunc &transfunc) {
+void TFE::init(const Transfunc &transfunc, const TFEConfig &config) {
+  config_ = config;
   AlphaEditor::setLookupTable(transfunc.getLUT());
   range = transfunc.valueRange;
   relDomain = transfunc.relRange;
@@ -27,18 +28,20 @@ void TFE::init(const Transfunc &transfunc) {
 }
 
 bool TFE::drawImmediate() {
-  AlphaEditor::drawImmediate();
+  if (config_.lut)
+    AlphaEditor::drawImmediate();
 
-  if (ImGui::DragFloatRange2("Range", &range.lower, &range.upper,
-                             fmaxf(range.size()/100.f, 0.0001f))) {
+  if (config_.range && ImGui::DragFloatRange2(
+      "Range", &range.lower, &range.upper, fmaxf(range.size()/100.f, 0.0001f))) {
     rangeUpdated_ = true;
   }
 
-  if (ImGui::DragFloatRange2("Rel Domain", &relDomain.lower, &relDomain.upper, 1.f)) {
+  if (config_.relDomain && ImGui::DragFloatRange2(
+      "Rel Domain", &relDomain.lower, &relDomain.upper, 1.f)) {
     domainUpdated_ = true;
   }
 
-  if (ImGui::DragFloat("Opacity", &opacityScale, 1.f)) {
+  if (config_.opacityScale && ImGui::DragFloat("Opacity", &opacityScale, 1.f)) {
     scaleUpdated_ = true;
   }
 
