@@ -78,6 +78,7 @@ struct vec2i
   vec2i() = default;
   __host__ __device__ vec2i(int s) : x(s), y(s) {}
   __host__ __device__ vec2i(int x, int y) : x(x), y(y) {}
+  __host__ __device__ vec2i(const vec3i &v); // below
   __host__ __device__ int &operator[](int i) { return ((int*)this)[i]; }
   __host__ __device__ const int &operator[](int i) const { return ((int*)this)[i]; }
   int x, y;
@@ -137,6 +138,9 @@ struct vec3i
     struct { int x, y, z; };
   };
 };
+
+// vec2i from vec3i
+inline vec2i::vec2i(const vec3i &v) : x(v.x), y(v.y) {}
 
 inline __host__ __device__
 vec3i operator+(vec3i u, vec3i v) {
