@@ -49,11 +49,17 @@ rendering techniques. Each sample is organized into a host and device code part
 (even when rendering on the CPU), where the file `hostCode.cpp` contains the
 implementation for data wrangling, setting up acceleration structures,
 initiating frame rendering, etc.; and the file `deviceCode.cu` implements the
-GPU (or CPU-device) renderer. The framework is performance portable. Later
-examples make use of specific GPU features including hardware ray tracing; some
-of the features and examples only work on NVIDIA GPUs with RTX ray tracing
-cores. We provide CPU fallbacks for most of the examples (see below for
-details).
+GPU (or CPU-device) renderer. Later examples make use of specific GPU features
+including hardware ray tracing; some of the features and examples only work on
+NVIDIA GPUs with RTX ray tracing cores. The sample codes use a common framework
+linked by both the host and device programs. The framework provides a simple
+vector math library similar to, e.g., GLM or shader intrinsics and also pulls
+in the the OptiX wrapper library (OWL). It offers a CPU fallback that allows
+the user to run the samples not making explicit use of ray tracing features
+such as BVH traversal. The framework ensures that ray generation programs and
+similar are executed accordingly. OptiX BVHs in particular are not supported by
+the fallback. The C/C++ define `RTCORE` indicates if compiling with OWL or not.
+`RTCORE` is also defined when compiling with fakeOWL (see below).
 
 ## Example programs overview
 
@@ -67,3 +73,25 @@ details).
 ### Ex. 07: Render Graph
 ### Ex. 08 (TODO: on multi-GPU)
 ### Ex. 09: ANARI
+
+## Compiling and running the samples on non-NVIDIA hardware
+The course uses the CUDA programming language and C/C++ on the host as this is
+a common choice when programming for HPC systems. We use NVIDIA OptiX to make
+use of hardware ray tracing features. OptiX also offers a full feature set on
+NVIDIA GPUs without RTX cores.
+
+Our framework comes with a CPU fallback allowing to run some of the samples
+with a limited feature set. While this fallback does not support BVHs, there is
+an unofficial way to run the samples on the CPU using a full feature set (yet
+with limitations in performance). This can be enabled on non-NVIDIA systems by
+compiling against the unofficial library
+[fakeOWL](https://github.com/szellmann/fakeOWL). This library implements some
+of OptiX's and OWL's features on the CPU; namely the feature set for BVH
+traversal, bounds- and closest-hit programs used by the samples is supported.
+fakeOWL is API-compatible with a version of NVIDIA's OWL and the sample
+programs were tested against it.
+
+When using fakeOWL, the samples pretend they are running on a system with full
+ray tracing support, hence, from the samples' perspective this is not using the
+CPU fallback and the macro `RTCORE` is defined and evaluates to `true` when
+used in host or device programs.
