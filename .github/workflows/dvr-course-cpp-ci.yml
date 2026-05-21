@@ -1,0 +1,100 @@
+name: dvr-course-cpp CI
+
+on:
+  push:
+    branches: [ main, ci ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2022]
+        config: [Release, Debug]
+        cuda: [ON, OFF]
+        exclude:
+          - os: macos-15
+            cuda: ON
+          - os: windows-2022
+            cuda: ON
+
+    name: OS ${{ matrix.os }} - config ${{ matrix.config }} - CUDA ${{ matrix.cuda }}
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Add NVIDIA package repositories
+      if: >-
+        matrix.os == 'ubuntu-24.04' &&
+        matrix.cuda == 'ON'
+      run: |
+        wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-ubuntu2204.pin
+        sudo mv cuda-ubuntu2204.pin /etc/apt/preferences.d/cuda-repository-pin-600
+        sudo apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/3bf863cc.pub
+        sudo add-apt-repository "deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/ /"
+        sudo apt update
+
+    - name: Install CUDA
+      if: >-
+        matrix.os == 'ubuntu-24.04' &&
+        matrix.cuda == 'ON'
+      run: sudo apt-get install -y cuda-toolkit-12-6
+
+    - name: Setup CUDA
+      if: >-
+        matrix.os == 'ubuntu-24.04' &&
+        matrix.cuda == 'ON'
+      run: |
+        echo "/usr/local/cuda-12.6/bin" >> $GITHUB_PATH
+        echo "LD_LIBRARY_PATH=/usr/local/cuda-12.6/lib64:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+
+    - name: Checkout ANARI-SDK
+      uses: actions/checkout@v3
+      with:
+        repository: KhronosGroup/ANARI-SDK
+        path: ${{ github.workspace }}/ANARI-SDK
+        ref: next_release
+
+    - name: Configure ANARI-SDK
+      run: >
+        cmake ${{ github.workspace }}/ANARI-SDK -B ${{ github.workspace }}/ANARI-SDK_build
+        -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/opt
+        -DCMAKE_BUILD_TYPE=Release
+        -DBUILD_EXAMPLES:BOOL=OFF
+        -DBUILD_VIEWER:BOOL=OFF
+        -DBUILD_HELIDE_DEVICE:BOOL=OFF
+        -DINSTALL_VIEWER_LIBRARY:BOOL=OFF
+        -DBUILD_TESTING:BOOL=OFF
+
+    - name: Build and install ANARI-SDK
+      run: >
+        cmake --build ${{ github.workspace }}/ANARI-SDK_build --config ${{ matrix.config }} --target install
+
+    - name: Checkout OWL
+      uses: actions/checkout@v3
+      with:
+        repository: NVIDIA/OWL
+        path: ${{ github.workspace }}/OWL
+        ref: master
+
+    - name: Configure OWL
+      run: >
+        cmake ${{ github.workspace }}/OWL -B ${{ github.workspace }}/OWL_build
+        -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/opt
+        -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build and install OWL
+      run: >
+        cmake --build ${{ github.workspace }}/OWL_build --config ${{ matrix.config }} --target install
+
+    - name: Configure
+      env:
+        CMAKE_PREFIX_PATH: ${{ github.workspace }}/opt
+      run: >
+        cmake -LA -B ${{ github.workspace }}/build
+        -DCMAKE_BUILD_TYPE=${{ matrix.config }}
+
+    - name: Build
+      run: cmake --build ${{ github.workspace }}/build --config ${{ matrix.config }}
