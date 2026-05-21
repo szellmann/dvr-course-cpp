@@ -15,6 +15,7 @@ jobs:
         config: [Release, Debug]
         cuda: [ON, OFF]
         exclude:
+          - cuda: OFF
           - os: macos-15
             cuda: ON
           - os: windows-2022
