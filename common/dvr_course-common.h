@@ -36,6 +36,10 @@
 #define owlDeviceBufferCreate owlBufferCreateEXT
 #endif
 
+#ifdef OWL_IS_FAKE
+#undef __CUDACC__
+#endif
+
 namespace dvr_course {
 using namespace vecmath;
 
