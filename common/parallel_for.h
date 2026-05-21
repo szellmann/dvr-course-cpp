@@ -81,6 +81,35 @@ void parallel_for(thread_pool& pool, tiled_range2d<I> const& range, Func const& 
   }, static_cast<long>(num_tiles_x * num_tiles_y));
 }
 
+template <typename I, typename Func>
+void parallel_for(thread_pool& pool, tiled_range3d<I> const& range, Func const& func) {
+  I first_row = range.rows().begin();
+  I first_col  = range.cols().begin();
+  I first_slice  = range.slices().begin();
+  I width = range.rows().length();
+  I height = range.cols().length();
+  I depth = range.slices().length();
+  I tile_width = range.rows().tile_size();
+  I tile_height = range.cols().tile_size();
+  I tile_depth = range.slices().tile_size();
+  I num_tiles_x = div_up(width, tile_width);
+  I num_tiles_y = div_up(height, tile_height);
+  I num_tiles_z = div_up(depth, tile_depth);
+
+  pool.run([=](long tile_index) {
+    I first_x = (tile_index % num_tiles_x) * tile_width + first_row;
+    I last_x = std::min(first_x + tile_width, first_row + width);
+
+    I first_y = ((tile_index / num_tiles_x) % num_tiles_y) * tile_height + first_col;
+    I last_y = std::min(first_y + tile_height, first_col + height);
+
+    I first_z = (tile_index / (num_tiles_x * num_tiles_y)) * tile_depth + first_slice;
+    I last_z = std::min(first_z + tile_depth, first_slice + depth);
+
+    func(range3d<I>(first_x, last_x, first_y, last_y, first_z, last_z));
+  }, static_cast<long>(num_tiles_x * num_tiles_y * num_tiles_z));
+}
+
 } // dvr_course
 
 

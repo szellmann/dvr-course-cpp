@@ -84,6 +84,26 @@ namespace dvr_course {
           });
     }
 
+    template <typename Func>
+    void for_each(thread_pool &pool,
+                  int32_t xmin, int32_t xmax,
+                  int32_t ymin, int32_t ymax,
+                  int32_t zmin, int32_t zmax,
+                  Func func)
+    {
+      parallel_for(pool,
+          tiled_range3d<int32_t>(xmin, xmax, 16, ymin, ymax, 16, zmin, zmax, 16),
+          [&](range3d<int32_t> r) {
+            for (int z = r.slices().begin(); z != r.slices().end(); ++z) {
+              for (int y = r.cols().begin(); y != r.cols().end(); ++y) {
+                for (int x = r.rows().begin(); x != r.rows().end(); ++x) {
+                  func(x, y, z);
+                }
+              }
+            }
+          });
+    }
+
   } // parallel
 
 #ifdef _OPENMP
