@@ -544,7 +544,9 @@ void Frame::finalize()
     auto tf = vol->getTransfunc();
     pipeline().setTransfunc(tf,validID);
     if (validID<1ull) {
+#ifdef RTCORE
       owlParamsSetGroup(pipeline().owlLaunchParams(), "volume0.asTetMesh.handle", field->getTLAS());
+#endif
       pipeline().launchParam("volume0.bounds", parms().volumes[0].bounds) = field->getVolume().bounds;
     }
     validID++;
@@ -646,7 +648,7 @@ void Frame::renderFrame()
   pipeline().launchParam("accumID", parms().accumID) = pipeline().frameID;
 
   // set params:
-  SET_LAUNCH_PARAMS(m_impl.parms);
+  SET_LAUNCH_PARAMS(parms());
 
   // only launch (ANARI takes over the 'present()' part):
   pipeline().launch();

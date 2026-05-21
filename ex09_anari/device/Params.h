@@ -28,7 +28,13 @@ using namespace vecmath;
 namespace ex09_anari {
 
 struct Tet { vec4f v0, v1, v2, v3; };
-struct TetMesh { OptixTraversableHandle handle; Tet *tets; int numTets; };
+struct TetMesh {
+#ifdef RTCORE
+  OptixTraversableHandle handle;
+#endif
+  Tet *tets;
+  int numTets;
+};
 
 // ========================================================
 // tagged union volume type, can be nvdb or tet-mesh
