@@ -58,8 +58,9 @@ in the the OptiX wrapper library (OWL). It offers a CPU fallback that allows
 the user to run the samples not making explicit use of ray tracing features
 such as BVH traversal. The framework ensures that ray generation programs and
 similar are executed accordingly. OptiX BVHs in particular are not supported by
-the fallback. The C/C++ define `RTCORE` indicates if compiling with OWL or not.
-`RTCORE` is also defined when compiling with fakeOWL (see below).
+the fallback. The C/C++ define `WITH_CUDA` indicates if we're on the CPU or not
+The C/C++ define `RTCORE` indicates if compiling with OWL or not. `RTCORE` is
+also defined when compiling with fakeOWL, while `WITH_CUDA` is not (see below).
 
 ## Example programs overview
 
