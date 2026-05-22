@@ -12,6 +12,8 @@ by production-grade, ray tracing-based, GPU sci-vis renderers.
       or only for  TLAS)
 - [ ] Single scattering and AO
 - [ ] Animation (?)
-- [ ] Volumes sit underneath a TLAS (be OptiX or cuBQL)
+- [ ] ~~Volumes sit underneath a TLAS (be OptiX or cuBQL)~~ we *won't* do that;
+      instead the volumes will go in a linear array that we iterate over; that
+      way we can use hardware ray tracing for sampling
 - [ ] Space skipping with DDA (from ex06)
 - [ ] Instance transforms? Via command line? Do we need this?
