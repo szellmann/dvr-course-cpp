@@ -96,3 +96,6 @@ When using fakeOWL, the samples pretend they are running on a system with full
 ray tracing support, hence, from the samples' perspective this is not using the
 CPU fallback and the macro `RTCORE` is defined and evaluates to `true` when
 used in host or device programs.
+
+## TODOs:
+- [ ] Refactor importer functions so every sample uses the same code
