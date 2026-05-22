@@ -27,20 +27,24 @@ using namespace vecmath;
 // ========================================================
 namespace ex06_need_for_speed {
 
-// ========================================================
-// most simple tetrahedron type, we store the four corners
-// plus the per vertex values of each corner in the 'w'
-// coordinate of the vector
-// ========================================================
 struct Tet { vec4f v0, v1, v2, v3; };
-struct TetMesh { Tet *tets; int numTets; };
-
-struct Volume {
+struct TetMesh {
 #ifdef RTCORE
   OptixTraversableHandle handle;
 #endif
   Tet *tets;
   int numTets;
+};
+
+// ========================================================
+// The volume now also contains a uniform grid for
+// traversal with DDA3. valueRanges (per macrocell) are set
+// up once at the beginning; majorants (also per mc) are
+// updated whenever the RGBA transfer function changes
+// (we interpret alpha as majorant extinction)
+// ========================================================
+struct Volume {
+  TetMesh asTetMesh;
   box3f bounds;
   struct {
     box1f *valueRanges;

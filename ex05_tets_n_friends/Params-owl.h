@@ -26,9 +26,9 @@ namespace ex05_tets_n_friends {
 OWLVarDecl launchParams_owl[]
 = {
    // volume
-   { "volume.handle", OWL_GROUP, OWL_OFFSETOF(LaunchParams,volume.handle) },
-   { "volume.tets", OWL_RAW_POINTER, OWL_OFFSETOF(LaunchParams,volume.tets) },
-   { "volume.numTets", OWL_INT, OWL_OFFSETOF(LaunchParams,volume.numTets) },
+   { "volume.asTetMesh.handle", OWL_GROUP, OWL_OFFSETOF(LaunchParams,volume.asTetMesh.handle) },
+   { "volume.asTetMesh.tets", OWL_RAW_POINTER, OWL_OFFSETOF(LaunchParams,volume.asTetMesh.tets) },
+   { "volume.asTetMesh.numTets", OWL_INT, OWL_OFFSETOF(LaunchParams,volume.asTetMesh.numTets) },
    { "volume.bounds", OWL_USER_TYPE(box3f), OWL_OFFSETOF(LaunchParams,volume.bounds) },
    // xf data
    { "transfunc.valueRange", OWL_USER_TYPE(box1f), OWL_OFFSETOF(LaunchParams,transfunc.valueRange) },

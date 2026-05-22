@@ -236,10 +236,10 @@ extern "C" int main(int argc, char *argv[]) {
 
   // volume
 #ifdef RTCORE
-  owlParamsSetGroup(pl.owlLaunchParams(), "volume.handle", g_appState.userGeomTLAS);
+  owlParamsSetGroup(pl.owlLaunchParams(), "volume.asTetMesh.handle", g_appState.userGeomTLAS);
 #endif
-  pl.launchParam("volume.tets", (RawPointer &)parms.volume.tets) = deviceTets.data();
-  pl.launchParam("volume.numTets", parms.volume.numTets) = (int)deviceTets.size();
+  pl.launchParam("volume.asTetMesh.tets", (RawPointer &)parms.volume.asTetMesh.tets) = deviceTets.data();
+  pl.launchParam("volume.asTetMesh.numTets", parms.volume.asTetMesh.numTets) = (int)deviceTets.size();
   pl.launchParam("volume.bounds", parms.volume.bounds) = volbounds;
   // lighting
   pl.launchParam("ambientColor", parms.ambientColor) = vec3f(1.f);

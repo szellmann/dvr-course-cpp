@@ -90,7 +90,7 @@ inline __device__ bool sampleVolume(const Volume &vol, vec3f pos, float &value)
   ray.origin = owl::vec3f(pos.x,pos.y,pos.z);
   ray.direction = owl::vec3f(1.f);
   ray.tmin = ray.tmax = 0.f;
-  owl::traceRay(vol.handle,ray,prd,OPTIX_RAY_FLAG_DISABLE_ANYHIT);
+  owl::traceRay(vol.asTetMesh.handle,ray,prd,OPTIX_RAY_FLAG_DISABLE_ANYHIT);
   if (prd.primID != ~0u) {
     value = prd.value;
     return true;
@@ -98,8 +98,8 @@ inline __device__ bool sampleVolume(const Volume &vol, vec3f pos, float &value)
 #else
   // on non-RT hardware we resort to just linearly
   // iterating over all primitives (veeeryy slow...)
-  for (unsigned i=0; i<vol.numTets; ++i) {
-    if (evalTet(value,pos,vol.tets[i]))
+  for (unsigned i=0; i<vol.asTetMesh.numTets; ++i) {
+    if (evalTet(value,pos,vol.asTetMesh.tets[i]))
       return true;
   }
 #endif

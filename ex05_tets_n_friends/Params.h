@@ -33,14 +33,16 @@ namespace ex05_tets_n_friends {
 // coordinate of the vector
 // ========================================================
 struct Tet { vec4f v0, v1, v2, v3; };
-struct TetMesh { Tet *tets; int numTets; };
-
-struct Volume {
+struct TetMesh {
 #ifdef RTCORE
   OptixTraversableHandle handle;
 #endif
   Tet *tets;
   int numTets;
+};
+
+struct Volume {
+  TetMesh asTetMesh;
   box3f bounds;
 };
 

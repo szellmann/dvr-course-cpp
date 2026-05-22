@@ -26,9 +26,9 @@ namespace ex06_need_for_speed {
 OWLVarDecl launchParams_owl[]
 = {
    // volume
-   { "volume.handle", OWL_GROUP, OWL_OFFSETOF(LaunchParams,volume.handle) },
-   { "volume.tets", OWL_RAW_POINTER, OWL_OFFSETOF(LaunchParams,volume.tets) },
-   { "volume.numTets", OWL_INT, OWL_OFFSETOF(LaunchParams,volume.numTets) },
+   { "volume.asTetMesh.handle", OWL_GROUP, OWL_OFFSETOF(LaunchParams,volume.asTetMesh.handle) },
+   { "volume.asTetMesh.tets", OWL_RAW_POINTER, OWL_OFFSETOF(LaunchParams,volume.asTetMesh.tets) },
+   { "volume.asTetMesh.numTets", OWL_INT, OWL_OFFSETOF(LaunchParams,volume.asTetMesh.numTets) },
    { "volume.bounds", OWL_USER_TYPE(box3f), OWL_OFFSETOF(LaunchParams,volume.bounds) },
    { "volume.grid.valueRanges", OWL_RAW_POINTER, OWL_OFFSETOF(LaunchParams,volume.grid.valueRanges) },
    { "volume.grid.majorants", OWL_RAW_POINTER, OWL_OFFSETOF(LaunchParams,volume.grid.majorants) },
