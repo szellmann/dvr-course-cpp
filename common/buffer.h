@@ -21,6 +21,7 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
+#include <vector>
 // cuda
 #ifdef WITH_CUDA
 #include <cuda_runtime.h>
@@ -121,6 +122,15 @@ struct Buffer {
       other.size_ = 0;
     }
     return *this;
+  }
+
+  void fill(const T &value) {
+    std::vector<T> temp(size_, value);
+#ifdef WITH_CUDA
+    cudaMemcpy(data_,temp.data(),size_*sizeof(T),cudaMemcpyDefault);
+#else
+    std::memcpy(data_,temp.data(),size_*sizeof(T));
+#endif
   }
 
   T *data() const {
