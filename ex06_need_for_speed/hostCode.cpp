@@ -181,12 +181,16 @@ extern "C" int main(int argc, char *argv[]) {
 
   pl.uiParam("Unit distance", &g_appState.unitDistance, 0.01f, 5.f);
 
+  Pipeline::RTConfig conf;
 #ifdef RTCORE
-  pl.setRayGen(ptxCode, "woodcockTrackingAE");
-  pl.setLaunchParamsDecl(launchParams_owl, sizeof(LaunchParams));
+  conf.ptxCode = ptxCode;
+  conf.launchParamsDecl = launchParams_owl;
+  conf.sizeOfLaunchParamsStruct = sizeof(LaunchParams);
 #else
-  pl.setRayGen(woodcockTrackingAE);
+  conf.rayGens.push_back({"woodcockTrackingAE",woodcockTrackingAE});
 #endif
+  pl.initRT(conf);
+  pl.setRayGen("woodcockTrackingAE");
 
   LaunchParams parms;
 

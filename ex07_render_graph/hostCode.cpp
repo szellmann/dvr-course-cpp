@@ -189,12 +189,16 @@ extern "C" int main(int argc, char *argv[]) {
   float lightIntensity{1.f};
   pl.uiParam("Light intensity", &lightIntensity, 0.f, 32.f);
 
+  Pipeline::RTConfig conf;
 #ifdef RTCORE
-  pl.setRayGen(ptxCode, "directLighting");
-  pl.setLaunchParamsDecl(launchParams_owl, sizeof(LaunchParams));
+  conf.ptxCode = ptxCode;
+  conf.launchParamsDecl = launchParams_owl;
+  conf.sizeOfLaunchParamsStruct = sizeof(LaunchParams);
 #else
-  pl.setRayGen(directLighting);
+  conf.rayGens.push_back({"directLighting",directLighting});
 #endif
+  pl.initRT(conf);
+  pl.setRayGen("directLighting");
 
   LaunchParams parms;
 

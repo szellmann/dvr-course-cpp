@@ -917,6 +917,9 @@ struct Pipeline::Impl
     size_t      sizeOfLaunchParamsStruct{0ull};
     std::map<std::string,LP> lpMap;
   } owl;
+#else
+  std::vector<Pipeline::RayGen> rayGens;
+  std::string rayGenName;
 #endif
 
   struct {
@@ -951,8 +954,18 @@ void Pipeline::markTransfuncUpdate() {
   impl->updates.transfuncUpdate = true;
 }
 
+void Pipeline::initRT(Pipeline::RTConfig rtConfig) {
 #ifdef RTCORE
+  impl->owl.ptxCode = rtConfig.ptxCode;
+  impl->owl.launchParamsDecl = rtConfig.launchParamsDecl;
+  impl->owl.sizeOfLaunchParamsStruct = rtConfig.sizeOfLaunchParamsStruct;
+#else
+  impl->rayGens = rtConfig.rayGens;
+#endif
+}
+
 void Pipeline::setRayGen(const char *name) {
+#ifdef RTCORE
   impl->owl.rayGenName = name;
   if (impl->owl.rayGen) {
     owlRayGenRelease(impl->owl.rayGen);
@@ -962,18 +975,12 @@ void Pipeline::setRayGen(const char *name) {
     owlBuildPipeline(impl->owl.context);
     owlBuildSBT(impl->owl.context);
   }
+#else
+  impl->rayGenName = name;
+#endif
 }
 
-void Pipeline::setRayGen(const char *ptxCode, const char *name) {
-  impl->owl.ptxCode = ptxCode;
-  setRayGen(name);
-}
-
-void Pipeline::setLaunchParamsDecl(OWLVarDecl *decl, size_t sizeOfStruct) {
-  impl->owl.launchParamsDecl = decl;
-  impl->owl.sizeOfLaunchParamsStruct = sizeOfStruct;
-}
-
+#ifdef RTCORE
 OWLContext Pipeline::owlContext() {
   impl->initOWLContext();
   if (!impl->owl.context) {
@@ -1213,6 +1220,14 @@ void Pipeline::launch() {
   if (!impl->owl.rayGen)
     return;
 #else
+  RayGen rayGen;
+  for (auto &rg: impl->rayGens) {
+    if (rg.name == impl->rayGenName) {
+      rayGen = rg;
+      break;
+    }
+  }
+  auto func = rayGen.func;
   if (!func)
     return;
 #endif

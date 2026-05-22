@@ -71,14 +71,14 @@ struct Pipeline {
   void markTransfuncUpdate();
 
 #ifdef RTCORE
+
   // for use with RTCORE (load from module)
 
-  //   ray-gen
-  void setRayGen(const char *name);
-  void setRayGen(const char *ptxCode, const char *name);
-
-  // lp-decl
-  void setLaunchParamsDecl(OWLVarDecl *decl, size_t sizeOfLaunchParamsStruct);
+  struct RTConfig {
+    const char *ptxCode;
+    OWLVarDecl *launchParamsDecl;
+    size_t      sizeOfLaunchParamsStruct;
+  };
 
   // get OWL context
   OWLContext owlContext();
@@ -89,14 +89,20 @@ struct Pipeline {
   // get OWL params
   OWLParams owlLaunchParams();
 #else
-  // for use with non-RTCORE (set as function pointer)
+  // for use with non-RTCORE (set ray-gen as function pointer)
 
-  //   ray-gen
-  void setRayGen(const std::function<void()> &f)
-  { func = f; }
+  struct RayGen {
+    std::string name;
+    std::function<void()> func;
+  };
 
-  std::function<void()> func;
+  struct RTConfig {
+    std::vector<RayGen> rayGens;
+  };
 #endif
+
+  void initRT(RTConfig rtConfig);
+  void setRayGen(const char *name);
 
   //   launch-params
 #define DECL_LAUNCH_PARM_FUNC(T) T &launchParam(std::string name, T &value);

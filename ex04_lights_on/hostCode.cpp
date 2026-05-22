@@ -140,12 +140,16 @@ extern "C" int main(int argc, char *argv[]) {
   float lightIntensity{1.f};
   pl.uiParam("Light intensity", &lightIntensity, 0.f, 32.f);
 
+  Pipeline::RTConfig conf;
 #ifdef RTCORE
-  pl.setRayGen(ptxCode, "woodcockTrackingSS");
-  pl.setLaunchParamsDecl(launchParams_owl, sizeof(LaunchParams));
+  conf.ptxCode = ptxCode;
+  conf.launchParamsDecl = launchParams_owl;
+  conf.sizeOfLaunchParamsStruct = sizeof(LaunchParams);
 #else
-  pl.setRayGen(woodcockTrackingSS);
+  conf.rayGens.push_back({"woodcockTrackingSS",woodcockTrackingSS});
 #endif
+  pl.initRT(conf);
+  pl.setRayGen("woodcockTrackingSS");
 
   LaunchParams parms;
 

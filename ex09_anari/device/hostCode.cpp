@@ -468,12 +468,17 @@ void Camera::finalize()
 Frame::Frame(GlobalState *s) : helium::BaseFrame(s), m_frame(new dvr_course::Frame)
 {
   pipeline().setFrame(m_frame.get());
+
+  Pipeline::RTConfig conf;
 #ifdef RTCORE
-  pipeline().setRayGen(ptxCode, "directLighting");
-  pipeline().setLaunchParamsDecl(launchParams_owl, sizeof(LaunchParams));
+  conf.ptxCode = ptxCode;
+  conf.launchParamsDecl = launchParams_owl;
+  conf.sizeOfLaunchParamsStruct = sizeof(LaunchParams);
 #else
-  pipeline().setRayGen(directLighting);
+  conf.rayGens.push_back({"directLighting",directLighting});
 #endif
+  pipeline().initRT(conf);
+  pipeline().setRayGen("directLighting");
 }
 
 bool Frame::isValid() const

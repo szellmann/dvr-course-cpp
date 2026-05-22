@@ -156,12 +156,17 @@ extern "C" int main(int argc, char *argv[]) {
   g_appState.unitDistance = 1.0f;
   pl.uiParam("Unit distance", &g_appState.unitDistance, 0.001f, 5.f);
 
+  Pipeline::RTConfig conf;
 #ifdef RTCORE
-  pl.setRayGen(ptxCode, "multiVolumeWoodcock");
-  pl.setLaunchParamsDecl(launchParams_owl, sizeof(LaunchParams));
+  conf.ptxCode = ptxCode;
+  conf.launchParamsDecl = launchParams_owl;
+  conf.sizeOfLaunchParamsStruct = sizeof(LaunchParams);
 #else
-  pl.setRayGen(multiVolumeWoodcock);
+  conf.rayGens.push_back({"multiVolumeWoodcock",multiVolumeWoodcock});
+  conf.rayGens.push_back({"blendingWoodcock",blendingWoodcock});
 #endif
+  pl.initRT(conf);
+  pl.setRayGen("multiVolumeWoodcock");
 
   LaunchParams parms;
 
@@ -176,28 +181,16 @@ extern "C" int main(int argc, char *argv[]) {
 
   pl.setKeyDownHandler([&](char key) {
     if (key == '1') {
-#ifdef RTCORE
       pl.setRayGen("multiVolumeWoodcock");
-#else
-      pl.setRayGen(multiVolumeWoodcock);
-#endif
       pl.resetAccumulation();
     }
     if (key == '2') {
-#ifdef RTCORE
       pl.setRayGen("blendingWoodcock");
-#else
-      pl.setRayGen(blendingWoodcock);
-#endif
       pl.launchParam("blendMode", parms.blendMode) = BLEND_MODE_MIX;
       pl.resetAccumulation();
     }
     if (key == '3') {
-#ifdef RTCORE
       pl.setRayGen("blendingWoodcock");
-#else
-      pl.setRayGen(blendingWoodcock);
-#endif
       pl.launchParam("blendMode", parms.blendMode) = BLEND_MODE_MAX_ALPHA;
       pl.resetAccumulation();
     }
