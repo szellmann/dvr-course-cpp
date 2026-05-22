@@ -98,4 +98,6 @@ CPU fallback and the macro `RTCORE` is defined and evaluates to `true` when
 used in host or device programs.
 
 ## TODOs:
+- [ ] Add single line summary for each sample to this document
+- [ ] Implement sample 08
 - [ ] Refactor importer functions so every sample uses the same code
