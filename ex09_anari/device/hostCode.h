@@ -9,6 +9,10 @@
 #include "helium/utility/ChangeObserverPtr.h"
 #include "helium/BaseObject.h"
 #include "helium/BaseFrame.h"
+// owl
+#ifdef RTCORE
+#include <owl/owl.h>
+#endif
 // ours
 #include <dvr_course-common.h>
 // ex09:

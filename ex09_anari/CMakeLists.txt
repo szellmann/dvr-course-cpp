@@ -51,6 +51,7 @@ elseif (DVR_COURSE_WITH_OWL)
     PROPERTIES COMPILE_FLAGS "--extended-lambda --expt-relaxed-constexpr")
   embed_ptx(
     OUTPUT_TARGET ex09_deviceCode-ptx
+    PTX_LINK_LIBRARIES dvr_course-common
     EMBEDDED_SYMBOL_NAMES ptxCode
     SOURCES device/deviceCode.cu
   )
