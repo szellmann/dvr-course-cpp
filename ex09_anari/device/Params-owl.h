@@ -26,10 +26,7 @@ namespace ex09_anari {
 OWLVarDecl launchParams_owl[]
 = {
    // volumes
-   { "volume0.asTetMesh.handle", OWL_GROUP, OWL_OFFSETOF(LaunchParams,volumes[0].asTetMesh.handle)},
-   { "volume0.bounds", OWL_USER_TYPE(box3f), OWL_OFFSETOF(LaunchParams,volumes[0].bounds)},
-   { "volume0.dataRange", OWL_USER_TYPE(box1f), OWL_OFFSETOF(LaunchParams,volumes[0].dataRange)},
-   //{ "volumes",   OWL_RAW_POINTER, OWL_OFFSETOF(LaunchParams,volumes) },
+   { "volumes",   OWL_RAW_POINTER, OWL_OFFSETOF(LaunchParams,volumes) },
    { "numVolumes",  OWL_INT, OWL_OFFSETOF(LaunchParams,numVolumes) },
    // xf data
    { "transfuncs", OWL_RAW_POINTER, OWL_OFFSETOF(LaunchParams,transfuncs) },

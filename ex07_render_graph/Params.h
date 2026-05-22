@@ -73,11 +73,8 @@ struct Transfunc {
 };
 
 struct LaunchParams {
-  // TODO: put all the objects below into a TLAS
-
   // N volumes:
   Volume *volumes;
-
   int numVolumes;
 
   // N transfuncs (one per volume):

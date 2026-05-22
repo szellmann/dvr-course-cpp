@@ -253,6 +253,8 @@ struct Frame : public helium::BaseFrame
   anari::DataType m_depthType{ANARI_UNKNOWN};
   int m_frameID{0};
 
+  // TODO: move these into World?!
+  dvr_course::Buffer<Volume> m_volumes;
   dvr_course::Buffer<Transfunc> m_TFs;
 
   std::unique_ptr<dvr_course::Frame> m_frame;

@@ -82,7 +82,7 @@ struct VolumePRD {
 // ========================================================
 inline __device__ bool sampleVolume(const Volume &vol, vec3f pos, float &value)
 {
-  if (1||vol.type == Volume::TET) {
+  if (vol.type == Volume::TET) {
 #ifdef RTCORE
     VolumePRD prd;
     prd.value = 0.f;

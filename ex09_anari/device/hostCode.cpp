@@ -224,6 +224,8 @@ void SpatialField::finalize()
   owlInstanceGroupSetChild(m_TLAS, 0, userGeomBLAS);
 
   owlGroupBuildAccel(m_TLAS);
+
+  m_volume.asTetMesh.handle = owlGroupGetTraversable(m_TLAS, 0);
 #endif
 }
 
@@ -548,20 +550,15 @@ void Frame::finalize()
     volumes.push_back(field->getVolume());
     auto tf = vol->getTransfunc();
     pipeline().setTransfunc(tf,validID);
-    if (validID<1ull) {
-#ifdef RTCORE
-      owlParamsSetGroup(pipeline().owlLaunchParams(), "volume0.asTetMesh.handle", field->getTLAS());
-#endif
-      pipeline().launchParam("volume0.bounds", parms().volumes[0].bounds) = field->getVolume().bounds;
-    }
     validID++;
   }
+  m_volumes = Buffer(volumes.size(),volumes.data());
 
   pipeline().markFrameUpdate();
 
   // volumes
-  //pipeline().launchParam("volumes", (RawPointer &)m_impl.parms.volumes) = (Volume *)m_volumes.data();
-  pipeline().launchParam("numVolumes", parms().numVolumes) = 1ull;
+  pipeline().launchParam("volumes", (RawPointer &)parms().volumes) = (Volume *)m_volumes.data();
+  pipeline().launchParam("numVolumes", parms().numVolumes) = (int)m_volumes.size();
   // transfuncs
   // update framebuffer:
   pipeline().launchParam("fbPointer", (RawPointer &)parms().fbPointer) = m_frame->fbPointer;
