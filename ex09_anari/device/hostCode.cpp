@@ -237,7 +237,7 @@ void TF1D::commitParameters()
 {
   m_params.field = getParamObject<SpatialField>("value");
 
-  double valueRange_f[2] = {0.f, 1.f};
+  float valueRange_f[2] = {0.f, 1.f};
   double valueRange_d[2] = {0.0, 1.0};
   if (getParam("valueRange", ANARI_FLOAT32_BOX1, &valueRange_f[0])) {
     m_params.valueRange.lower = valueRange_f[0];
