@@ -31,6 +31,7 @@ namespace ex06_need_for_speed {
 extern "C" char ptxCode[];
 #else
 extern void woodcockTrackingAE();
+extern void buildGridAccel();
 #endif
 
 void printUsage() {
@@ -188,9 +189,9 @@ extern "C" int main(int argc, char *argv[]) {
   conf.sizeOfLaunchParamsStruct = sizeof(LaunchParams);
 #else
   conf.rayGens.push_back({"woodcockTrackingAE",woodcockTrackingAE});
+  conf.rayGens.push_back({"buildGridAccel",buildGridAccel});
 #endif
   pl.initRT(conf);
-  pl.setRayGen("woodcockTrackingAE");
 
   LaunchParams parms;
 
@@ -234,6 +235,15 @@ extern "C" int main(int argc, char *argv[]) {
   owlGroupBuildAccel(g_appState.userGeomTLAS);
 #endif
 
+  // Set up parameters for the majorant grid
+
+  // num macrocells in x/y/z
+  vec3i gridDims(16);
+  // min/max value ranges per macrocell
+  Buffer<box1f> valueRangeBuffer(gridDims.x*gridDims.y*gridDims.z);
+  // majorant per macrocell (0 initially, is computed on-the-fly upon tf change)
+  Buffer<box1f> majorantBuffer(gridDims.x*gridDims.y*gridDims.z);
+
   // volume
 #ifdef RTCORE
   owlParamsSetGroup(pl.owlLaunchParams(), "volume.handle", g_appState.userGeomTLAS);
@@ -241,9 +251,27 @@ extern "C" int main(int argc, char *argv[]) {
   pl.launchParam("volume.tets", (RawPointer &)parms.volume.tets) = deviceTets.data();
   pl.launchParam("volume.numTets", parms.volume.numTets) = (int)deviceTets.size();
   pl.launchParam("volume.bounds", parms.volume.bounds) = volbounds;
+  // grid
+  pl.launchParam("volume.grid.valueRanges", (RawPointer &)parms.volume.grid.valueRanges)
+      = valueRangeBuffer.data();
+  pl.launchParam("volume.grid.majorants", (RawPointer &)parms.volume.grid.majorants)
+      = majorantBuffer.data();
+  pl.launchParam("volume.grid.dims", parms.volume.grid.dims) = gridDims;
+  pl.launchParam("volume.grid.worldBounds", parms.volume.grid.worldBounds) = volbounds;
+
+  // We use a ray gen to build the grid as though it was a compute kernel; in a
+  // production app one would probably use an actual kernel here:
+  pl.setRayGen("buildGridAccel");
+  SET_LAUNCH_PARAMS(parms);
+  // frameless launch:
+  pl.launch2D({(int)deviceTets.size(),1});
+
   // lighting
   pl.launchParam("ambientColor", parms.ambientColor) = vec3f(1.f);
   pl.launchParam("ambientRadiance", parms.ambientRadiance) = 1.f;
+
+  // Set ray gen for rendering:
+  pl.setRayGen("woodcockTrackingAE");
 
   // Render and present...
   // For default (PNG image) pipeline this

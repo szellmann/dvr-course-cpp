@@ -42,6 +42,12 @@ struct Volume {
   Tet *tets;
   int numTets;
   box3f bounds;
+  struct {
+    box1f *valueRanges;
+    float *majorants;
+    vec3i  dims;
+    box3f  worldBounds;
+  } grid;
 };
 
 struct Transfunc {

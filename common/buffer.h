@@ -35,6 +35,15 @@ template <typename T>
 struct Buffer {
   Buffer() = default;
 
+  Buffer(size_t size) : size_(size)
+  {
+#ifdef WITH_CUDA
+    cudaMalloc(&data_,size_*sizeof(T));
+#else
+    data_ = (T *)std::malloc(size_*sizeof(T));
+#endif
+  }
+
   Buffer(size_t size, const T *ptr) : size_(size)
   {
 #ifdef WITH_CUDA

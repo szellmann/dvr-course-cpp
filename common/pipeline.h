@@ -154,6 +154,8 @@ struct Pipeline {
   void launch();
   void present() const;
   void resetAccumulation();
+  // frameless launch:
+  void launch2D(const vec2i launchDims);
 
   // Events
   typedef std::function<void(char)> KeyDownHandler;

@@ -1240,11 +1240,7 @@ void Pipeline::launch() {
 #ifdef RTCORE
     owlLaunch2D(impl->owl.rayGen, fb->width, fb->height, impl->owl.launchParams);
 #else
-#ifndef __EMSCRIPTEN__
     parallel::for_each(impl->pool, 0, fb->width, 0, fb->height,
-#else
-    serial::for_each(0, fb->width, 0, fb->height,
-#endif
       [&](int x, int y) {
         launchDims = {fb->width,fb->height};
         launchIndex = {x,y};
@@ -1273,6 +1269,54 @@ void Pipeline::present() const {
 
 void Pipeline::resetAccumulation() {
   frameID = 0;
+}
+
+void Pipeline::launch2D(const vec2i ldims)
+{
+  if (!isValid()) {
+    fprintf(stderr,"Pipeline invalid, aborting...\n");
+    abort();
+  }
+
+  if (!running) {
+    impl->init(fb, camera);
+    // as side effect, isRunning() polls events for the first time:
+    isRunning();
+    // fall-through (first time is always running):
+  }
+
+  // we can launch a pipeline w/o a rayGen or launch function set, but we won't
+  // proceed beyond this point (launching and timing the function, and we also
+  // don't clear the frame!):
+#ifdef RTCORE
+  impl->updateLaunchParams();
+  if (!impl->owl.rayGen)
+    return;
+#else
+  RayGen rayGen;
+  for (auto &rg: impl->rayGens) {
+    if (rg.name == impl->rayGenName) {
+      rayGen = rg;
+      break;
+    }
+  }
+  auto func = rayGen.func;
+  if (!func)
+    return;
+#endif
+
+  impl->beginTiming();
+#ifdef RTCORE
+  owlLaunch2D(impl->owl.rayGen, ldims.x, ldims.y, impl->owl.launchParams);
+#else
+  parallel::for_each(impl->pool, 0, ldims.x, 0, ldims.y,
+    [&](int x, int y) {
+      launchDims = ldims;
+      launchIndex = {x,y};
+      func();
+    });
+#endif
+  impl->endTiming();
 }
 
 void Pipeline::setKeyDownHandler(KeyDownHandler kdh) {

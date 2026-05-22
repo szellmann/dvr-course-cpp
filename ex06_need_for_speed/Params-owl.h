@@ -30,6 +30,10 @@ OWLVarDecl launchParams_owl[]
    { "volume.tets", OWL_RAW_POINTER, OWL_OFFSETOF(LaunchParams,volume.tets) },
    { "volume.numTets", OWL_INT, OWL_OFFSETOF(LaunchParams,volume.numTets) },
    { "volume.bounds", OWL_USER_TYPE(box3f), OWL_OFFSETOF(LaunchParams,volume.bounds) },
+   { "volume.grid.valueRanges", OWL_RAW_POINTER, OWL_OFFSETOF(LaunchParams,volume.grid.valueRanges) },
+   { "volume.grid.majorants", OWL_RAW_POINTER, OWL_OFFSETOF(LaunchParams,volume.grid.majorants) },
+   { "volume.grid.dims", OWL_INT3, OWL_OFFSETOF(LaunchParams,volume.grid.dims) },
+   { "volume.grid.worldBounds", OWL_USER_TYPE(box3f), OWL_OFFSETOF(LaunchParams,volume.grid.worldBounds) },
    // xf data
    { "transfunc.valueRange", OWL_USER_TYPE(box1f), OWL_OFFSETOF(LaunchParams,transfunc.valueRange) },
    { "transfunc.values", OWL_RAW_POINTER, OWL_OFFSETOF(LaunchParams,transfunc.values) },

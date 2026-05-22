@@ -17,7 +17,6 @@
 // common
 #include <dvr_course-common.cuh>
 // ex06
-#include "GridAccel.h"
 #include "Params.h"
 
 using namespace dvr_course;
@@ -28,6 +27,19 @@ using namespace dvr_course;
 namespace ex06_need_for_speed {
 
 extern "C" __constant__ LaunchParams optixLaunchParams;
+
+// ========================================================
+// "Ray gen prog" to build grid
+// ========================================================
+RAYGEN_PROGRAM(buildGridAccel)()
+{
+  auto &lp = optixLaunchParams;
+  const vec2i threadIndex = getLaunchIndex();
+  const vec2i launchDim = getLaunchDims();
+
+  size_t tetID = threadIndex.x + size_t(launchDim.x) * threadIndex.y;
+  if (tetID >= lp.volume.numTets) return;
+}
 
 // ========================================================
 // evalTet() implementation using four plane tests
