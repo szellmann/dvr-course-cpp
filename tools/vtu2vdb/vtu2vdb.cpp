@@ -86,7 +86,7 @@ static vec3i projectToGrid(const vec3f V, const box3f &worldBounds, const vec3i 
 static vec3f unprojectFromGrid(
     const vec3i Vi, const box3f &worldBounds, const vec3i &dims)
 {
-  vec3f V01 = vec3f(Vi)/vec3f(dims);
+  const vec3f V01 = vec3f(Vi)/vec3f(dims);
   return V01*worldBounds.size()+worldBounds.lower;
 }
 
@@ -154,7 +154,7 @@ static void rasterize(openvdb::FloatGrid::Accessor acc,
                       const box3f &worldBounds,
                       const vec3i &dims)
 {
-  box3f cellBounds{1e20f,-1e20f};
+  box3f cellBounds{INFINITY,-INFINITY};
   for (int i=0; i<4; ++i) {
     cellBounds.extend(tet[i]);
   }

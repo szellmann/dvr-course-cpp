@@ -32,6 +32,7 @@ extern "C" char ptxCode[];
 #else
 extern void woodcockTrackingAE();
 extern void buildGridAccel();
+extern void updateMajorantDensities();
 #endif
 
 void printUsage() {
@@ -190,6 +191,7 @@ extern "C" int main(int argc, char *argv[]) {
 #else
   conf.rayGens.push_back({"woodcockTrackingAE",woodcockTrackingAE});
   conf.rayGens.push_back({"buildGridAccel",buildGridAccel});
+  conf.rayGens.push_back({"updateMajorantDensities",updateMajorantDensities});
 #endif
   pl.initRT(conf);
 
@@ -238,9 +240,10 @@ extern "C" int main(int argc, char *argv[]) {
   // Set up parameters for the majorant grid
 
   // num macrocells in x/y/z
-  vec3i gridDims(16);
+  vec3i gridDims(64);
   // min/max value ranges per macrocell
   Buffer<box1f> valueRangeBuffer(gridDims.x*gridDims.y*gridDims.z);
+  valueRangeBuffer.fill({INFINITY,-INFINITY});
   // majorant per macrocell (0 initially, is computed on-the-fly upon tf change)
   Buffer<box1f> majorantBuffer(gridDims.x*gridDims.y*gridDims.z);
 
@@ -259,12 +262,34 @@ extern "C" int main(int argc, char *argv[]) {
   pl.launchParam("volume.grid.dims", parms.volume.grid.dims) = gridDims;
   pl.launchParam("volume.grid.worldBounds", parms.volume.grid.worldBounds) = volbounds;
 
+  // With everything set up, build the grid on the device:
   // We use a ray gen to build the grid as though it was a compute kernel; in a
   // production app one would probably use an actual kernel here:
   pl.setRayGen("buildGridAccel");
   SET_LAUNCH_PARAMS(parms);
   // frameless launch:
   pl.launch2D({(int)deviceTets.size(),1});
+
+  // Set a transfer function handler that computes majorants on-the-fly given
+  // the current transfer function and grid value ranges:
+  pl.setTransfuncUpdateHandler([&](const dvr_course::Transfunc * /*tf*/, int /*tfID*/) {
+    // update transfunc:
+    pl.launchParam("transfunc.valueRange", parms.transfunc.valueRange) = pl.getTransfunc()->valueRange;
+    pl.launchParam("transfunc.size", parms.transfunc.size) = pl.getTransfunc()->size;
+    pl.launchParam("transfunc.values", (RawPointer &)parms.transfunc.values) = pl.getTransfunc()->rgbaLUT;
+
+    // frameless launch that iterates over each grid cell and updates the majorant:
+    pl.setRayGen("updateMajorantDensities");
+    SET_LAUNCH_PARAMS(parms);
+    size_t numGridCells = gridDims.x*size_t(gridDims.y)*gridDims.z;
+    pl.launch2D({(int)numGridCells,1});
+    // reset ray gen to that for rendering:
+    pl.setRayGen("woodcockTrackingAE");
+  });
+
+  // Force handler to execute once:
+  pl.markTransfuncUpdate();
+  pl.isRunning();
 
   // lighting
   pl.launchParam("ambientColor", parms.ambientColor) = vec3f(1.f);
@@ -287,10 +312,6 @@ extern "C" int main(int argc, char *argv[]) {
     pl.launchParam("camera.dir_00", parms.camera.dir_00) = screen.lower_left;
     pl.launchParam("camera.dir_du", parms.camera.dir_du) = screen.horizontal / fb.width;
     pl.launchParam("camera.dir_dv", parms.camera.dir_dv) = screen.vertical / fb.height;
-    // update transfunc:
-    pl.launchParam("transfunc.valueRange", parms.transfunc.valueRange) = pl.getTransfunc()->valueRange;
-    pl.launchParam("transfunc.size", parms.transfunc.size) = pl.getTransfunc()->size;
-    pl.launchParam("transfunc.values", (RawPointer &)parms.transfunc.values) = pl.getTransfunc()->rgbaLUT;
     // update framebuffer:
     pl.launchParam("fbPointer", (RawPointer &)parms.fbPointer) = fb.fbPointer;
     pl.launchParam("fbDepth", (RawPointer &)parms.fbDepth) = fb.fbDepth;

@@ -1163,6 +1163,12 @@ bool Pipeline::isRunning() {
     cameraUpdate = true;
   }
 
+  if (transfuncUpdate && impl->transfuncUpdateHandler) {
+    for (int i=0; i<impl->transfuncs.size(); ++i) {
+      impl->transfuncUpdateHandler(impl->transfuncs[i],i);
+    }
+  }
+
   if (!running)
     return false;
 
