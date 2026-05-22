@@ -29,13 +29,14 @@
 #include "dvr_course-common-both.h"
 #include "vecmath.h"
 
-namespace dvr_course {
-using namespace vecmath;
-} // dvr_course
-
 #ifdef OWL_IS_FAKE
 #undef __CUDACC__
 #endif
+#include "atomic.h"
+
+namespace dvr_course {
+using namespace vecmath;
+} // dvr_course
 
 #ifndef __CUDACC__
 #define __constant__
