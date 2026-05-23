@@ -160,7 +160,6 @@ extern "C" int main(int argc, char *argv[]) {
     worldBounds.extend(nvdb.volume.bounds);
   }
 
-  g_appState.tetMeshTLASs.reserve(g_appState.tetMeshFiles.size());
   for (auto f: g_appState.tetMeshFiles) {
     auto tetMesh = loadTetMesh(f);
     if (!tetMesh.isValid) {
