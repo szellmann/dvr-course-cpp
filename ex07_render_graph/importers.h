@@ -158,6 +158,9 @@ static TetMesh_import loadTetMesh(std::string filePath) {
 
   Buffer deviceTets(tets.size(), tets.data());
 
+  volume.asTetMesh.tets = deviceTets.data();
+  volume.asTetMesh.numTets = (int)deviceTets.size();
+
   return {true,volume,deviceTets};
 }
 

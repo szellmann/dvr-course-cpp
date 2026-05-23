@@ -40,7 +40,10 @@ struct {
   int ambientSamples{1};
   float occlusionDistance{2.f};
 #ifdef RTCORE
+  // common TLAS for all surfaces:
   OWLGroup triangleTLAS;
+  // volumes as a linear list that we trace separate rays into:
+  std::vector<OWLGroup> tetMeshTLASs;
 #endif
 } g_appState;
 
@@ -104,6 +107,37 @@ extern "C" int main(int argc, char *argv[]) {
     {-INFINITY,-INFINITY,-INFINITY}
   );
 
+  Pipeline::RTConfig conf;
+#ifdef RTCORE
+  conf.ptxCode = ptxCode;
+  conf.launchParamsDecl = launchParams_owl;
+  conf.sizeOfLaunchParamsStruct = sizeof(LaunchParams);
+#else
+  conf.rayGens.push_back({"directLighting",directLighting});
+#endif
+  pl.initRT(conf);
+
+#ifdef RTCORE
+  // ######################################################
+  // set up geometry type for tet meshes
+  // ######################################################
+
+  OWLVarDecl tetsGeomVars[]
+  = {
+     { "tets",  OWL_BUFPTR, OWL_OFFSETOF(TetMesh,tets)},
+     { "numTets",  OWL_INT, OWL_OFFSETOF(TetMesh,numTets)},
+     { nullptr /* sentinel to mark end of list */ }
+  };
+  OWLGeomType userGeomType = owlGeomTypeCreate(pl.owlContext(),
+                                               OWL_GEOM_USER,
+                                               sizeof(TetMesh),
+                                               tetsGeomVars, -1);
+  owlGeomTypeSetBoundsProg(userGeomType, pl.owlModule(), "TetBounds");
+  owlGeomTypeSetIntersectProg(userGeomType, 0, pl.owlModule(), "TetIntersect");
+  owlGeomTypeSetClosestHit(userGeomType, 0, pl.owlModule(), "TetClosestHit");
+  owlBuildPrograms(pl.owlContext());
+#endif
+
   for (auto f: g_appState.objFiles) {
     auto obj = loadObj(f);
     if (!obj.isValid) {
@@ -126,23 +160,56 @@ extern "C" int main(int argc, char *argv[]) {
     worldBounds.extend(nvdb.volume.bounds);
   }
 
+  g_appState.tetMeshTLASs.reserve(g_appState.tetMeshFiles.size());
   for (auto f: g_appState.tetMeshFiles) {
     auto tetMesh = loadTetMesh(f);
     if (!tetMesh.isValid) {
       printUsage();
       exit(-1);
     }
+
+    if (tetMesh.volume.asTetMesh.numTets <= 0) {
+      printUsage();
+      exit(-1);
+    }
+
     g_appState.volumes.push_back(tetMesh.volume);
     g_appState.deviceTets.push_back(tetMesh.onDevice);
     worldBounds.extend(tetMesh.volume.bounds);
+#ifdef RTCORE
+    OWLGeom userGeom = owlGeomCreate(pl.owlContext(), userGeomType);
+    owlGeomSetPrimCount(userGeom, tetMesh.volume.asTetMesh.numTets);
+
+    OWLBuffer tetBuffer = owlDeviceBufferCreate(pl.owlContext(),
+                                                OWL_USER_TYPE(Tet{}),
+                                                tetMesh.volume.asTetMesh.numTets,
+                                                tetMesh.volume.asTetMesh.tets);
+    owlGeomSetBuffer(userGeom, "tets", tetBuffer);
+    owlGeomSet1i(userGeom, "numTets", (int)tetMesh.volume.asTetMesh.numTets);
+
+    OWLGroup userGeomBLAS = owlUserGeomGroupCreate(pl.owlContext(), 1, &userGeom);
+    owlGroupBuildAccel(userGeomBLAS);
+
+    OWLGroup tetMeshTLAS = owlInstanceGroupCreate(pl.owlContext(), 1);
+    owlInstanceGroupSetChild(tetMeshTLAS, 0, userGeomBLAS);
+
+    owlGroupBuildAccel(tetMeshTLAS);
+
+    g_appState.tetMeshTLASs.push_back(tetMeshTLAS);
+#endif
   }
 
-  // TODO!!!!
-  // TODO: build BLASes here??
   // assign volume handles:
-  for (int i=0; i<g_appState.deviceGrids.size(); ++i) {
+  for (int i=0, nvdb=0, tet=0; i<g_appState.volumes.size(); ++i) {
     Volume &volume = g_appState.volumes[i];
-    volume.asNvdb.handle = (nanovdb::NanoGrid<float> *)g_appState.deviceGrids[i].data();
+    if (volume.type == Volume::NVDB) {
+      volume.asNvdb.handle = (nanovdb::NanoGrid<float> *)g_appState.deviceGrids[nvdb++].data();
+    }
+    else if (volume.type == Volume::TET) {
+#ifdef RTCORE
+      volume.asTetMesh.handle = owlGroupGetTraversable(g_appState.tetMeshTLASs[tet++], 0);
+#endif
+    }
   }
 
   // construct transfuncs:
@@ -189,15 +256,6 @@ extern "C" int main(int argc, char *argv[]) {
   float lightIntensity{1.f};
   pl.uiParam("Light intensity", &lightIntensity, 0.f, 32.f);
 
-  Pipeline::RTConfig conf;
-#ifdef RTCORE
-  conf.ptxCode = ptxCode;
-  conf.launchParamsDecl = launchParams_owl;
-  conf.sizeOfLaunchParamsStruct = sizeof(LaunchParams);
-#else
-  conf.rayGens.push_back({"directLighting",directLighting});
-#endif
-  pl.initRT(conf);
   pl.setRayGen("directLighting");
 
   LaunchParams parms;
@@ -247,46 +305,6 @@ extern "C" int main(int argc, char *argv[]) {
 
   owlGroupBuildAccel(g_appState.triangleTLAS);
   //owlParamsSetGroup(lp, "world", asTriMesh.tlasGroup);
-#endif
-
-#if 0//def RTCORE
-  // ######################################################
-  // variant with user geometry
-  // ######################################################
-
-  OWLVarDecl tetsGeomVars[]
-  = {
-     { "tets",  OWL_BUFPTR, OWL_OFFSETOF(TetMesh,tets)},
-     { "numTets",  OWL_INT, OWL_OFFSETOF(TetMesh,numTets)},
-     { nullptr /* sentinel to mark end of list */ }
-  };
-  OWLGeomType userGeomType = owlGeomTypeCreate(pl.owlContext(),
-                                               OWL_GEOM_USER,
-                                               sizeof(TetMesh),
-                                               tetsGeomVars, -1);
-  owlGeomTypeSetBoundsProg(userGeomType, pl.owlModule(), "TetBounds");
-  owlGeomTypeSetIntersectProg(userGeomType, 0, pl.owlModule(), "TetIntersect");
-  owlGeomTypeSetClosestHit(userGeomType, 0, pl.owlModule(), "TetClosestHit");
-
-  OWLGeom userGeom = owlGeomCreate(pl.owlContext(), userGeomType);
-  //owlGeomSetPrimCount(userGeom, tets.size());
-
-  //OWLBuffer tetBuffer = owlDeviceBufferCreate(pl.owlContext(),
-  //                                            OWL_USER_TYPE(Tet{}),
-  //                                            tets.size(),
-  //                                            tets.data());
-  //owlGeomSetBuffer(userGeom, "tets", tetBuffer);
-  //owlGeomSet1i(userGeom, "numTets", (int)tets.size());
-
-  owlBuildPrograms(pl.owlContext());
-
-  OWLGroup userGeomBLAS = owlUserGeomGroupCreate(pl.owlContext(), 1, &userGeom);
-  owlGroupBuildAccel(userGeomBLAS);
-
-  g_appState.userGeomTLAS = owlInstanceGroupCreate(pl.owlContext(), 1);
-  owlInstanceGroupSetChild(g_appState.userGeomTLAS, 0, userGeomBLAS);
-
-  owlGroupBuildAccel(g_appState.userGeomTLAS);
 #endif
 
   // volumes

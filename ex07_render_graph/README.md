@@ -8,8 +8,10 @@ by production-grade, ray tracing-based, GPU sci-vis renderers.
 
 ## TODOs:
 - [x] Triangle meshes
-- [ ] Implement tet sampling (what do we want to convey? RTX on the leaf level?
-      or only for  TLAS)
+- [x] Implement tet sampling ~~(what do we want to convey? RTX on the leaf level?
+      or only for  TLAS)~~all volumes are in one single list, no TLAS, separate
+      (linear) traversal for volumes in ray-gen after (or before, doesn't matter)
+      the render graph for surfaces got traversed
 - [x] Single scattering and AO
 - [ ] Fix lighting: currently it's a mix of hard coded headlight on surfaces,
       dir light on the volume, broken AO, light intensity not used, etc.
