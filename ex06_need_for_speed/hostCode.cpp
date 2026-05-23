@@ -245,7 +245,7 @@ extern "C" int main(int argc, char *argv[]) {
   Buffer<box1f> valueRangeBuffer(gridDims.x*gridDims.y*gridDims.z);
   valueRangeBuffer.fill({INFINITY,-INFINITY});
   // majorant per macrocell (0 initially, is computed on-the-fly upon tf change)
-  Buffer<box1f> majorantBuffer(gridDims.x*gridDims.y*gridDims.z);
+  Buffer<float> majorantBuffer(gridDims.x*gridDims.y*gridDims.z);
 
   // volume
 #ifdef RTCORE
