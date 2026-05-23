@@ -447,10 +447,14 @@ RAYGEN_PROGRAM(woodcockTrackingAE)()
 
   Ray ray = generateRay(vec2f(threadIndex)+vec2f(.5f), rnd);
 
+  float t0, t1;
+  if (!boxTest(ray, lp.volume.bounds, t0, t1))
+    return;
+
   vec3f albedo = 0.f;
   float transmission = 1.f;
-  auto integrationFunc = [&](int mcID, float t0, float t1) {
-    ray.tmin = t0, ray.tmax = t1;
+  auto integrationFunc = [&](int mcID, float mct0, float mct1) {
+    ray.tmin = mct0, ray.tmax = mct1;
     const float majorant = lp.volume.grid.majorants[mcID];
     float t = woodcockTracking(ray, rnd, majorant, albedo, transmission);
     return t >= ray.tmax; // if true, no "hit" was found -> traverse to next macrocell
