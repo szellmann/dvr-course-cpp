@@ -15,7 +15,7 @@ by production-grade, ray tracing-based, GPU sci-vis renderers.
 - [x] Single scattering and AO
 - [ ] Fix lighting: currently it's a mix of hard coded headlight on surfaces,
       dir light on the volume, broken AO, light intensity not used, etc.
-- [ ] ~~Animation (?)~~ probably not; only complicates things
+- [x] ~~Animation (?)~~ probably not; only complicates things **NO**
 - [ ] ~~Volumes sit underneath a TLAS (be OptiX or cuBQL)~~ we *won't* do that;
       instead the volumes will go in a linear array that we iterate over; that
       way we can use hardware ray tracing for sampling
