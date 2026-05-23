@@ -11,6 +11,8 @@ include(cmake/common.cmake)
 
 add_library(${PROJECT_NAME})
 
+set_target_properties(${PROJECT_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 option(DVR_COURSE_WITH_OWL "Use OWL as ray tracing API (for hardware ray tracing)" OFF)
 if (DVR_COURSE_WITH_OWL)
   find_package(owl REQUIRED)
