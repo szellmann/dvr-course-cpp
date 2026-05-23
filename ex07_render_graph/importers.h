@@ -57,10 +57,13 @@ static NVDB_import loadNvdb(std::string filePath) {
   box3f volbounds({(float)boundsMin[0], (float)boundsMin[1], (float)boundsMin[2]},
                   {(float)boundsMax[0], (float)boundsMax[1], (float)boundsMax[2]});
 
+  box1f valueRange = {gridHandle.grid<float>()->tree().root().minimum(),
+                      gridHandle.grid<float>()->tree().root().maximum()};
   Volume volume;
   volume.type = Volume::NVDB;
   volume.asNvdb.filterLinear = true;
   volume.bounds = volbounds;
+  volume.dataRange = valueRange;
 
   Buffer deviceGrid(gridHandle.bufferSize(), (uint8_t *)gridHandle.data());
 
