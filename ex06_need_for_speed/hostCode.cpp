@@ -158,6 +158,18 @@ extern "C" int main(int argc, char *argv[]) {
 
   Pipeline pl(argc, argv, "ex06_need_for_speed");
 
+  Pipeline::RTConfig conf;
+#ifdef RTCORE
+  conf.ptxCode = ptxCode;
+  conf.launchParamsDecl = launchParams_owl;
+  conf.sizeOfLaunchParamsStruct = sizeof(LaunchParams);
+#else
+  conf.rayGens.push_back({"woodcockTrackingAE",woodcockTrackingAE});
+  conf.rayGens.push_back({"buildGridAccel",buildGridAccel});
+  conf.rayGens.push_back({"updateMajorantDensities",updateMajorantDensities});
+#endif
+  pl.initRT(conf);
+
   int imgWidth=512, imgHeight=512;
   Frame fb(imgWidth, imgHeight);
   pl.setFrame(&fb);
@@ -182,18 +194,6 @@ extern "C" int main(int argc, char *argv[]) {
   }
 
   pl.uiParam("Unit distance", &g_appState.unitDistance, 0.01f, 5.f);
-
-  Pipeline::RTConfig conf;
-#ifdef RTCORE
-  conf.ptxCode = ptxCode;
-  conf.launchParamsDecl = launchParams_owl;
-  conf.sizeOfLaunchParamsStruct = sizeof(LaunchParams);
-#else
-  conf.rayGens.push_back({"woodcockTrackingAE",woodcockTrackingAE});
-  conf.rayGens.push_back({"buildGridAccel",buildGridAccel});
-  conf.rayGens.push_back({"updateMajorantDensities",updateMajorantDensities});
-#endif
-  pl.initRT(conf);
 
   LaunchParams parms;
 

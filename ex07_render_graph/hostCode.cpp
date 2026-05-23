@@ -107,11 +107,6 @@ extern "C" int main(int argc, char *argv[]) {
 
   Pipeline pl(argc, argv, "ex07_render_graph");
 
-  box3f worldBounds(
-    {INFINITY,INFINITY,INFINITY},
-    {-INFINITY,-INFINITY,-INFINITY}
-  );
-
   Pipeline::RTConfig conf;
 #ifdef RTCORE
   conf.ptxCode = ptxCode;
@@ -121,6 +116,11 @@ extern "C" int main(int argc, char *argv[]) {
   conf.rayGens.push_back({"directLighting",directLighting});
 #endif
   pl.initRT(conf);
+
+  box3f worldBounds(
+    {INFINITY,INFINITY,INFINITY},
+    {-INFINITY,-INFINITY,-INFINITY}
+  );
 
 #ifdef RTCORE
   // ######################################################

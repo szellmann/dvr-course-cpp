@@ -22,9 +22,7 @@ namespace ex09_anari {
 
 struct GlobalState : public helium::BaseGlobalDeviceState
 {
-  GlobalState(ANARIDevice d) : helium::BaseGlobalDeviceState(d)
-  { m_pipeline.setHeadless(true); }
-
+  GlobalState(ANARIDevice d);
   ~GlobalState() = default;
 
   dvr_course::Pipeline &pipeline()

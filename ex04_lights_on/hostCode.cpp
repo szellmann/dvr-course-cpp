@@ -104,6 +104,17 @@ extern "C" int main(int argc, char *argv[]) {
 
   Pipeline pl(argc, argv, "ex04_lights_on");
 
+  Pipeline::RTConfig conf;
+#ifdef RTCORE
+  conf.ptxCode = ptxCode;
+  conf.launchParamsDecl = launchParams_owl;
+  conf.sizeOfLaunchParamsStruct = sizeof(LaunchParams);
+#else
+  conf.rayGens.push_back({"woodcockTrackingSS",woodcockTrackingSS});
+#endif
+  pl.initRT(conf);
+  pl.setRayGen("woodcockTrackingSS");
+
   int imgWidth=512, imgHeight=512;
   Frame fb(imgWidth, imgHeight);
   pl.setFrame(&fb);
@@ -139,17 +150,6 @@ extern "C" int main(int argc, char *argv[]) {
 
   float lightIntensity{1.f};
   pl.uiParam("Light intensity", &lightIntensity, 0.f, 32.f);
-
-  Pipeline::RTConfig conf;
-#ifdef RTCORE
-  conf.ptxCode = ptxCode;
-  conf.launchParamsDecl = launchParams_owl;
-  conf.sizeOfLaunchParamsStruct = sizeof(LaunchParams);
-#else
-  conf.rayGens.push_back({"woodcockTrackingSS",woodcockTrackingSS});
-#endif
-  pl.initRT(conf);
-  pl.setRayGen("woodcockTrackingSS");
 
   LaunchParams parms;
 

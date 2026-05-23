@@ -69,6 +69,19 @@ extern "C" int main(int argc, char *argv[]) {
 
   Pipeline pl(argc, argv, "ex03_multi_volume");
 
+  Pipeline::RTConfig conf;
+#ifdef RTCORE
+  conf.ptxCode = ptxCode;
+  conf.launchParamsDecl = launchParams_owl;
+  conf.sizeOfLaunchParamsStruct = sizeof(LaunchParams);
+#else
+  conf.rayGens.push_back({"multiVolumeWoodcock",multiVolumeWoodcock});
+  conf.rayGens.push_back({"blendingWoodcock",blendingWoodcock});
+#endif
+  pl.initRT(conf);
+  pl.setRayGen("multiVolumeWoodcock");
+
+
   box3f worldBounds(
     {INFINITY,INFINITY,INFINITY},
     {-INFINITY,-INFINITY,-INFINITY}
@@ -155,18 +168,6 @@ extern "C" int main(int argc, char *argv[]) {
 
   g_appState.unitDistance = 1.0f;
   pl.uiParam("Unit distance", &g_appState.unitDistance, 0.001f, 5.f);
-
-  Pipeline::RTConfig conf;
-#ifdef RTCORE
-  conf.ptxCode = ptxCode;
-  conf.launchParamsDecl = launchParams_owl;
-  conf.sizeOfLaunchParamsStruct = sizeof(LaunchParams);
-#else
-  conf.rayGens.push_back({"multiVolumeWoodcock",multiVolumeWoodcock});
-  conf.rayGens.push_back({"blendingWoodcock",blendingWoodcock});
-#endif
-  pl.initRT(conf);
-  pl.setRayGen("multiVolumeWoodcock");
 
   LaunchParams parms;
 

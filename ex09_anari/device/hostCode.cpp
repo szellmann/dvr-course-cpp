@@ -21,6 +21,21 @@ extern "C" char ptxCode[];
 extern void directLighting();
 #endif
 
+GlobalState::GlobalState(ANARIDevice d) : helium::BaseGlobalDeviceState(d)
+{
+  Pipeline::RTConfig conf;
+#ifdef RTCORE
+  conf.ptxCode = ptxCode;
+  conf.launchParamsDecl = launchParams_owl;
+  conf.sizeOfLaunchParamsStruct = sizeof(LaunchParams);
+#else
+  conf.rayGens.push_back({"directLighting",directLighting});
+#endif
+  m_pipeline.initRT(conf);
+  m_pipeline.setRayGen("directLighting");
+  m_pipeline.setHeadless(true);
+}
+
 // Object definitions /////////////////////////////////////////////////////////
 
 Object::Object(ANARIDataType type, GlobalState *s)
@@ -471,16 +486,6 @@ Frame::Frame(GlobalState *s) : helium::BaseFrame(s), m_frame(new dvr_course::Fra
 {
   pipeline().setFrame(m_frame.get());
 
-  Pipeline::RTConfig conf;
-#ifdef RTCORE
-  conf.ptxCode = ptxCode;
-  conf.launchParamsDecl = launchParams_owl;
-  conf.sizeOfLaunchParamsStruct = sizeof(LaunchParams);
-#else
-  conf.rayGens.push_back({"directLighting",directLighting});
-#endif
-  pipeline().initRT(conf);
-  pipeline().setRayGen("directLighting");
 }
 
 bool Frame::isValid() const
