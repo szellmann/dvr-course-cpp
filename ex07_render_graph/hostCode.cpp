@@ -136,6 +136,22 @@ extern "C" int main(int argc, char *argv[]) {
   owlGeomTypeSetIntersectProg(userGeomType, 0, pl.owlModule(), "TetIntersect");
   owlGeomTypeSetClosestHit(userGeomType, 0, pl.owlModule(), "TetClosestHit");
   owlBuildPrograms(pl.owlContext());
+
+  // ######################################################
+  // set up geometry type for triangle geometry
+  // ######################################################
+
+  OWLVarDecl triangleGeomVars[]
+    = {
+      { "vertices", OWL_BUFPTR, OWL_OFFSETOF(TriangleMesh,vertices)},
+      { "indices", OWL_BUFPTR, OWL_OFFSETOF(TriangleMesh,indices)},
+      { nullptr /* sentinel to mark end of list */ }
+    };
+  OWLGeomType triangleGeomType = owlGeomTypeCreate(pl.owlContext(),
+                                                   OWL_TRIANGLES,
+                                                   sizeof(TriangleMesh),
+                                                   triangleGeomVars, -1);
+  owlGeomTypeSetClosestHit(triangleGeomType, 0, pl.owlModule(), "TriangleMeshClosestHit");
 #endif
 
   for (auto f: g_appState.objFiles) {
@@ -176,6 +192,7 @@ extern "C" int main(int argc, char *argv[]) {
     g_appState.deviceTets.push_back(tetMesh.onDevice);
     worldBounds.extend(tetMesh.volume.bounds);
 #ifdef RTCORE
+    // if volume is a tet mesh, build OptiX BVH
     OWLGeom userGeom = owlGeomCreate(pl.owlContext(), userGeomType);
     owlGeomSetPrimCount(userGeom, tetMesh.volume.asTetMesh.numTets);
 
@@ -198,7 +215,10 @@ extern "C" int main(int argc, char *argv[]) {
 #endif
   }
 
-  // assign volume handles:
+  // Assign volume handles. All volumes go in a single list that is traversed
+  // linearly on the device, performing a separate ray traversal - and
+  // potentially sampling with OptiX if the field associated with the volume is
+  // a tet mesh
   for (int i=0, nvdb=0, tet=0; i<g_appState.volumes.size(); ++i) {
     Volume &volume = g_appState.volumes[i];
     if (volume.type == Volume::NVDB) {
@@ -211,7 +231,7 @@ extern "C" int main(int argc, char *argv[]) {
     }
   }
 
-  // construct transfuncs:
+  // construct transfuncs (one per volume):
   for (int i=0; i<g_appState.volumes.size(); ++i) {
     if (!pl.transfuncValid(i)) {
       const Volume &volume = g_appState.volumes[i];
@@ -260,50 +280,40 @@ extern "C" int main(int argc, char *argv[]) {
   LaunchParams parms;
 
 #ifdef RTCORE
-  // build mesh BVHs
-  OWLVarDecl triangleGeomVars[]
-    = {
-      { "vertices", OWL_BUFPTR, OWL_OFFSETOF(TriangleMesh,vertices)},
-      { "indices", OWL_BUFPTR, OWL_OFFSETOF(TriangleMesh,indices)},
-      { nullptr /* sentinel to mark end of list */ }
-    };
-  OWLGeomType triangleGeomType = owlGeomTypeCreate(pl.owlContext(),
-                                                   OWL_TRIANGLES,
-                                                   sizeof(TriangleMesh),
-                                                   triangleGeomVars, -1);
-  owlGeomTypeSetClosestHit(triangleGeomType, 0, pl.owlModule(), "TriangleMeshClosestHit");
+  // Build mesh BVHs. We use a single TLAS with one BLAS for each mesh. Here we
+  // could also set up instances, materials, etc.
+  if (!g_appState.triangleMeshes.empty()) {
+    owlBuildPrograms(pl.owlContext());
 
-  owlBuildPrograms(pl.owlContext());
+    g_appState.triangleTLAS = owlInstanceGroupCreate(pl.owlContext(),
+                                                     g_appState.triangleMeshes.size());
 
-  g_appState.triangleTLAS = owlInstanceGroupCreate(pl.owlContext(),
-                                                   g_appState.triangleMeshes.size());
+    for (int i=0; i<g_appState.triangleMeshes.size(); ++i) {
+      auto &mesh = g_appState.triangleMeshes[i];
+      mesh.meshID = i; // TODO (assign in importer?)
+      auto &onDevice = g_appState.deviceMeshes[mesh.meshID];
+      OWLGeom geom = owlGeomCreate(pl.owlContext(), triangleGeomType);
+      OWLBuffer vertexBuffer = owlDeviceBufferCreate(pl.owlContext(),
+                                                     OWL_FLOAT3,
+                                                     onDevice.first.size(),
+                                                     onDevice.first.data());
 
-  for (int i=0; i<g_appState.triangleMeshes.size(); ++i) {
-    auto &mesh = g_appState.triangleMeshes[i];
-    mesh.meshID = i; // TODO (assign in importer?)
-    auto &onDevice = g_appState.deviceMeshes[mesh.meshID];
-    OWLGeom geom = owlGeomCreate(pl.owlContext(), triangleGeomType);
-    OWLBuffer vertexBuffer = owlDeviceBufferCreate(pl.owlContext(),
-                                                   OWL_FLOAT3,
-                                                   onDevice.first.size(),
-                                                   onDevice.first.data());
+      OWLBuffer indexBuffer = owlDeviceBufferCreate(pl.owlContext(),
+                                                    OWL_INT3,
+                                                    onDevice.second.size(),
+                                                    onDevice.second.data());
 
-    OWLBuffer indexBuffer = owlDeviceBufferCreate(pl.owlContext(),
-                                                  OWL_INT3,
-                                                  onDevice.second.size(),
-                                                  onDevice.second.data());
+      owlTrianglesSetVertices(geom,vertexBuffer,onDevice.first.size(),sizeof(vec3f),0);
+      owlTrianglesSetIndices(geom,indexBuffer,onDevice.second.size(),sizeof(vec3i),0);
+      OWLGroup group = owlTrianglesGeomGroupCreate(pl.owlContext(), 1, &geom);
+      owlGroupBuildAccel(group);
+      owlGeomSetBuffer(geom,"vertices",vertexBuffer);
+      owlGeomSetBuffer(geom,"indices",indexBuffer);
+      owlInstanceGroupSetChild(g_appState.triangleTLAS, i, group);
+    }
 
-    owlTrianglesSetVertices(geom,vertexBuffer,onDevice.first.size(),sizeof(vec3f),0);
-    owlTrianglesSetIndices(geom,indexBuffer,onDevice.second.size(),sizeof(vec3i),0);
-    OWLGroup group = owlTrianglesGeomGroupCreate(pl.owlContext(), 1, &geom);
-    owlGroupBuildAccel(group);
-    owlGeomSetBuffer(geom,"vertices",vertexBuffer);
-    owlGeomSetBuffer(geom,"indices",indexBuffer);
-    owlInstanceGroupSetChild(g_appState.triangleTLAS, i, group);
+    owlGroupBuildAccel(g_appState.triangleTLAS);
   }
-
-  owlGroupBuildAccel(g_appState.triangleTLAS);
-  //owlParamsSetGroup(lp, "world", asTriMesh.tlasGroup);
 #endif
 
   // volumes
