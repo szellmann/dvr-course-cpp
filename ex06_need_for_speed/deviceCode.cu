@@ -91,7 +91,7 @@ RAYGEN_PROGRAM(updateMajorantDensities)()
 
   size_t mcID = threadIndex.x + size_t(launchDim.x) * threadIndex.y;
 
-  box1f &valueRange = lp.volume.grid.valueRanges[mcID];
+  box1f valueRange = lp.volume.grid.valueRanges[mcID];
 
   if (valueRange.upper < valueRange.lower) { // is cell empty?
     lp.volume.grid.majorants[mcID] = 0.f;
