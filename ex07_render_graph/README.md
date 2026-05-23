@@ -20,4 +20,4 @@ by production-grade, ray tracing-based, GPU sci-vis renderers.
       instead the volumes will go in a linear array that we iterate over; that
       way we can use hardware ray tracing for sampling
 - [ ] Space skipping with DDA (from ex06)
-- [ ] Instance transforms? Via command line? Do we need this?
+- [x] Instance transforms? Via command line? Do we need this? **NO**
