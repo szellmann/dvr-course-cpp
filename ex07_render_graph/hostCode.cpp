@@ -26,14 +26,19 @@ using namespace dvr_course;
 DECL_LAUNCH_PARAMS(ex07_render_graph::LaunchParams)
 
 struct {
+  // I/O
   std::vector<std::string> objFiles;
   std::vector<std::string> nvdbFiles;
   std::vector<std::string> tetMeshFiles;
   std::vector<ex07_render_graph::TriangleMesh> triangleMeshes;
   std::vector<ex07_render_graph::Volume> volumes;
+  // device-persistent data
   std::vector<Buffer<uint8_t>> deviceGrids;
   std::vector<Buffer<ex07_render_graph::Tet>> deviceTets;
   std::vector<std::pair<Buffer<vec3f>,Buffer<vec3i>>> deviceMeshes;
+  std::vector<Buffer<box1f>> valueRangeBuffers;
+  std::vector<Buffer<float>> majorantBuffers;
+  // DVR
   std::vector<Transfunc> transfuncs;
   float unitDistance{1.f};
   // AO:

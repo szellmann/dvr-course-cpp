@@ -53,6 +53,12 @@ struct Volume {
   };
   box3f bounds;
   box1f dataRange;
+  struct {
+    box1f *valueRanges;
+    float *majorants;
+    vec3i  dims;
+    box3f  worldBounds;
+  } grid;
 };
 
 
