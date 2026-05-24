@@ -63,6 +63,7 @@ struct LaunchParams {
   // DVR:
   float samplingRate;
   float unitDistance;
+  bool  interleavedSampling;
 };
 
 } // namespace ex00_hello_dvr_course

@@ -15,8 +15,9 @@ DECL_LAUNCH_PARAMS(ex00_hello_dvr_course::LaunchParams)
 
 struct {
   Transfunc transfunc;
-  float samplingRate;
-  float unitDistance;
+  float samplingRate{2.f};
+  float unitDistance{0.1f};
+  bool interleavedSampling{true};
 } g_appState;
 
 namespace ex00_hello_dvr_course {
@@ -68,11 +69,9 @@ extern "C" int main(int argc, char *argv[]) {
     pl.setTransfunc(&tf);
   }
 
-  g_appState.samplingRate = 2.f;
   pl.uiParam("Sampling rate", &g_appState.samplingRate, 0.001f, 5.f);
-
-  g_appState.unitDistance = 0.1f;
   pl.uiParam("Unit distance", &g_appState.unitDistance, 0.001f, 5.f);
+  pl.uiParam("Interleaved sampling", &g_appState.interleavedSampling);
 
   LaunchParams parms;
 
@@ -107,6 +106,7 @@ extern "C" int main(int argc, char *argv[]) {
     // update DVR params:
     pl.launchParam("samplingRate", parms.samplingRate) = g_appState.samplingRate;
     pl.launchParam("unitDistance", parms.unitDistance) = g_appState.unitDistance;
+    pl.launchParam("interleavedSampling", parms.interleavedSampling) = g_appState.interleavedSampling;
     // update accum:
     pl.launchParam("accumID", parms.accumID) = pl.frameID;
 

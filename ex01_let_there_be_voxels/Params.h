@@ -69,6 +69,7 @@ struct LaunchParams {
   // DVR:
   float samplingRate;
   float unitDistance;
+  bool  interleavedSampling;
 };
 
 } // namespace ex01_let_there_be_voxels

@@ -29,7 +29,7 @@ struct {
   std::vector<ex03_multi_volume::Volume> volumes;
   std::vector<Buffer<uint8_t>> deviceGrids;
   std::vector<Transfunc> transfuncs;
-  float unitDistance;
+  float unitDistance{1.f};
 } g_appState;
 
 namespace ex03_multi_volume {
@@ -166,7 +166,6 @@ extern "C" int main(int argc, char *argv[]) {
     pl.setTransfunc(&g_appState.transfuncs[i],i);
   }
 
-  g_appState.unitDistance = 1.0f;
   pl.uiParam("Unit distance", &g_appState.unitDistance, 0.001f, 5.f);
 
   LaunchParams parms;

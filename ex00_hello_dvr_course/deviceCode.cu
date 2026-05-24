@@ -91,7 +91,10 @@ RAYGEN_PROGRAM(simpleRayMarcher)()
 
   float dt = 1.f/lp.samplingRate;
 
-  float t=ray.tmin + interleavedSamplingOffset;
+  float t=ray.tmin;
+  if (lp.interleavedSampling) {
+    t += interleavedSamplingOffset;
+  }
   float transmittance = 1.f;
 
   // Main ray marching loop:

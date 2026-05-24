@@ -27,7 +27,7 @@ DECL_LAUNCH_PARAMS(ex02_woodcock::LaunchParams)
 struct {
   std::string filepath;
   Transfunc transfunc;
-  float unitDistance;
+  float unitDistance{1.f};
 } g_appState;
 
 namespace ex02_woodcock {
@@ -123,7 +123,6 @@ extern "C" int main(int argc, char *argv[]) {
     pl.setTransfunc(&tf);
   }
 
-  g_appState.unitDistance = 1.0f;
   pl.uiParam("Unit distance", &g_appState.unitDistance, 0.001f, 5.f);
 
   LaunchParams parms;

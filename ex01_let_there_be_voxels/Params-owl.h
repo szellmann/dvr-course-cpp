@@ -49,6 +49,7 @@ OWLVarDecl launchParams_owl[]
    // render settings
    { "samplingRate", OWL_FLOAT, OWL_OFFSETOF(LaunchParams,samplingRate) },
    { "unitDistance", OWL_FLOAT, OWL_OFFSETOF(LaunchParams,unitDistance) },
+   { "interleavedSampling", OWL_BOOL, OWL_OFFSETOF(LaunchParams,interleavedSampling) },
    { nullptr /* sentinel to mark end of list */ }
 };
 
