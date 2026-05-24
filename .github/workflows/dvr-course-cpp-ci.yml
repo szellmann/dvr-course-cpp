@@ -14,6 +14,8 @@ jobs:
         os: [ubuntu-24.04, macos-15, windows-2022]
         config: [Release, Debug]
         cuda: [ON, OFF]
+        interactive: [ON, OFF]
+        rtcore: [ON, OFF]
         exclude:
           - cuda: OFF
           - os: macos-15
@@ -74,6 +76,9 @@ jobs:
         cmake --build ${{ github.workspace }}/ANARI-SDK_build --config ${{ matrix.config }} --target install
 
     - name: Checkout OWL
+      if: >-
+        matrix.rtcore == 'ON' &&
+        matrix.cuda == 'ON'
       uses: actions/checkout@v3
       with:
         repository: NVIDIA/OWL
@@ -96,6 +101,8 @@ jobs:
       run: >
         cmake -LA -B ${{ github.workspace }}/build
         -DCMAKE_BUILD_TYPE=${{ matrix.config }}
+        -DDVR_COURSE_PIPELINE_INTERACTIVE=${{ matrix.interactive }}
+        -DDVR_COURSE_WITH_OWL=${{ matrix.rtcore }}
 
     - name: Build
       run: cmake --build ${{ github.workspace }}/build --config ${{ matrix.config }}
