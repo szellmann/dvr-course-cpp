@@ -180,22 +180,20 @@ extern "C" int main(int argc, char *argv[]) {
   // blending
   pl.launchParam("blendMode", parms.blendMode) = BLEND_MODE_MIX;
 
-  pl.setKeyDownHandler([&](char key) {
-    if (key == '1') {
-      pl.setRayGen("multiVolumeWoodcock");
-      pl.resetAccumulation();
-    }
-    if (key == '2') {
-      pl.setRayGen("blendingWoodcock");
-      pl.launchParam("blendMode", parms.blendMode) = BLEND_MODE_MIX;
-      pl.resetAccumulation();
-    }
-    if (key == '3') {
-      pl.setRayGen("blendingWoodcock");
-      pl.launchParam("blendMode", parms.blendMode) = BLEND_MODE_MAX_ALPHA;
-      pl.resetAccumulation();
-    }
+  // multi-channel modes:
+  // 1) simply overlap volumes and accept the closest woodcock sample,
+  //    blending happens in the accumulation buffer
+  // 2) upon sampling, evaluate each volume, perform post-classification,
+  //    lerp the resulting color and alpha to give the woodcock sample
+  // 3) same as 2), but instead of lerp, pick the post-classified sample
+  //    with maximum alpha to become the woodcock sample
+  std::vector<std::string> options({
+    { "Multi-volume" },
+    { "Multi-channel, blend mode: mix" },
+    { "Multi-channel, blend mode: max alpha" },
   });
+  int mode=0, prevMode=-1;
+  pl.uiParam("Mode", options, &mode);
 
   // Render and present...
   // For default (PNG image) pipeline this
@@ -214,6 +212,24 @@ extern "C" int main(int argc, char *argv[]) {
       deviceTransfuncs[i].values = pl.getTransfunc(i)->rgbaLUT;
     }
     Buffer transfuncBuffer(deviceTransfuncs.size(), deviceTransfuncs.data());
+
+    // toggle multi-volume/channel mode:
+    if (mode != prevMode) {
+      switch (mode) {
+      case 0: default:
+        pl.setRayGen("multiVolumeWoodcock");
+        break;
+      case 1:
+        pl.setRayGen("blendingWoodcock");
+        pl.launchParam("blendMode", parms.blendMode) = BLEND_MODE_MIX;
+        break;
+      case 2:
+        pl.setRayGen("blendingWoodcock");
+        pl.launchParam("blendMode", parms.blendMode) = BLEND_MODE_MAX_ALPHA;
+      }
+      pl.resetAccumulation();
+      prevMode = mode;
+    }
 
     // update camera:
     pl.launchParam("camera.org", parms.camera.org) = cam.getPosition();
