@@ -39,11 +39,10 @@ inline __device__ vec3i projectToGrid(
   return clamp(vec3i(Vscale.x,Vscale.y,Vscale.z),vec3i(0),dims-vec3i(1));
 }
 
-inline __device__ void rasterizeBox(const box4f &box)
+inline __device__ void rasterizeBox(const box4f &box, const Volume &volume)
 {
-  auto &lp = optixLaunchParams;
-  const box3f worldBounds = lp.volume.grid.worldBounds;
-  const vec3i dims = lp.volume.grid.dims;
+  const box3f worldBounds = volume.grid.worldBounds;
+  const vec3i dims = volume.grid.dims;
 
   vec3i lo = projectToGrid(box.lower.xyz,worldBounds,dims);
   vec3i up = projectToGrid(box.upper.xyz,worldBounds,dims);
@@ -52,7 +51,7 @@ inline __device__ void rasterizeBox(const box4f &box)
     for (int y=lo.y; y<=up.y; ++y) {
       for (int x=lo.x; x<=up.x; ++x) {
         auto index = linearIndex(vec3i(x,y,z),dims);
-        box1f &valueRange = lp.volume.grid.valueRanges[index];
+        box1f &valueRange = volume.grid.valueRanges[index];
         atomicMin(&valueRange.lower,box.lower.w);
         atomicMax(&valueRange.upper,box.upper.w);
       }
@@ -77,7 +76,7 @@ RAYGEN_PROGRAM(buildGridAccel)()
   tetBounds.extend(tet.v1);
   tetBounds.extend(tet.v2);
   tetBounds.extend(tet.v3);
-  rasterizeBox(tetBounds);
+  rasterizeBox(tetBounds,lp.volume);
 }
 
 // ========================================================
@@ -89,12 +88,21 @@ RAYGEN_PROGRAM(updateMajorantDensities)()
   const vec2i threadIndex = getLaunchIndex();
   const vec2i launchDim = getLaunchDims();
 
+  vec3i gridDims = lp.volume.grid.dims;
+  size_t numMCs = gridDims.x * size_t(gridDims.y) * gridDims.z;
+
   size_t mcID = threadIndex.x + size_t(launchDim.x) * threadIndex.y;
 
-  box1f valueRange = lp.volume.grid.valueRanges[mcID];
+  if (mcID >= numMCs) {
+    return;
+  }
+
+  const Volume &volume = lp.volume;
+
+  box1f valueRange = volume.grid.valueRanges[mcID];
 
   if (valueRange.upper < valueRange.lower) { // is cell empty?
-    lp.volume.grid.majorants[mcID] = 0.f;
+    volume.grid.majorants[mcID] = 0.f;
     return;
   }
 
@@ -120,7 +128,7 @@ RAYGEN_PROGRAM(updateMajorantDensities)()
   for (int i=lo; i<=hi; ++i) {
     maxOpacity = fmaxf(maxOpacity,tf.values[i].a);
   }
-  lp.volume.grid.majorants[mcID] = maxOpacity;
+  volume.grid.majorants[mcID] = maxOpacity;
 }
 
 // ========================================================
