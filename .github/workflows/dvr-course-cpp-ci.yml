@@ -119,7 +119,7 @@ jobs:
         -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/opt
         -DCMAKE_BUILD_TYPE=Release
 
-    - name: Build and install OWL
+    - name: Build and install fakeOWL
       if: >-
         matrix.rtcore == 'ON' &&
         matrix.cuda == 'OFF'
