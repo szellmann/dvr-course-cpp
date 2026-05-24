@@ -52,6 +52,10 @@ jobs:
         echo "/usr/local/cuda-12.6/bin" >> $GITHUB_PATH
         echo "LD_LIBRARY_PATH=/usr/local/cuda-12.6/lib64:$LD_LIBRARY_PATH" >> $GITHUB_ENV
 
+    - name: Install apt packages
+      if: matrix.os == 'ubuntu-24.04'
+      run: sudo apt install -y libboost-all-dev libxi-dev libxmu-dev
+
     - name: Checkout ANARI-SDK
       uses: actions/checkout@v3
       with:
