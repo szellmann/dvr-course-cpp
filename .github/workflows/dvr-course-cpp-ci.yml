@@ -17,7 +17,6 @@ jobs:
         interactive: [ON, OFF]
         rtcore: [ON, OFF]
         exclude:
-          - cuda: OFF
           - os: macos-15
             cuda: ON
           - os: windows-2022
@@ -86,8 +85,30 @@ jobs:
         ref: main
 
     - name: Configure OWL
+      if: >-
+        matrix.rtcore == 'ON' &&
+        matrix.cuda == 'ON'
       run: >
         cmake ${{ github.workspace }}/OWL -B ${{ github.workspace }}/OWL_build
+        -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/opt
+        -DCMAKE_BUILD_TYPE=Release
+
+    - name: Checkout fakeOWL
+      if: >-
+        matrix.rtcore == 'ON' &&
+        matrix.cuda == 'OFF'
+      uses: actions/checkout@v3
+      with:
+        repository: szellmann/fakeOWL
+        path: ${{ github.workspace }}/fakeOWL
+        ref: main
+
+    - name: Configure fakeOWL
+      if: >-
+        matrix.rtcore == 'ON' &&
+        matrix.cuda == 'OFF'
+      run: >
+        cmake ${{ github.workspace }}/fakeOWL -B ${{ github.workspace }}/fakeOWL_build
         -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/opt
         -DCMAKE_BUILD_TYPE=Release
 
