@@ -78,7 +78,7 @@ jobs:
       with:
         repository: NVIDIA/OWL
         path: ${{ github.workspace }}/OWL
-        ref: master
+        ref: main
 
     - name: Configure OWL
       run: >
