@@ -407,8 +407,8 @@ struct Pipeline::Impl
 #endif
 
 #ifdef RTCORE
-    owlModuleRelease(owl.module);
     owlRayGenRelease(owl.rayGen);
+    owlModuleRelease(owl.module);
     owlContextDestroy(owl.context);
 #endif
 
