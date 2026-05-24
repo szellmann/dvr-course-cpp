@@ -31,6 +31,207 @@ namespace ex07_render_graph {
 extern "C" __constant__ LaunchParams optixLaunchParams;
 
 // ========================================================
+// Grid helpers
+// ========================================================
+inline __device__ vec3i projectToGrid(
+    const vec3f &V, const box3f &worldBounds, const vec3i &dims)
+{
+  const vec3f V01 = (V-worldBounds.lower)/(worldBounds.upper-worldBounds.lower);
+  const vec3f Vscale = V01*vec3f(dims.x,dims.y,dims.z);
+  return clamp(vec3i(Vscale.x,Vscale.y,Vscale.z),vec3i(0),dims-vec3i(1));
+}
+
+inline __device__ void rasterizeBox(const box4f &box, const Volume &volume)
+{
+  const box3f worldBounds = volume.grid.worldBounds;
+  const vec3i dims = volume.grid.dims;
+
+  vec3i lo = projectToGrid(box.lower.xyz,worldBounds,dims);
+  vec3i up = projectToGrid(box.upper.xyz,worldBounds,dims);
+
+  for (int z=lo.z; z<=up.z; ++z) {
+    for (int y=lo.y; y<=up.y; ++y) {
+      for (int x=lo.x; x<=up.x; ++x) {
+        auto index = linearIndex(vec3i(x,y,z),dims);
+        box1f &valueRange = volume.grid.valueRanges[index];
+        atomicMin(&valueRange.lower,box.lower.w);
+        atomicMax(&valueRange.upper,box.upper.w);
+      }
+    }
+  }
+}
+
+// ========================================================
+// "Ray gen prog" to build grid
+// ========================================================
+RAYGEN_PROGRAM(buildGridAccel)()
+{
+  auto &lp = optixLaunchParams;
+  const vec2i threadIndex = getLaunchIndex();
+  const vec2i launchDim = getLaunchDims();
+
+  const int volID = 0; // TODO: encode in threadIndex.z?
+
+  size_t tetID = threadIndex.x + size_t(launchDim.x) * threadIndex.y;
+  if (tetID >= lp.volumes[volID].asTetMesh.numTets) return;
+  const Tet &tet = lp.volumes[volID].asTetMesh.tets[tetID];
+  box4f tetBounds(INFINITY,-INFINITY);
+  tetBounds.extend(tet.v0);
+  tetBounds.extend(tet.v1);
+  tetBounds.extend(tet.v2);
+  tetBounds.extend(tet.v3);
+  rasterizeBox(tetBounds,lp.volumes[volID]);
+}
+
+// ========================================================
+// "Ray gen prog" to update majorants on-the-fly
+// ========================================================
+RAYGEN_PROGRAM(updateMajorantDensities)()
+{
+  auto &lp = optixLaunchParams;
+  const vec2i threadIndex = getLaunchIndex();
+  const vec2i launchDim = getLaunchDims();
+
+  const int volID = 0; // TODO: encode in threadIndex.z?
+
+  const Volume &volume = lp.volumes[volID];
+
+  vec3i gridDims = volume.grid.dims;
+  size_t numMCs = gridDims.x * size_t(gridDims.y) * gridDims.z;
+
+  size_t mcID = threadIndex.x + size_t(launchDim.x) * threadIndex.y;
+
+  if (mcID >= numMCs) {
+    return;
+  }
+
+  box1f valueRange = volume.grid.valueRanges[mcID];
+
+  if (valueRange.upper < valueRange.lower) { // is cell empty?
+    volume.grid.majorants[mcID] = 0.f;
+    return;
+  }
+
+  auto &tf = lp.transfuncs[volID];
+
+  valueRange.lower -= tf.valueRange.lower;
+  valueRange.lower /= tf.valueRange.size();
+  valueRange.upper -= tf.valueRange.lower;
+  valueRange.upper /= tf.valueRange.size();
+
+  int numValues = tf.size;
+
+  // compute min/max indices into the transfer function array wrt.
+  // the values this cell contains:
+  int lo = clamp(
+      int(valueRange.lower * (numValues-1)), 0, numValues-1);
+  int hi = clamp(
+      int(valueRange.upper * (numValues-1)) + 1, 0, numValues-1);
+
+  // iterate over the tf array, the maximum opacity is our macrocell
+  // majorant:
+  float maxOpacity = 0.f;
+  for (int i=lo; i<=hi; ++i) {
+    maxOpacity = fmaxf(maxOpacity,tf.values[i].a);
+  }
+  volume.grid.majorants[mcID] = maxOpacity;
+}
+
+// ========================================================
+// DDA3 implementation
+// ========================================================
+template <typename Ray, typename Func>
+inline __device__ void dda3(
+    Ray ray, const vec3i &gridDims, const box3f &modelBounds, const Func  &func)
+{
+  // move ray so tmin becomes 0
+  const float ray_tmin = ray.tmin;
+  ray.org = ray.org + ray.tmin * ray.dir;
+  ray.tmin = 0.f;
+  ray.tmax -= ray_tmin;
+
+  const vec3f rcp_dir = 1.f / ray.dir;
+
+  const vec3f lo = (modelBounds.lower - ray.org) * rcp_dir;
+  const vec3f hi = (modelBounds.upper - ray.org) * rcp_dir;
+
+  vec3f tnear = min(lo,hi);
+  const vec3f tfar = max(lo,hi);
+
+  if (ray.dir.x == 0.f) {
+    tnear.x = INFINITY;
+  }
+  if (ray.dir.y == 0.f) {
+    tnear.y = INFINITY;
+  }
+  if (ray.dir.z == 0.f) {
+    tnear.z = INFINITY;
+  }
+
+  vec3i cellID = projectToGrid(ray.org,modelBounds,gridDims);
+
+  // Distance in world space to get from cell to cell
+  const vec3f dist(max(vec3f(0.f),(tfar-tnear)/vec3f(gridDims)));
+
+  // Cell increment
+  const vec3i step = {
+    ray.dir.x > 0.f ? 1 : -1,
+    ray.dir.y > 0.f ? 1 : -1,
+    ray.dir.z > 0.f ? 1 : -1
+  };
+
+  // Stop when we reach grid borders
+  const vec3i stop = {
+    ray.dir.x > 0.f ? gridDims.x : -1,
+    ray.dir.y > 0.f ? gridDims.y : -1,
+    ray.dir.z > 0.f ? gridDims.z : -1
+  };
+
+  // Increment in world space
+  vec3f tnext = {
+    ray.dir.x > 0.f ? tnear.x + float(cellID.x+1) * dist.x
+                    : tnear.x + float(gridDims.x-cellID.x) * dist.x,
+    ray.dir.y > 0.f ? tnear.y + float(cellID.y+1) * dist.y
+                    : tnear.y + float(gridDims.y-cellID.y) * dist.y,
+    ray.dir.z > 0.f ? tnear.z + float(cellID.z+1) * dist.z
+                    : tnear.z + float(gridDims.z-cellID.z) * dist.z
+  };
+
+
+  float t0 = 0.f;
+
+  while (1) { // loop over grid cells
+    const float t1 = fminf(reduce_min(tnext),ray.tmax);
+    if (!func(linearIndex(cellID,gridDims),ray_tmin+t0,ray_tmin+t1))
+      return;
+
+    const float t_closest = reduce_min(tnext);
+    if (tnext.x == t_closest) {
+      tnext.x += dist.x;
+      cellID.x += step.x;
+      if (cellID.x==stop.x) {
+        break;
+      }
+    }
+    if (tnext.y == t_closest) {
+      tnext.y += dist.y;
+      cellID.y += step.y;
+      if (cellID.y==stop.y) {
+        break;
+      }
+    }
+    if (tnext.z == t_closest) {
+      tnext.z += dist.z;
+      cellID.z += step.z;
+      if (cellID.z==stop.z) {
+        break;
+      }
+    }
+    t0 = t1;
+  }
+}
+
+// ========================================================
 // evalTet() implementation using four plane tests
 // ========================================================
 using Plane = vec4f;

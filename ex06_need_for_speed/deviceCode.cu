@@ -88,7 +88,9 @@ RAYGEN_PROGRAM(updateMajorantDensities)()
   const vec2i threadIndex = getLaunchIndex();
   const vec2i launchDim = getLaunchDims();
 
-  vec3i gridDims = lp.volume.grid.dims;
+  const Volume &volume = lp.volume;
+
+  vec3i gridDims = volume.grid.dims;
   size_t numMCs = gridDims.x * size_t(gridDims.y) * gridDims.z;
 
   size_t mcID = threadIndex.x + size_t(launchDim.x) * threadIndex.y;
@@ -96,8 +98,6 @@ RAYGEN_PROGRAM(updateMajorantDensities)()
   if (mcID >= numMCs) {
     return;
   }
-
-  const Volume &volume = lp.volume;
 
   box1f valueRange = volume.grid.valueRanges[mcID];
 
