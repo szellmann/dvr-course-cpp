@@ -206,7 +206,7 @@ inline __device__ float ambientOcclusion(vec3f hitPos, vec3f n, Random &rnd)
       : woodcockTracking(aoRay, rnd, majorant, albedo, transmission);
 
     float weight = fmaxf(0.f, dot(aoRay.dir,n));
-    if (t < aoRay.tmax)
+    if (transmission < rnd())
       ao += weight;
     aoWeights += weight;
   }
