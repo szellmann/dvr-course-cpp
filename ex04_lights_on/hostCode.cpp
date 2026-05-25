@@ -31,6 +31,9 @@ struct {
   // AO:
   int ambientSamples{1};
   float occlusionDistance{2.f};
+  // setup
+  bool ratioTrackingForShadows{true};
+  bool ratioTrackingForAO{true};
 } g_appState;
 
 namespace ex04_lights_on {
@@ -151,6 +154,9 @@ extern "C" int main(int argc, char *argv[]) {
   float lightIntensity{1.f};
   pl.uiParam("Light intensity", &lightIntensity, 0.f, 32.f);
 
+  pl.uiParam("Use ratio tracking for shadows", &g_appState.ratioTrackingForShadows);
+  pl.uiParam("Use ratio tracking for ambient occlusion", &g_appState.ratioTrackingForAO);
+
   LaunchParams parms;
 
   // volume
@@ -188,6 +194,10 @@ extern "C" int main(int argc, char *argv[]) {
     pl.launchParam("directionalLight.dir", parms.directionalLight.dir)
         = toCartesian({1.f,deg2rad(lightDir.x),deg2rad(lightDir.y)});
     pl.launchParam("directionalLight.intensity", parms.directionalLight.intensity) = lightIntensity;
+    pl.launchParam("ratioTrackingForShadows", parms.ratioTrackingForShadows)
+        = g_appState.ratioTrackingForShadows;
+    pl.launchParam("ratioTrackingForShadows", parms.ratioTrackingForAO)
+        = g_appState.ratioTrackingForAO;
     // update DVR params:
     pl.launchParam("unitDistance", parms.unitDistance) = g_appState.unitDistance;
     // update accum:

@@ -73,6 +73,9 @@ struct LaunchParams {
     float intensity;
   } directionalLight;
 
+  bool ratioTrackingForAO;
+  bool ratioTrackingForShadows;
+
   // DVR:
   float unitDistance;
 };

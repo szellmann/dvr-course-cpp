@@ -114,6 +114,47 @@ inline __device__ float woodcockTracking(const Ray &ray,
   return INFINITY;
 }
 
+inline __device__ float ratioTracking(const Ray &ray,
+                                      Random &rnd,
+                                      float majorant,
+                                      //output:
+                                      vec3f &albedo,
+                                      float &transmission)
+{
+  auto &lp = optixLaunchParams;
+
+  transmission = 1.f;
+
+  float t=ray.tmin;
+
+  while (1) {
+    // In later chapters majorants will vary in space:
+    if (majorant <= 0.f)
+      break;
+
+    t -= (logf(1.f - rnd()) / (majorant / lp.unitDistance));
+
+    if (t > ray.tmax)
+      break;
+
+    vec3f P = ray.org+ray.dir*t;
+
+    float value{0.f};
+    if (!sampleVolume(lp.volume, P, value))
+      continue;
+
+    vec4f sample = postClassify(lp.transfunc, value);
+
+    transmission *= 1.f-(sample.w/majorant);
+    if (transmission <= 0.f) {
+      albedo = vec3f(sample.x,sample.y,sample.z);
+      return t;
+    }
+  }
+
+  return INFINITY;
+}
+
 inline __device__ vec3f cosineSampleHemisphere(float u1, float u2)
 {
   float r = sqrtf(u1);
@@ -160,7 +201,9 @@ inline __device__ float ambientOcclusion(vec3f hitPos, vec3f n, Random &rnd)
 
     const float majorant = 1.f;
 
-    float t = woodcockTracking(aoRay, rnd, majorant, albedo, transmission);
+    float t = lp.ratioTrackingForShadows
+      ? ratioTracking(aoRay, rnd, majorant, albedo, transmission)
+      : woodcockTracking(aoRay, rnd, majorant, albedo, transmission);
 
     float weight = fmaxf(0.f, dot(aoRay.dir,n));
     if (t < aoRay.tmax)
@@ -220,7 +263,10 @@ RAYGEN_PROGRAM(woodcockTrackingSS)()
 
     vec3f shadowAlbedo = 0.f;
     float shadowTransmission = 1.f;
-    woodcockTracking(shadowRay, rnd, majorant, shadowAlbedo, shadowTransmission);
+    if (lp.ratioTrackingForShadows)
+      ratioTracking(shadowRay, rnd, majorant, shadowAlbedo, shadowTransmission);
+    else
+      woodcockTracking(shadowRay, rnd, majorant, shadowAlbedo, shadowTransmission);
 
     V = shadowTransmission;
   }
