@@ -8,5 +8,6 @@ interactivity.
 ## TODOs:
 - [x] Implement AO
 - [x] Implement directional light source
-- [ ] Implement UI
-- [ ] Allow switching between delta and ratio tracking for shadow rays
+- [x] Implement UI
+- [x] Allow switching between delta and ratio tracking for shadow rays
+- [ ] Tweak UI (e.g., better names for angular direction vectors)
