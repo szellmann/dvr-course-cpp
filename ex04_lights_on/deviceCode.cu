@@ -201,7 +201,7 @@ inline __device__ float ambientOcclusion(vec3f hitPos, vec3f n, Random &rnd)
 
     const float majorant = 1.f;
 
-    float t = lp.ratioTrackingForShadows
+    float t = lp.ratioTrackingForAO
       ? ratioTracking(aoRay, rnd, majorant, albedo, transmission)
       : woodcockTracking(aoRay, rnd, majorant, albedo, transmission);
 
