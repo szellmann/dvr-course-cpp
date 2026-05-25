@@ -196,7 +196,7 @@ extern "C" int main(int argc, char *argv[]) {
     pl.launchParam("directionalLight.intensity", parms.directionalLight.intensity) = lightIntensity;
     pl.launchParam("ratioTrackingForShadows", parms.ratioTrackingForShadows)
         = g_appState.ratioTrackingForShadows;
-    pl.launchParam("ratioTrackingForShadows", parms.ratioTrackingForAO)
+    pl.launchParam("ratioTrackingForAO", parms.ratioTrackingForAO)
         = g_appState.ratioTrackingForAO;
     // update DVR params:
     pl.launchParam("unitDistance", parms.unitDistance) = g_appState.unitDistance;
