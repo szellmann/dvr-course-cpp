@@ -485,7 +485,6 @@ void Camera::finalize()
 Frame::Frame(GlobalState *s) : helium::BaseFrame(s), m_frame(new dvr_course::Frame)
 {
   pipeline().setFrame(m_frame.get());
-
 }
 
 bool Frame::isValid() const
@@ -648,7 +647,7 @@ void Frame::renderFrame()
   // lighting
   pipeline().launchParam("ambientColor", parms().ambientColor) = vec3f(1.f);
   pipeline().launchParam("ambientRadiance", parms().ambientRadiance) = 1.f;
-  pipeline().launchParam("ambientSamples", parms().ambientRadiance) = 2;
+  pipeline().launchParam("ambientSamples", parms().ambientSamples) = 2;
   pipeline().launchParam("occlusionDistance", parms().occlusionDistance) = 2.f;
 
   // update accum:
