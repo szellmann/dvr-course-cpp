@@ -323,7 +323,7 @@ inline  __device__ Ray generateRay(const vec2f screen, Random &rnd)
 
 inline __device__ vec4f postClassify(Transfunc tf, float v)
 {
-  v = (v - tf.valueRange.lower) / (tf.valueRange.upper - tf.valueRange.lower);
+  v = (v - tf.valueRange.lower) / tf.valueRange.size();
   int idx = v*(tf.size);
   float frac = (v*tf.size)-idx;
   vec4f v1 = tf.values[clamp(idx,0,tf.size-1)];
@@ -354,7 +354,7 @@ inline __device__ float woodcockTracking(const Ray &ray,
     if (t > ray.tmax)
       break;
 
-    vec3f P = ray.org+ray.dir*t;
+    vec3f P = ray.eval(t);
 
     float value{0.f};
     if (!sampleVolume(lp.volume, P, value))

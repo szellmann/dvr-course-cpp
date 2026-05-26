@@ -65,7 +65,7 @@ inline __device__ bool sampleVolume(const Volume &vol, vec3f pos, float &value)
 
 inline __device__ vec4f postClassify(Transfunc tf, float v)
 {
-  v = (v - tf.valueRange.lower) / (tf.valueRange.upper - tf.valueRange.lower);
+  v = (v - tf.valueRange.lower) / tf.valueRange.size();
   int idx = v*tf.size;
   float frac = (v*tf.size)-idx;
   vec4f v1 = tf.values[clamp(idx,0,tf.size-1)];
@@ -109,7 +109,7 @@ RAYGEN_PROGRAM(simpleRayMarcher)()
 
   // Main ray marching loop:
   for (;t<=ray.tmax&&alpha<0.99f;t+=dt) {
-    vec3f P = ray.org+ray.dir*t;
+    vec3f P = ray.eval(t);
 
     float value{0.f};
     if (!sampleVolume(lp.volume, P, value))
