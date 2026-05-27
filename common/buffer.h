@@ -80,13 +80,7 @@ struct Buffer {
   Buffer(Buffer &&other) : size_(other.size_)
   {
     if (&other != this) {
-#ifdef WITH_CUDA
-      cudaMalloc(&data_,size_*sizeof(T));
-      cudaMemcpy(data_,other.data_,size_*sizeof(T),cudaMemcpyDefault);
-#else
-      data_ = (T *)std::malloc(size_*sizeof(T));
-      std::memcpy(data_,other.data_,size_*sizeof(T));
-#endif
+      data_ = std::move(other.data_);
       other.data_ = nullptr;
       other.size_ = 0;
     }
@@ -111,13 +105,7 @@ struct Buffer {
   {
     if (&other != this) {
       size_ = other.size_;
-#ifdef WITH_CUDA
-      cudaMalloc(&data_,size_*sizeof(T));
-      cudaMemcpy(data_,other.data_,size_*sizeof(T),cudaMemcpyDefault);
-#else
-      data_ = (T *)std::malloc(size_*sizeof(T));
-      std::memcpy(data_,other.data_,size_*sizeof(T));
-#endif
+      data_ = std::move(other.data_);
       other.data_ = nullptr;
       other.size_ = 0;
     }
