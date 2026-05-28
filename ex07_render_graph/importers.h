@@ -67,7 +67,7 @@ static NVDB_import loadNvdb(std::string filePath) {
 
   Buffer deviceGrid(gridHandle.bufferSize(), (uint8_t *)gridHandle.data());
 
-  return {true,volume,deviceGrid};
+  return {true,volume,std::move(deviceGrid)};
 }
 
 static TetMesh_import loadTetMesh(std::string filePath) {
@@ -164,7 +164,7 @@ static TetMesh_import loadTetMesh(std::string filePath) {
   volume.asTetMesh.tets = deviceTets.data();
   volume.asTetMesh.numTets = (int)deviceTets.size();
 
-  return {true,volume,deviceTets};
+  return {true,volume,std::move(deviceTets)};
 }
 
 static OBJ_import loadObj(std::string filePath) {
