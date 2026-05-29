@@ -497,6 +497,19 @@ struct Pipeline::Impl
     }
   }
 
+  void setHistogram(const std::vector<int> &hist, int index)
+  {
+    if (index >= transfuncs.size()) {
+      transfuncs.resize(index+1);
+#ifdef INTERACTIVE
+      tfe.resize(index+1);
+#endif
+    }
+#ifdef INTERACTIVE
+    tfe[index].setHistogram(hist);
+#endif
+  }
+
   void pollEvents(bool &quit)
   {
 #ifdef INTERACTIVE
@@ -1063,6 +1076,14 @@ Transfunc *Pipeline::getTransfunc(int index) const {
 
 bool Pipeline::transfuncValid(int index) const {
   return impl->transfuncs.size() > index && impl->transfuncs[index] != nullptr;
+}
+
+/*
+  histogram:
+*/
+void Pipeline::setHistogram(const std::vector<int> &hist, int index)
+{
+  impl->setHistogram(hist,index);
 }
 
 // ui params:

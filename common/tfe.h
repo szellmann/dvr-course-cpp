@@ -61,6 +61,9 @@ class TFE : private AlphaEditor
   LUT getLUT()
   { return AlphaEditor::getUpdatedLookupTable(); }
 
+  void setHistogram(const std::vector<int> &hist)
+  { AlphaEditor::setHistogram(hist); }
+
   box1f getRange();
   box1f getRelDomain();
   float getOpacityScale();

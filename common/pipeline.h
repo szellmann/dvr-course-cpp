@@ -138,6 +138,9 @@ struct Pipeline {
   Transfunc *getTransfunc(int index=0) const;
   bool transfuncValid(int index=0) const;
 
+  // Histogram (displayed as background in the TFE)
+  void setHistogram(const std::vector<int> &hist, int index=0);
+
   // UI params
   void uiParam(std::string name, bool *b);
   void uiParam(std::string name, int *i, int mini, int maxi);
