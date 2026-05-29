@@ -526,14 +526,14 @@ HitRec worldIntersection(Ray ray, Random &rnd)
     if (!boxTest(ray, lp.volumes[i].bounds, t0, t1))
       continue;
 
-    ray.tmin = t0, ray.tmax = t1;
-
     const float majorant = 1.f;
 
     vec3f albedo = 0.f;
     float transmission = 1.f;
 
-    float t = woodcockTracking(ray, rnd, majorant, i, albedo, transmission);
+    Ray traversalRay(ray);
+    traversalRay.tmin = t0, traversalRay.tmax = t1;
+    float t = woodcockTracking(traversalRay, rnd, majorant, i, albedo, transmission);
 
     if (t < hitRec.hitT) {
       hitRec.hitType   = HitRec::Volume;
