@@ -30,6 +30,7 @@ OWLVarDecl launchParams_owl[]
    { "volume.asTetMesh.tets", OWL_RAW_POINTER, OWL_OFFSETOF(LaunchParams,volume.asTetMesh.tets) },
    { "volume.asTetMesh.numTets", OWL_INT, OWL_OFFSETOF(LaunchParams,volume.asTetMesh.numTets) },
    { "volume.bounds", OWL_USER_TYPE(box3f), OWL_OFFSETOF(LaunchParams,volume.bounds) },
+   { "volume.dataRange", OWL_USER_TYPE(box1f), OWL_OFFSETOF(LaunchParams,volume.dataRange) },
    // xf data
    { "transfunc.valueRange", OWL_USER_TYPE(box1f), OWL_OFFSETOF(LaunchParams,transfunc.valueRange) },
    { "transfunc.values", OWL_RAW_POINTER, OWL_OFFSETOF(LaunchParams,transfunc.values) },

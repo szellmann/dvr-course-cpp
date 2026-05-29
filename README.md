@@ -100,4 +100,4 @@ used in host or device programs.
 ## TODOs:
 - [ ] Add single line summary for each sample to this document
 - [ ] Implement sample 08
-- [ ] Refactor importer functions so every sample uses the same code
+- [x] Refactor importer functions so every sample uses the same code

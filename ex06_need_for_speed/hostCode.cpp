@@ -1,5 +1,4 @@
 // std
-#include <fstream>
 #include <string>
 
 // Header with common resources; .h: host, .cuh: device
@@ -10,6 +9,7 @@
 #ifdef RTCORE
 #include "Params-owl.h"
 #endif
+#include "importers.h" // loadTetMesh
 
 // common namespace for helper classes:
 // Camera, FB, wrappers for RTX execution model, etc. etc.
@@ -132,30 +132,18 @@ extern "C" int main(int argc, char *argv[]) {
     exit(-1);
   }
 
-  std::ifstream in(g_appState.filepath);
-  if (!in.good()) {
+  auto tetMesh = loadTetMesh(g_appState.filepath);
+  if (!tetMesh.isValid) {
     printUsage();
     exit(-1);
   }
 
-  std::vector<Tet> tets = loadTets(in);
-
-  Buffer deviceTets(tets.size(), tets.data());
-
-  box3f volbounds(
-    {INFINITY,INFINITY,INFINITY},
-    {-INFINITY,-INFINITY,-INFINITY}
-  );
-
-  box1f dataRange(INFINITY, -INFINITY);
-
-  for (size_t i=0; i<tets.size(); ++i) {
-    volbounds.extend(tets[i].v0.xyz); dataRange.extend(tets[i].v0.w);
-    volbounds.extend(tets[i].v1.xyz); dataRange.extend(tets[i].v1.w);
-    volbounds.extend(tets[i].v2.xyz); dataRange.extend(tets[i].v2.w);
-    volbounds.extend(tets[i].v3.xyz); dataRange.extend(tets[i].v3.w);
+  if (tetMesh.volume.asTetMesh.numTets <= 0) {
+    printUsage();
+    exit(-1);
   }
 
+  const Volume &volume = tetMesh.volume;
   Pipeline pl(argc, argv, "ex06_need_for_speed");
 
   Pipeline::RTConfig conf;
@@ -175,12 +163,12 @@ extern "C" int main(int argc, char *argv[]) {
   pl.setFrame(&fb);
 
   Camera cam;
-  cam.viewAll(volbounds);
+  cam.viewAll(volume.bounds);
   pl.setCamera(&cam);
 
   if (!pl.transfuncValid()) {
     auto &tf = g_appState.transfunc;
-    tf.valueRange = dataRange;
+    tf.valueRange = volume.dataRange;
 
     if (tf.valueRange.empty()) tf.valueRange = {0.f,1.f};
     tf.setLUT(std::vector<vec4f>({
@@ -217,14 +205,14 @@ extern "C" int main(int argc, char *argv[]) {
   owlGeomTypeSetClosestHit(userGeomType, 0, pl.owlModule(), "TetClosestHit");
 
   OWLGeom userGeom = owlGeomCreate(pl.owlContext(), userGeomType);
-  owlGeomSetPrimCount(userGeom, tets.size());
+  owlGeomSetPrimCount(userGeom, volume.asTetMesh.numTets);
 
   OWLBuffer tetBuffer = owlDeviceBufferCreate(pl.owlContext(),
                                               OWL_USER_TYPE(Tet{}),
-                                              tets.size(),
-                                              tets.data());
+                                              volume.asTetMesh.numTets,
+                                              volume.asTetMesh.tets);
   owlGeomSetBuffer(userGeom, "tets", tetBuffer);
-  owlGeomSet1i(userGeom, "numTets", (int)tets.size());
+  owlGeomSet1i(userGeom, "numTets", volume.asTetMesh.numTets);
 
   owlBuildPrograms(pl.owlContext());
 
@@ -235,6 +223,8 @@ extern "C" int main(int argc, char *argv[]) {
   owlInstanceGroupSetChild(g_appState.userGeomTLAS, 0, userGeomBLAS);
 
   owlGroupBuildAccel(g_appState.userGeomTLAS);
+
+  owlParamsSetGroup(pl.owlLaunchParams(), "volume.asTetMesh.handle", g_appState.userGeomTLAS);
 #endif
 
   // Set up parameters for the majorant grid
@@ -248,19 +238,17 @@ extern "C" int main(int argc, char *argv[]) {
   Buffer<float> majorantBuffer(gridDims.x*gridDims.y*gridDims.z);
 
   // volume
-#ifdef RTCORE
-  owlParamsSetGroup(pl.owlLaunchParams(), "volume.asTetMesh.handle", g_appState.userGeomTLAS);
-#endif
-  pl.launchParam("volume.asTetMesh.tets", (RawPointer &)parms.volume.asTetMesh.tets) = deviceTets.data();
-  pl.launchParam("volume.asTetMesh.numTets", parms.volume.asTetMesh.numTets) = (int)deviceTets.size();
-  pl.launchParam("volume.bounds", parms.volume.bounds) = volbounds;
+  pl.launchParam("volume.asTetMesh.tets", (RawPointer &)parms.volume.asTetMesh.tets) = volume.asTetMesh.tets;
+  pl.launchParam("volume.asTetMesh.numTets", parms.volume.asTetMesh.numTets) = volume.asTetMesh.numTets;
+  pl.launchParam("volume.bounds", parms.volume.bounds) = volume.bounds;
+  pl.launchParam("volume.dataRange", parms.volume.dataRange) = volume.dataRange;
   // grid
   pl.launchParam("volume.grid.valueRanges", (RawPointer &)parms.volume.grid.valueRanges)
       = valueRangeBuffer.data();
   pl.launchParam("volume.grid.majorants", (RawPointer &)parms.volume.grid.majorants)
       = majorantBuffer.data();
   pl.launchParam("volume.grid.dims", parms.volume.grid.dims) = gridDims;
-  pl.launchParam("volume.grid.worldBounds", parms.volume.grid.worldBounds) = volbounds;
+  pl.launchParam("volume.grid.worldBounds", parms.volume.grid.worldBounds) = volume.bounds;
 
   // With everything set up, build the grid on the device:
   // We use a ray gen to build the grid as though it was a compute kernel; in a
@@ -268,7 +256,7 @@ extern "C" int main(int argc, char *argv[]) {
   pl.setRayGen("buildGridAccel");
   SET_LAUNCH_PARAMS(parms);
   // frameless launch:
-  pl.launch2D({(int)deviceTets.size(),1});
+  pl.launch2D({volume.asTetMesh.numTets,1});
 
   // Set a transfer function handler that computes majorants on-the-fly given
   // the current transfer function and grid value ranges:

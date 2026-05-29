@@ -42,7 +42,6 @@ struct TetMesh {
 // tagged union volume type, can be nvdb or tet-mesh
 // ========================================================
 struct Volume {
-  int volID;
   enum { NVDB, TET, } type;
   union {
     struct {

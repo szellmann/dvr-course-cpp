@@ -42,8 +42,13 @@ struct TetMesh {
 };
 
 struct Volume {
+  // currently our volume only supports one field single type; in later
+  // examples we will use a tagged union to distinguish between different
+  // spatial fields
+  enum { TET, } type;
   TetMesh asTetMesh;
   box3f bounds;
+  box1f dataRange;
 };
 
 struct Transfunc {
