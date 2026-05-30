@@ -29,6 +29,8 @@ struct {
   Transfunc transfunc;
   float unitDistance{1.f};
   // AO:
+  vec3f ambientColor{1.f};
+  float ambientRadiance{1.f};
   int ambientSamples{1};
   float occlusionDistance{2.f};
   // setup
@@ -145,6 +147,11 @@ extern "C" int main(int argc, char *argv[]) {
   }
 
   pl.uiParam("Unit distance", &g_appState.unitDistance, 0.001f, 5.f);
+
+  Pipeline::UIConfig colorConfig; colorConfig.hint = Pipeline::UIConfig::Color;
+  pl.uiParam("Ambient color", &g_appState.ambientColor, 0.f, 1.f, colorConfig);
+  pl.uiParam("Ambient radiance", &g_appState.ambientRadiance, 0.f, 32.f);
+
   pl.uiParam("Ambient samples", &g_appState.ambientSamples, 0, 1024);
   pl.uiParam("Occlusion distance", &g_appState.occlusionDistance, 0.1f, 64.f);
 
@@ -187,8 +194,8 @@ extern "C" int main(int argc, char *argv[]) {
     pl.launchParam("fbDepth", (RawPointer &)parms.fbDepth) = fb.fbDepth;
     pl.launchParam("accumBuffer", (RawPointer &)parms.accumBuffer) = fb.accumBuffer;
     // update lighting params:
-    pl.launchParam("ambientColor", parms.ambientColor) = vec3f(1.f);
-    pl.launchParam("ambientRadiance", parms.ambientRadiance) = 1.f;
+    pl.launchParam("ambientColor", parms.ambientColor) = g_appState.ambientColor;
+    pl.launchParam("ambientRadiance", parms.ambientRadiance) = g_appState.ambientRadiance;
     pl.launchParam("ambientSamples", parms.ambientSamples) = g_appState.ambientSamples;
     pl.launchParam("occlusionDistance", parms.occlusionDistance) = g_appState.occlusionDistance;
     pl.launchParam("directionalLight.dir", parms.directionalLight.dir)
