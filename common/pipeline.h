@@ -142,14 +142,66 @@ struct Pipeline {
   void setHistogram(const std::vector<int> &hist, int index=0);
 
   // UI params
-  void uiParam(std::string name, bool *b);
-  void uiParam(std::string name, int *i, int mini, int maxi);
-  void uiParam(std::string name, float *f, float minf, float maxf);
-  void uiParam(std::string name, vec2f *v, vec2f minv, vec2f maxv);
-  void uiParam(std::string name, vec3i *v, vec3i minv, vec3i maxv);
-  void uiParam(std::string name, vec3f *v, vec3f minv, vec3f maxv);
-  void uiParam(std::string name, const std::vector<std::string> &options, int *o);
-  void uiParam(std::string name, std::function<void(void)> f);
+  struct UIConfig {
+    UIConfig() : hint(None) {}
+    enum Hint { Color=0x1, None=0x0, };
+    Hint hint;
+    std::vector<std::string> alternativeNames;
+  };
+
+  // Boolean UI param, renders as a checkbox
+  void uiParam(std::string name,
+               bool *b,
+               const UIConfig &config = {});
+
+  // Integer UI param, renders as a slider
+  void uiParam(std::string name,
+               int *i,
+               int mini,
+               int maxi,
+               const UIConfig &config = {});
+
+  // Float32 UI param, renders as a slider
+  void uiParam(std::string name,
+               float *f,
+               float minf,
+               float maxf,
+               const UIConfig &config = {});
+
+  // Float32 Vec2 UI param, renders as sliders with labels "_X" and "_Y";
+  // if config.alternativeNames is set, these will be used as labels
+  void uiParam(std::string name,
+               vec2f *v,
+               vec2f minv,
+               vec2f maxv,
+               const UIConfig &config = {});
+
+  // Integer Vec3 UI param, renders as int inputs with labels "_X", "_Y", and "_Z";
+  // if config.alternativeNames is set, these will be used as labels
+  void uiParam(std::string name,
+               vec3i *v,
+               vec3i minv,
+               vec3i maxv,
+               const UIConfig &config = {});
+
+  // Integer Vec3 UI param, renders as sliders with labels "_X", "_Y", and "_Z";
+  // if config.alternativeNames is set, these will be used as labels
+  void uiParam(std::string name,
+               vec3f *v,
+               vec3f minv,
+               vec3f maxv,
+               const UIConfig &config = {});
+
+  // Options UI param, renders as a drop down list
+  void uiParam(std::string name,
+               const std::vector<std::string> &options,
+               int *o,
+               const UIConfig &config = {});
+
+  // Functional UI param, renders as a button which upon press executes the functional
+  void uiParam(std::string name,
+               std::function<void(void)> f,
+               const UIConfig &config = {});
 
   // Interface
   bool isValid() const { return fb != nullptr && camera != nullptr; }

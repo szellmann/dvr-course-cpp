@@ -719,6 +719,15 @@ struct Pipeline::Impl
       ImGui::LabelText("##App", "App");
       for (int i=0; i<uiParams.size(); ++i) {
         UIParam &p = uiParams[i];
+
+        // labels for sliders and other vector inputs:
+        std::string labelX = p.name+"_X";
+        std::string labelY = p.name+"_Y";
+        std::string labelZ = p.name+"_Z";
+        if (p.config.alternativeNames.size()>0) labelX = p.config.alternativeNames[0];
+        if (p.config.alternativeNames.size()>1) labelY = p.config.alternativeNames[1];
+        if (p.config.alternativeNames.size()>2) labelZ = p.config.alternativeNames[2];
+
         if (p.type == UIParam::Bool) {
           if (ImGui::Checkbox(p.name.c_str(), p.asBool.b)) {
             parent->resetAccumulation();
@@ -738,40 +747,50 @@ struct Pipeline::Impl
         }
         if (p.type == UIParam::Vec2f) {
           if (ImGui::SliderFloat(
-                (p.name+"_X").c_str(), &p.asVec2f.v->x, p.asVec2f.minv.x, p.asVec2f.maxv.x)) {
+                labelX.c_str(), &p.asVec2f.v->x, p.asVec2f.minv.x, p.asVec2f.maxv.x)) {
             parent->resetAccumulation();
           }
           if (ImGui::SliderFloat(
-                (p.name+"_Y").c_str(), &p.asVec2f.v->y, p.asVec2f.minv.y, p.asVec2f.maxv.y)) {
+                labelY.c_str(), &p.asVec2f.v->y, p.asVec2f.minv.y, p.asVec2f.maxv.y)) {
             parent->resetAccumulation();
           }
         }
         if (p.type == UIParam::Vec3i) {
-          if (ImGui::InputInt((p.name+"_X").c_str(), &p.asVec3i.v->x)) {
+          if (ImGui::InputInt(labelX.c_str(), &p.asVec3i.v->x)) {
             p.asVec3i.v->x = clamp(p.asVec3i.v->x, p.asVec3i.minv.x, p.asVec3i.maxv.x);
             parent->resetAccumulation();
           }
-          if (ImGui::InputInt((p.name+"_Y").c_str(), &p.asVec3i.v->y)) {
+          if (ImGui::InputInt(labelY.c_str(), &p.asVec3i.v->y)) {
             p.asVec3i.v->y = clamp(p.asVec3i.v->y, p.asVec3i.minv.y, p.asVec3i.maxv.y);
             parent->resetAccumulation();
           }
-          if (ImGui::InputInt((p.name+"_Z").c_str(), &p.asVec3i.v->z)) {
+          if (ImGui::InputInt(labelZ.c_str(), &p.asVec3i.v->z)) {
             p.asVec3i.v->z = clamp(p.asVec3i.v->z, p.asVec3i.minv.z, p.asVec3i.maxv.z);
             parent->resetAccumulation();
           }
         }
         if (p.type == UIParam::Vec3f) {
-          if (ImGui::SliderFloat(
-                (p.name+"_X").c_str(), &p.asVec3f.v->x, p.asVec3f.minv.x, p.asVec3f.maxv.x)) {
-            parent->resetAccumulation();
-          }
-          if (ImGui::SliderFloat(
-                (p.name+"_Y").c_str(), &p.asVec3f.v->y, p.asVec3f.minv.y, p.asVec3f.maxv.y)) {
-            parent->resetAccumulation();
-          }
-          if (ImGui::SliderFloat(
-                (p.name+"_Z").c_str(), &p.asVec3f.v->z, p.asVec3f.minv.z, p.asVec3f.maxv.z)) {
-            parent->resetAccumulation();
+          if (p.config.hint & Pipeline::UIConfig::Color) {
+            float clr[4]={p.asVec3f.v->x,p.asVec3f.v->y,p.asVec3f.v->z,1.f};
+            if (ImGui::ColorEdit4(p.name.c_str(), clr)) {
+              p.asVec3f.v->x = clamp(clr[0], p.asVec3f.minv.x, p.asVec3f.maxv.x);
+              p.asVec3f.v->y = clamp(clr[1], p.asVec3f.minv.y, p.asVec3f.maxv.y);
+              p.asVec3f.v->z = clamp(clr[2], p.asVec3f.minv.z, p.asVec3f.maxv.z);
+              parent->resetAccumulation();
+            }
+          } else {
+            if (ImGui::SliderFloat(
+                  labelX.c_str(), &p.asVec3f.v->x, p.asVec3f.minv.x, p.asVec3f.maxv.x)) {
+              parent->resetAccumulation();
+            }
+            if (ImGui::SliderFloat(
+                  labelY.c_str(), &p.asVec3f.v->y, p.asVec3f.minv.y, p.asVec3f.maxv.y)) {
+              parent->resetAccumulation();
+            }
+            if (ImGui::SliderFloat(
+                  labelZ.c_str(), &p.asVec3f.v->z, p.asVec3f.minv.z, p.asVec3f.maxv.z)) {
+              parent->resetAccumulation();
+            }
           }
         }
         if (p.type == UIParam::Select) {
@@ -907,6 +926,7 @@ struct Pipeline::Impl
     struct {
       std::function<void(void)> f;
     } asFunc;
+    Pipeline::UIConfig config;
   };
   std::vector<UIParam> uiParams;
 
@@ -1087,79 +1107,121 @@ void Pipeline::setHistogram(const std::vector<int> &hist, int index)
 }
 
 // ui params:
-void Pipeline::uiParam(std::string name, bool *b) {
+void Pipeline::uiParam(std::string name,
+                       bool *b,
+                       const UIConfig &config)
+{
   Impl::UIParam parm;
   parm.name = name;
   parm.type = Impl::UIParam::Bool;
   parm.asBool.b = b;
+  parm.config = config;
   impl->uiParam(parm);
 }
 
-void Pipeline::uiParam(std::string name, int *i, int mini, int maxi) {
+void Pipeline::uiParam(std::string name,
+                       int *i,
+                       int mini,
+                       int maxi,
+                       const UIConfig &config)
+{
   Impl::UIParam parm;
   parm.name = name;
   parm.type = Impl::UIParam::Int;
   parm.asInt.i = i;
   parm.asInt.mini = mini;
   parm.asInt.maxi = maxi;
+  parm.config = config;
   impl->uiParam(parm);
 }
 
-void Pipeline::uiParam(std::string name, float *f, float minf, float maxf) {
+void Pipeline::uiParam(std::string name,
+                       float *f,
+                       float minf,
+                       float maxf,
+                       const UIConfig &config)
+{
   Impl::UIParam parm;
   parm.name = name;
   parm.type = Impl::UIParam::Float;
   parm.asFloat.f = f;
   parm.asFloat.minf = minf;
   parm.asFloat.maxf = maxf;
+  parm.config = config;
   impl->uiParam(parm);
 }
 
-void Pipeline::uiParam(std::string name, vec2f *v, vec2f minv, vec2f maxv) {
+void Pipeline::uiParam(std::string name,
+                       vec2f *v,
+                       vec2f minv,
+                       vec2f maxv,
+                       const UIConfig &config)
+{
   Impl::UIParam parm;
   parm.name = name;
   parm.type = Impl::UIParam::Vec2f;
   parm.asVec2f.v = v;
   parm.asVec2f.minv = minv;
   parm.asVec2f.maxv = maxv;
+  parm.config = config;
   impl->uiParam(parm);
 }
 
-void Pipeline::uiParam(std::string name, vec3i *v, vec3i minv, vec3i maxv) {
+void Pipeline::uiParam(std::string name,
+                       vec3i *v,
+                       vec3i minv,
+                       vec3i maxv,
+                       const UIConfig &config)
+{
   Impl::UIParam parm;
   parm.name = name;
   parm.type = Impl::UIParam::Vec3i;
   parm.asVec3i.v = v;
   parm.asVec3i.minv = minv;
   parm.asVec3i.maxv = maxv;
+  parm.config = config;
   impl->uiParam(parm);
 }
 
-void Pipeline::uiParam(std::string name, vec3f *v, vec3f minv, vec3f maxv) {
+void Pipeline::uiParam(std::string name,
+                       vec3f *v,
+                       vec3f minv,
+                       vec3f maxv,
+                       const UIConfig &config)
+{
   Impl::UIParam parm;
   parm.name = name;
   parm.type = Impl::UIParam::Vec3f;
   parm.asVec3f.v = v;
   parm.asVec3f.minv = minv;
   parm.asVec3f.maxv = maxv;
+  parm.config = config;
   impl->uiParam(parm);
 }
 
-void Pipeline::uiParam(
-    std::string name, const std::vector<std::string> &options, int *o) {
+void Pipeline::uiParam(std::string name,
+                       const std::vector<std::string> &options,
+                       int *o,
+                       const UIConfig &config)
+{
   Impl::UIParam parm;
   parm.name = name;
   parm.type = Impl::UIParam::Select;
   parm.asSelect.options = options;
   parm.asSelect.o = o;
+  parm.config = config;
   impl->uiParam(parm);
 }
 
-void Pipeline::uiParam(std::string name, std::function<void(void)> f) {
+void Pipeline::uiParam(std::string name,
+                       std::function<void(void)> f,
+                       const UIConfig &config)
+{
   Impl::UIParam parm;
   parm.name = name;
   parm.type = Impl::UIParam::Func;
   parm.asFunc.f = f;
+  parm.config = config;
   impl->uiParam(parm);
 }
 
