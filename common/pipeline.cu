@@ -46,11 +46,10 @@
 # include "imgui_impl_sdl3.h"
 # include "imgui_impl_sdlrenderer3.h"
 # include "tfe.h"
-#else
-// stb_image
-# define STB_IMAGE_WRITE_IMPLEMENTATION
-# include "stb/stb_image_write.h"
 #endif
+// stb_image
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb/stb_image_write.h"
 // owl
 #ifdef RTCORE
 #include <owl/owl.h>
@@ -598,6 +597,23 @@ struct Pipeline::Impl
             if (saveXF(xfFile,*transfuncs[tfID])) {
               std::cout << "Saved transfer function to " << xfFile << std::endl;
             }
+          }
+          if (event.key.key == '1' && (event.key.mod & SDL_KMOD_SHIFT)) {
+            std::vector<uint32_t> pixels(fb->width*fb->height);
+#ifdef WITH_CUDA
+            cudaMemcpy(pixels.data(),
+                       fb->fbPointer,
+                       fb->width*fb->height*sizeof(uint32_t),
+                       cudaMemcpyDeviceToHost);
+#else
+            memcpy(pixels,
+                   fb->fbPointer,
+                   fb->width*fb->height*sizeof(uint32_t));
+#endif
+            std::string pngFile = "screenshot.png";
+            stbi_flip_vertically_on_write(1);
+            stbi_write_png(pngFile.c_str(), width, height, 4, pixels.data(), 4 * width);
+            std::cout << "Saved screenshot to " << pngFile << std::endl;
           }
           // give app chance to intercept:
           SDL_KeyboardEvent key = event.key;
