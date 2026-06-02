@@ -97,6 +97,8 @@ ray tracing support, hence, from the samples' perspective this is not using the
 CPU fallback and the macro `RTCORE` is defined and evaluates to `true` when
 used in host or device programs.
 
+## SPDX-License-Identifier: Apache-2.0
+
 ## TODOs:
 - [ ] Add single line summary for each sample to this document
 - [ ] Implement sample 08
