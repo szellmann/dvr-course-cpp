@@ -27,6 +27,7 @@ add_subdirectory(ex09_anari)
 # we don't usually need these to run the examples
 option(BUILD_CMDLINE_TOOLS "Build with cmdline tools" OFF)
 if(BUILD_CMDLINE_TOOLS)
+  add_subdirectory(tools/raw2vdb)
   add_subdirectory(tools/vtu2bin)
   add_subdirectory(tools/vtu2vdb)
 endif()
