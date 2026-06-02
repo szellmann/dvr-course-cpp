@@ -606,7 +606,7 @@ struct Pipeline::Impl
                        fb->width*fb->height*sizeof(uint32_t),
                        cudaMemcpyDeviceToHost);
 #else
-            memcpy(pixels,
+            memcpy(pixels.data(),
                    fb->fbPointer,
                    fb->width*fb->height*sizeof(uint32_t));
 #endif
