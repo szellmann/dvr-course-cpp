@@ -139,11 +139,11 @@ inline __device__ float woodcockTracking(const Ray &ray,
                                          float majorant,
                                          //output:
                                          vec3f &albedo,
-                                         float &transmission)
+                                         float &transmittance)
 {
   auto &lp = optixLaunchParams;
 
-  transmission = 1.f;
+  transmittance = 1.f;
 
   float t=ray.tmin;
 
@@ -167,7 +167,7 @@ inline __device__ float woodcockTracking(const Ray &ray,
     float u = rnd();
     if (sample.w >= u * majorant) {
       albedo = vec3f(sample.x,sample.y,sample.z);
-      transmission = 0.f;
+      transmittance = 0.f;
       return t;
     }
   }
@@ -267,12 +267,12 @@ RAYGEN_PROGRAM(woodcockTrackingAE)()
   const float majorant = 1.f;
 
   vec3f albedo = 0.f;
-  float transmission = 1.f;
+  float transmittance = 1.f;
 
-  float t = woodcockTracking(ray, rnd, majorant, albedo, transmission);
+  float t = woodcockTracking(ray, rnd, majorant, albedo, transmittance);
 
   vec3f color = albedo * lp.ambientColor * lp.ambientRadiance;
-  float alpha = 1.f-transmission;
+  float alpha = 1.f-transmittance;
 
   float accum = 1.f/(lp.accumID+1);
   lp.accumBuffer[pixelID] = lerp(vec4f(color,alpha), lp.accumBuffer[pixelID], accum);

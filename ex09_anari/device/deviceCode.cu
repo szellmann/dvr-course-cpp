@@ -142,11 +142,11 @@ inline __device__ float woodcockTracking(const Ray &ray,
                                          int volumeID,
                                          //output:
                                          vec3f &albedo,
-                                         float &transmission)
+                                         float &transmittance)
 {
   auto &lp = optixLaunchParams;
 
-  transmission = 1.f;
+  transmittance = 1.f;
 
   float t=ray.tmin;
 
@@ -170,7 +170,7 @@ inline __device__ float woodcockTracking(const Ray &ray,
     float u = rnd();
     if (sample.w >= u * majorant) {
       albedo = vec3f(sample.x,sample.y,sample.z);
-      transmission = 0.f;
+      transmittance = 0.f;
       return t;
     }
   }
@@ -268,17 +268,17 @@ HitRec worldIntersection(Ray ray, Random &rnd)
     const float majorant = 1.f;
 
     vec3f albedo = 0.f;
-    float transmission = 1.f;
+    float transmittance = 1.f;
 
     Ray traversalRay(ray);
     traversalRay.tmin = t0, traversalRay.tmax = t1;
-    float t = woodcockTracking(traversalRay, rnd, majorant, i, albedo, transmission);
+    float t = woodcockTracking(traversalRay, rnd, majorant, i, albedo, transmittance);
 
     if (t < hitRec.hitT) {
       hitRec.hitType   = HitRec::Volume;
       hitRec.hitT      = t;
       hitRec.color.xyz = albedo * lp.ambientColor * lp.ambientRadiance;
-      hitRec.color.w   = 1.f-transmission;
+      hitRec.color.w   = 1.f-transmittance;
       hitRec.Ng        = uniformSampleSphere(rnd(),rnd());
     }
   }
@@ -305,7 +305,7 @@ inline __device__ float ambientOcclusion(vec3f hitPos, vec3f n, Random &rnd)
     aoRay.tmax = lp.occlusionDistance;
 
     vec3f albedo = 0.f;
-    float transmission = 1.f;
+    float transmittance = 1.f;
 
     const float majorant = 1.f;
 

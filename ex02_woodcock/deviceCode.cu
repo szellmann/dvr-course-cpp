@@ -95,7 +95,7 @@ RAYGEN_PROGRAM(woodcockTrackingAE)()
   ray.tmin = t0, ray.tmax = t1;
 
   vec3f albedo = 0.f;
-  float transmission = 1.f;
+  float transmittance = 1.f;
 
   const float majorant = 1.f;
 
@@ -121,13 +121,13 @@ RAYGEN_PROGRAM(woodcockTrackingAE)()
     float u = rnd();
     if (sample.w >= u * majorant) {
       albedo = vec3f(sample.x,sample.y,sample.z);
-      transmission = 0.f;
+      transmittance = 0.f;
       break;
     }
   }
 
   vec3f color = albedo * lp.ambientColor * lp.ambientRadiance;
-  float alpha = 1.f-transmission;
+  float alpha = 1.f-transmittance;
 
   float accum = 1.f/(lp.accumID+1);
   lp.accumBuffer[pixelID] = lerp(vec4f(color,alpha), lp.accumBuffer[pixelID], accum);

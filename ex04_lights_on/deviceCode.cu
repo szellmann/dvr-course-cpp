@@ -78,11 +78,11 @@ inline __device__ float woodcockTracking(const Ray &ray,
                                          float majorant,
                                          //output:
                                          vec3f &albedo,
-                                         float &transmission)
+                                         float &transmittance)
 {
   auto &lp = optixLaunchParams;
 
-  transmission = 1.f;
+  transmittance = 1.f;
 
   float t=ray.tmin;
 
@@ -106,7 +106,7 @@ inline __device__ float woodcockTracking(const Ray &ray,
     float u = rnd();
     if (sample.w >= u * majorant) {
       albedo = vec3f(sample.x,sample.y,sample.z);
-      transmission = 0.f;
+      transmittance = 0.f;
       return t;
     }
   }
@@ -119,11 +119,11 @@ inline __device__ float ratioTracking(const Ray &ray,
                                       float majorant,
                                       //output:
                                       vec3f &albedo,
-                                      float &transmission)
+                                      float &transmittance)
 {
   auto &lp = optixLaunchParams;
 
-  transmission = 1.f;
+  transmittance = 1.f;
 
   float t=ray.tmin;
 
@@ -145,8 +145,8 @@ inline __device__ float ratioTracking(const Ray &ray,
 
     vec4f sample = postClassify(lp.transfunc, value);
 
-    transmission *= 1.f-(sample.w/majorant);
-    if (transmission <= 0.f) {
+    transmittance *= 1.f-(sample.w/majorant);
+    if (transmittance <= 0.f) {
       albedo = vec3f(sample.x,sample.y,sample.z);
       return t;
     }
@@ -197,16 +197,16 @@ inline __device__ float ambientOcclusion(vec3f hitPos, vec3f n, Random &rnd)
     aoRay.tmax = fminf(aoRay.tmax, t1);
 
     vec3f albedo = 0.f;
-    float transmission = 1.f;
+    float transmittance = 1.f;
 
     const float majorant = 1.f;
 
     float t = lp.ratioTrackingForAO
-      ? ratioTracking(aoRay, rnd, majorant, albedo, transmission)
-      : woodcockTracking(aoRay, rnd, majorant, albedo, transmission);
+      ? ratioTracking(aoRay, rnd, majorant, albedo, transmittance)
+      : woodcockTracking(aoRay, rnd, majorant, albedo, transmittance);
 
     float weight = fmaxf(0.f, dot(aoRay.dir,n));
-    if (transmission < rnd())
+    if (transmittance < rnd())
       ao += weight;
     aoWeights += weight;
   }
@@ -240,11 +240,11 @@ RAYGEN_PROGRAM(woodcockTrackingSS)()
   ray.tmin = t0, ray.tmax = t1;
 
   vec3f albedo = 0.f;
-  float transmission = 1.f;
+  float transmittance = 1.f;
 
   const float majorant = 1.f;
 
-  float t = woodcockTracking(ray, rnd, majorant, albedo, transmission);
+  float t = woodcockTracking(ray, rnd, majorant, albedo, transmittance);
   // use random sample as normal vector:
   vec3f N = uniformSampleSphere(rnd(),rnd());
   float aoV = 1.f-ambientOcclusion(ray.eval(t), N, rnd);
@@ -273,7 +273,7 @@ RAYGEN_PROGRAM(woodcockTrackingSS)()
 
   vec3f color = albedo * V * lp.directionalLight.intensity
               * lp.ambientColor * lp.ambientRadiance * aoV;
-  float alpha = 1.f-transmission;
+  float alpha = 1.f-transmittance;
 
   float accum = 1.f/(lp.accumID+1);
   lp.accumBuffer[pixelID] = lerp(vec4f(color,alpha), lp.accumBuffer[pixelID], accum);

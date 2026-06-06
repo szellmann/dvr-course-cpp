@@ -79,11 +79,11 @@ inline __device__ float woodcockTracking(const Ray &ray,
                                          int volumeID,
                                          //output:
                                          vec3f &albedo,
-                                         float &transmission)
+                                         float &transmittance)
 {
   auto &lp = optixLaunchParams;
 
-  transmission = 1.f;
+  transmittance = 1.f;
 
   float t=ray.tmin;
 
@@ -107,7 +107,7 @@ inline __device__ float woodcockTracking(const Ray &ray,
     float u = rnd();
     if (sample.w >= u * majorant) {
       albedo = vec3f(sample.x,sample.y,sample.z);
-      transmission = 0.f;
+      transmittance = 0.f;
       return t;
     }
   }
@@ -143,13 +143,13 @@ RAYGEN_PROGRAM(multiVolumeWoodcock)()
     const float majorant = 1.f;
 
     vec3f albedo = 0.f;
-    float transmission = 1.f;
+    float transmittance = 1.f;
 
-    float t = woodcockTracking(ray, rnd, majorant, i, albedo, transmission);
+    float t = woodcockTracking(ray, rnd, majorant, i, albedo, transmittance);
 
     if (t < hitT) {
       color = albedo * lp.ambientColor * lp.ambientRadiance;
-      alpha = 1.f-transmission;
+      alpha = 1.f-transmittance;
       hitT = t;
     }
   }
@@ -189,7 +189,7 @@ RAYGEN_PROGRAM(blendingWoodcock)()
   ray.tmin = t0, ray.tmax = t1;
 
   vec3f albedo = 0.f;
-  float transmission = 1.f;
+  float transmittance = 1.f;
 
   const float majorant = 1.f;
 
@@ -239,13 +239,13 @@ RAYGEN_PROGRAM(blendingWoodcock)()
     float u = rnd();
     if (sample.w >= u * majorant) {
       albedo = vec3f(sample.x,sample.y,sample.z);
-      transmission = 0.f;
+      transmittance = 0.f;
       break;
     }
   }
 
   vec3f color = albedo * lp.ambientColor * lp.ambientRadiance;
-  float alpha = 1.f-transmission;
+  float alpha = 1.f-transmittance;
 
   float accum = 1.f/(lp.accumID+1);
   lp.accumBuffer[pixelID] = lerp(vec4f(color,alpha), lp.accumBuffer[pixelID], accum);
