@@ -489,6 +489,7 @@ Frame::Frame(GlobalState *s) : helium::BaseFrame(s), m_frame(new dvr_course::Fra
 
 bool Frame::isValid() const
 {
+  return true;
 }
 
 GlobalState *Frame::deviceState() const
@@ -577,6 +578,7 @@ void Frame::finalize()
 bool Frame::getProperty(
     const std::string_view &name, ANARIDataType type, void *ptr, uint64_t size, uint32_t flags)
 {
+  return true;
 }
 
 void *Frame::map(std::string_view channel,
