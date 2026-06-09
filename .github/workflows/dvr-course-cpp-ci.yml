@@ -20,7 +20,8 @@ jobs:
           - os: macos-15
             cuda: ON
           - os: windows-2022
-            cuda: ON
+            cuda: OFF
+            rtcore: ON
 
     name: OS ${{ matrix.os }} - config ${{ matrix.config }} - CUDA ${{ matrix.cuda }}
 
