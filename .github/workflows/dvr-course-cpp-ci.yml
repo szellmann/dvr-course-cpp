@@ -20,6 +20,8 @@ jobs:
           - os: macos-15
             cuda: ON
           - os: windows-2022
+            cuda: ON
+          - os: windows-2022
             cuda: OFF
             rtcore: ON
 
