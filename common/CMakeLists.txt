@@ -27,7 +27,7 @@ if (DVR_COURSE_WITH_OWL)
 endif()
 
 target_sources(${PROJECT_NAME} PRIVATE fb.cu pipeline.cu transfunc.cu)
-target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE external)
+target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC external)
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 configure_cuda_src(fb.cu)
 configure_cuda_src(pipeline.cu)
