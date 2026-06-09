@@ -11,10 +11,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(anari REQUIRED)
 
+# ANARI app:
 add_executable(${PROJECT_NAME}_app)
 target_sources(${PROJECT_NAME}_app PRIVATE app/hostCode.cpp)
 target_link_libraries(${PROJECT_NAME}_app PRIVATE dvr_course-common anari::anari)
 
+# ANARI "device" (integrates the code we developed in the course into a library
+# that can interoperate with external tools):
 add_library(anari_library_${PROJECT_NAME} SHARED)
 target_sources(anari_library_${PROJECT_NAME} PRIVATE
   device/Device.cpp
