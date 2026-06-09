@@ -304,11 +304,6 @@ inline __device__ float ambientOcclusion(vec3f hitPos, vec3f n, Random &rnd)
     aoRay.tmin = 0.f;
     aoRay.tmax = lp.occlusionDistance;
 
-    vec3f albedo = 0.f;
-    float transmittance = 1.f;
-
-    const float majorant = 1.f;
-
     HitRec hitRec = worldIntersection(aoRay, rnd);
     float t = hitRec.hitT;
 
