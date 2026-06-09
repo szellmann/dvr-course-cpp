@@ -112,6 +112,7 @@ jobs:
       with:
         repository: szellmann/fakeOWL
         path: ${{ github.workspace }}/fakeOWL
+        submodules: true
         ref: main
 
     - name: Configure fakeOWL
