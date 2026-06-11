@@ -416,31 +416,6 @@ OPTIX_CLOSEST_HIT_PROGRAM(TetClosestHit)()
 #endif
 
 // ========================================================
-// Sphere intersection, used for the makeshift
-// traversal structure
-// ========================================================
-inline __device__
-bool intersectSphere(const Ray &ray, float radius, float &tnear, float &tfar) {
-  float A = dot(ray.dir,ray.dir);
-  float B = dot(ray.dir,ray.org) * 2.f;
-  float C = dot(ray.org,ray.org) - radius*radius;
-
-  float d = B*B - 4.f*A*C;
-  if (d < 0.f) return false;
-
-  d = sqrtf(d);
-
-  float q = B < 0.f ? -0.5f * (B-d) : -0.5f * (B+d);
-
-  float t1 = q/A;
-  float t2 = C/q;
-
-  tnear = fminf(t1,t2);
-  tfar  = fmaxf(t1,t2);
-  return true;
-}
-
-// ========================================================
 // Ray gen prog (woodcock tracking, A+E)
 // ========================================================
 RAYGEN_PROGRAM(woodcockTrackingAE)()
