@@ -11,3 +11,4 @@ interactivity.
 - [x] Implement UI
 - [x] Allow switching between delta and ratio tracking for shadow rays
 - [ ] Tweak UI (e.g., better names for angular direction vectors)
+- [ ] Change ratio tracking interface, should not have albedo as an out param
