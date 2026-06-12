@@ -209,7 +209,7 @@ OPTIX_BOUNDS_PROGRAM(TetBounds)(const void *geomData,
 {
   const TetMesh &self = *(const TetMesh *)geomData;
   const Tet &tet = self.tets[leafID];
-  result = owl::box3f(1e20f,-1e20f);
+  result = owl::box3f(INFINITY,-INFINITY);
   result.extend((const owl::vec3f &)tet.v0);
   result.extend((const owl::vec3f &)tet.v1);
   result.extend((const owl::vec3f &)tet.v2);
