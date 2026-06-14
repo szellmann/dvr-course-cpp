@@ -136,7 +136,7 @@ RAYGEN_PROGRAM(multiVolumeWoodcock)()
   for (int i=0; i<lp.numVolumes; ++i) {
     float t0, t1;
     if (!boxTest(ray, lp.volumes[i].bounds, t0, t1))
-      return;
+      continue;
 
     ray.tmin = t0, ray.tmax = t1;
 
