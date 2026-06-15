@@ -438,6 +438,7 @@ RAYGEN_PROGRAM(woodcockTrackingAE)()
   float transmittance = 1.f;
   auto integrationFunc = [&](int mcID, float mct0, float mct1) {
     ray.tmin = mct0, ray.tmax = mct1;
+    // get local majorant by linear macrocell ID:
     const float majorant = lp.volume.grid.majorants[mcID];
     float t = woodcockTracking(ray, rnd, majorant, albedo, transmittance);
     return t >= ray.tmax; // if true, no "hit" was found -> traverse to next macrocell
