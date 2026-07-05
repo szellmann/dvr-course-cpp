@@ -13,7 +13,7 @@ add_library(${PROJECT_NAME})
 
 set_target_properties(${PROJECT_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-option(DVR_COURSE_WITH_OWL "Use OWL as ray tracing API (for hardware ray tracing)" OFF)
+option(DVR_COURSE_WITH_OWL "Use OWL as ray tracing API (for hardware ray tracing)" ON)
 if (DVR_COURSE_WITH_OWL)
   find_package(owl REQUIRED)
   if (NOT OWL_IS_FAKE)
