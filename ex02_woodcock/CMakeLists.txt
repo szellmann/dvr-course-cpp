@@ -20,7 +20,7 @@ endif()
 if (DVR_COURSE_WITH_FAKE_OWL)
   fake_owl_compile_and_embed(ptxCode
     deviceCode.cu
-    LINK_LIBRARIES dvr_course-common
+    LINK_LIBRARIES dvr_course-common $<BUILD_INTERFACE:nanovdb>
   )
   target_sources(${PROJECT_NAME} PRIVATE hostCode.cpp ${ptxCode})
 elseif (DVR_COURSE_WITH_OWL)
