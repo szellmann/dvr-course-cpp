@@ -84,7 +84,7 @@ static TetMesh_import loadTetMesh(std::string filePath) {
     in.read((char *)vec.data(),vec.size()*sizeof(vec[0]));
   };
 
-  std::ifstream in(filePath);
+  std::ifstream in(filePath, std::ios::binary);
   if (!in.good()) {
     return {false,{},{}};
   }

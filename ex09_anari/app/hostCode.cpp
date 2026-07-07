@@ -85,7 +85,7 @@ static void updateAnariTransfunc(anari::Device device)
 static anari::World generateScene(anari::Device device)
 {
   // Load input:
-  std::ifstream in(g_appState.filepath);
+  std::ifstream in(g_appState.filepath, std::ios::binary);
   if (!in.good()) {
     return nullptr;
   }
