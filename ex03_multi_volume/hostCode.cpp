@@ -28,6 +28,7 @@ struct {
   std::vector<std::string> filepaths;
   std::vector<ex03_multi_volume::Volume> volumes;
   std::vector<Buffer<uint8_t>> deviceGrids;
+  std::vector<nanovdb::GridHandle<nanovdb::HostBuffer>> hostGrids;
   std::vector<Transfunc> transfuncs;
   float unitDistance{1.f};
 } g_appState;
@@ -115,6 +116,7 @@ extern "C" int main(int argc, char *argv[]) {
     volume.filterLinear = true;
     volume.bounds = volbounds;
     g_appState.volumes.push_back(volume);
+    g_appState.hostGrids.push_back(std::move(gridHandle));
 
     worldBounds.extend(volbounds);
   }
@@ -128,15 +130,15 @@ extern "C" int main(int argc, char *argv[]) {
   // construct transfuncs:
   for (int i=0; i<g_appState.volumes.size(); ++i) {
     if (!pl.transfuncValid(i)) {
-      const Volume &volume = g_appState.volumes[i];
+      auto *hostGrid = g_appState.hostGrids[i].grid<float>();
       dvr_course::Transfunc tf;
-      tf.valueRange = {volume.handle->tree().root().minimum(),
-                       volume.handle->tree().root().maximum()};
+      tf.valueRange = {hostGrid->tree().root().minimum(),
+                       hostGrid->tree().root().maximum()};
 
       tf.valueRange.lower
-        = fminf(tf.valueRange.lower, volume.handle->tree().root().background());
+        = fminf(tf.valueRange.lower, hostGrid->tree().root().background());
       tf.valueRange.upper
-        = fmaxf(tf.valueRange.upper, volume.handle->tree().root().background());
+        = fmaxf(tf.valueRange.upper, hostGrid->tree().root().background());
 
       vec3f rgb = 0.f;
       rgb[i%3] = 1.f;
