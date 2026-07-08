@@ -317,11 +317,81 @@ std::ostream& operator<<(std::ostream &out, vec2ui v) {
   return out;
 }
 
+struct vec3ui
+{
+  vec3ui() = default;
+  __host__ __device__ vec3ui(int s) : x(s), y(s), z(s) {}
+  __host__ __device__ vec3ui(unsigned x, unsigned y, unsigned z) : x(x), y(y), z(z) {}
+  __host__ __device__ unsigned &operator[](int i) { return ((unsigned*)this)[i]; }
+  __host__ __device__ const unsigned &operator[](int i) const { return ((unsigned*)this)[i]; }
+  union {
+    struct { unsigned x, y, z; };
+    vec2ui xy;
+  };
+};
+
+inline __host__ __device__
+vec3ui operator-(vec3ui u, vec3ui v) {
+  return {u.x-v.x,u.y-v.y,u.z-v.z};
+}
+
+inline __host__ __device__
+bool operator==(vec3ui u, vec3ui v) {
+  return u.x==v.x && u.y==v.y && u.z==v.z;
+}
+
+inline __host__ __device__
+bool operator!=(vec3ui u, vec3ui v) {
+  return !(u==v);
+}
+
+inline
+std::ostream& operator<<(std::ostream &out, vec3ui v) {
+  out << '(' << v.x << ',' << v.y << ',' << v.z << ')';
+  return out;
+}
+
+struct vec4ui
+{
+  vec4ui() = default;
+  __host__ __device__ vec4ui(int s) : x(s), y(s), z(s), w(s) {}
+  __host__ __device__ vec4ui(unsigned x, unsigned y, unsigned z, unsigned w) : x(x), y(y), z(z), w(w) {}
+  __host__ __device__ unsigned &operator[](int i) { return ((unsigned*)this)[i]; }
+  __host__ __device__ const unsigned &operator[](int i) const { return ((unsigned*)this)[i]; }
+  union {
+    struct { unsigned x, y, z, w; };
+    vec3ui xyz;
+    vec2ui xy;
+  };
+};
+
+inline __host__ __device__
+vec4ui operator-(vec4ui u, vec4ui v) {
+  return {u.x-v.x,u.y-v.y,u.z-v.z,u.w-v.w};
+}
+
+inline __host__ __device__
+bool operator==(vec4ui u, vec4ui v) {
+  return u.x==v.x && u.y==v.y && u.z==v.z && u.w==v.w;
+}
+
+inline __host__ __device__
+bool operator!=(vec4ui u, vec4ui v) {
+  return !(u==v);
+}
+
+inline
+std::ostream& operator<<(std::ostream &out, vec4ui v) {
+  out << '(' << v.x << ',' << v.y << ',' << v.z <<',' << v.w << ')';
+  return out;
+}
+
 struct vec2f
 {
   vec2f() = default;
   __host__ __device__ vec2f(float s) : x(s), y(s) {}
   __host__ __device__ vec2f(float x, float y) : x(x), y(y) {}
+  __host__ __device__ vec2f(float xy[2]) : x(xy[0]), y(xy[1]) {}
   __host__ __device__ vec2f(const vec2i &v) : x(v.x), y(v.y) {}
   __host__ __device__ vec2f(const vec3f &v); // below
   __host__ __device__ float &operator[](int i) { return ((float*)this)[i]; }
@@ -329,6 +399,7 @@ struct vec2f
   union {
     struct { float x, y; };
     struct { float u, v; };
+    float xy[2];
   };
 };
 
