@@ -9,7 +9,10 @@ include(../common/cmake/common.cmake)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(anari REQUIRED)
+find_package(anari)
+if (NOT TARGET anari::anari)
+  message(WARNING "Not building ${PROJECT_NAME} because ANARI-SDK was not found")
+endif()
 
 # ANARI app:
 add_executable(${PROJECT_NAME}_app)
