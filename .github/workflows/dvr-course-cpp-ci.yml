@@ -19,7 +19,6 @@ jobs:
         exclude:
           - os: macos-15
             cuda: ON
-          - os: windows-2022
 
     name: OS ${{ matrix.os }} - config ${{ matrix.config }} - CUDA ${{ matrix.cuda }}
 
