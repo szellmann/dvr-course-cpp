@@ -21,8 +21,6 @@ jobs:
             cuda: ON
           - os: windows-2022
             cuda: ON
-          - os: windows-2022
-            rtcore: OFF
 
     name: OS ${{ matrix.os }} - config ${{ matrix.config }} - CUDA ${{ matrix.cuda }}
 
