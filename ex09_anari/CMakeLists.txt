@@ -12,6 +12,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(anari)
 if (NOT TARGET anari::anari)
   message(WARNING "Not building ${PROJECT_NAME} because ANARI-SDK was not found")
+  return()
 endif()
 
 # ANARI app:
