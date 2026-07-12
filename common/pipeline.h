@@ -26,7 +26,7 @@
 #include "transfunc.h"
 
 #ifndef RTCORE
-# define DECL_LAUNCH_PARAMS(T) T optixLaunchParams;
+# define DECL_LAUNCH_PARAMS(T) extern "C" T optixLaunchParams = {};
 # define SET_LAUNCH_PARAMS(p) optixLaunchParams = (p);
 #else
 # define DECL_LAUNCH_PARAMS(T)
