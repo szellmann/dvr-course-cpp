@@ -10,8 +10,6 @@
 // Header with common resources; .h: host, .cuh: device
 #include <dvr_course-common.h>
 
-#include "importers.h"
-
 
 using box3_t = std::array<anari::math::float3, 2>;
 namespace anari {
