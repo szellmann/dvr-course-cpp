@@ -1,4 +1,4 @@
-# Copyright 2025-2025 Stefan Zellmann
+# Copyright 2025-2026 Stefan Zellmann
 # SPDX-License-Identifier: Apache-2.0
 
 cmake_minimum_required(VERSION 3.12)
@@ -17,14 +17,14 @@ else()
   configure_cuda_src(deviceCode.cu)
 endif()
 
+target_sources(${PROJECT_NAME} PRIVATE hostCode.cpp)
 if (DVR_COURSE_WITH_FAKE_OWL)
   fake_owl_compile_and_embed(ptxCode
     deviceCode.cu
     LINK_LIBRARIES dvr_course-common
   )
-  target_sources(${PROJECT_NAME} PRIVATE hostCode.cpp ${ptxCode})
+  target_sources(${PROJECT_NAME} PRIVATE ${ptxCode})
 elseif (DVR_COURSE_WITH_OWL)
-  target_sources(${PROJECT_NAME} PRIVATE hostCode.cpp)
   embed_ptx(
     OUTPUT_TARGET ex00_deviceCode-ptx
     PTX_LINK_LIBRARIES dvr_course-common
@@ -33,7 +33,7 @@ elseif (DVR_COURSE_WITH_OWL)
   )
   target_link_libraries(${PROJECT_NAME} PRIVATE ex00_deviceCode-ptx)
 else()
-  target_sources(${PROJECT_NAME} PRIVATE hostCode.cpp deviceCode.cu)
+  target_sources(${PROJECT_NAME} PRIVATE deviceCode.cu)
 endif()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE dvr_course-common)
