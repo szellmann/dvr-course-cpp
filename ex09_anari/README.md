@@ -50,5 +50,6 @@ setting the environment variable `ANARI_LIBRARY` accordingly.
 - [ ] Fix AO and shadows
 - [ ] Maybe add triangle geometry back in?
 - [ ] Add AO/lighting and unit distance to ImGui
-- [ ] SZ: Test in VTK and ParaView, should work using  my umesh mapper, but I
-      haven't actually tested it yet
+- [x] SZ: Test in VTK and ParaView, should work using  my umesh mapper, but I
+      haven't actually tested it yet (this works, draft MR for umesh mapper
+      created)
