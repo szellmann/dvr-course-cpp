@@ -115,6 +115,26 @@ static anari::World generateScene(anari::Device device)
   loadVector(in,input.cellValues);
   loadVector(in,input.vertexValues);
 
+  // Compute value range. From the ANARI spec:
+  // Sampled cell values can be specified either per-vertex (via vertex.data)
+  // or per-cell (via cell.data). If both arrays are explicitly set,
+  // vertex.data takes precedence.
+  box1f valueRange{INFINITY,-INFINITY};
+  if (!input.vertexValues.empty()) {
+    for (size_t i=0; i<input.vertexValues.size(); ++i) {
+      valueRange.extend(input.vertexValues[i]);
+    }
+  } else {
+    if (input.cellValues.empty()) {
+      return nullptr;
+    }
+
+    for (size_t i=0; i<input.cellValues.size(); ++i) {
+      valueRange.extend(input.cellValues[i]);
+    }
+  }
+  g_appState.transfunc.valueRange = valueRange;
+
   // Convert to ANARI:
   std::vector<anari::math::float3> vertexPosition;
   std::vector<uint8_t> cellType;
@@ -188,8 +208,6 @@ static anari::World generateScene(anari::Device device)
 
   anari::commitParameters(device, g_appState.volume);
 
-  updateAnariTransfunc(device);
-
   // Create World //
 
   auto group = anari::newObject<anari::Group>(device);
@@ -238,17 +256,6 @@ extern "C" int main(int argc, char *argv[]) {
   Frame fb(imgWidth, imgHeight);
   pl.setFrame(&fb);
 
-  if (!pl.transfuncValid()) {
-    auto &tf = g_appState.transfunc;
-    std::vector<vec4f> tfValues({
-      {0.f,0.f,1.f,0.1f },
-      {0.f,1.f,0.f,0.1f }
-    });
-    tf.valueRange = {0.f,1.f};
-    tf.setLUT(tfValues);
-    pl.setTransfunc(&tf);
-  }
-
   std::string libName = "environment";
   if (!getenv("ANARI_LIBRARY")) libName = "ex09_anari";
   auto library = anari::loadLibrary(libName.c_str(), statusFunc);
@@ -259,6 +266,18 @@ extern "C" int main(int argc, char *argv[]) {
     printUsage();
     exit(-1);
   }
+
+  if (!pl.transfuncValid()) {
+    auto &tf = g_appState.transfunc;
+    std::vector<vec4f> tfValues({
+      {0.f,0.f,1.f,0.1f },
+      {0.f,1.f,0.f,0.1f }
+    });
+    tf.setLUT(tfValues);
+    pl.setTransfunc(&tf);
+  }
+
+  updateAnariTransfunc(device);
 
   auto renderer = anari::newObject<anari::Renderer>(device, "default");
   const anari::math::float4 backgroundColor = {0.1f, 0.1f, 0.1f, 1.f};
