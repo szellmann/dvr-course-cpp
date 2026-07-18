@@ -573,6 +573,10 @@ void Frame::finalize()
   pipeline().launchParam("unitDistance", parms().unitDistance) = 1.f;
   // update renderer params:
   pipeline().launchParam("backgroundColor", parms().backgroundColor) = vec4f(0.f);
+  // lighting
+  pipeline().launchParam("directionalLight.dir", parms().directionalLight.dir) = vec3f(0,0,1);
+  pipeline().launchParam("directionalLight.color", parms().directionalLight.color) = vec3f(1.f);
+  pipeline().launchParam("directionalLight.intensity", parms().directionalLight.intensity) = 1.f;
 }
 
 bool Frame::getProperty(

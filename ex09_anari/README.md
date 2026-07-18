@@ -47,7 +47,7 @@ setting the environment variable `ANARI_LIBRARY` accordingly.
       refactoring, and potential boiler plate moved to a place where it
       obfuscates what is really important
 - [ ] Comment the host code
-- [ ] Fix AO and shadows
+- [x] Fix AO and shadows
 - [ ] Maybe add triangle geometry back in?
 - [ ] Add AO/lighting and unit distance to ImGui
 - [x] SZ: Test in VTK and ParaView, should work using  my umesh mapper, but I

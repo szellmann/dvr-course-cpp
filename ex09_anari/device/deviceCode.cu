@@ -336,18 +336,18 @@ RAYGEN_PROGRAM(directLighting)()
 
   HitRec hitRec = worldIntersection(ray,rnd);
 
-  // if (hitRec.hitType != HitRec::None) {
-  //   float aoV = 1.f-ambientOcclusion(ray.eval(hitRec.hitT), hitRec.Ng, rnd);
-  //   hitRec.color.xyz *= aoV;
+  if (hitRec.hitType != HitRec::None) {
+    float aoV = 1.f-ambientOcclusion(ray.eval(hitRec.hitT), hitRec.Ng, rnd);
+    hitRec.color.xyz *= aoV;
 
-  //   Ray shadowRay;
-  //   shadowRay.org = ray.eval(hitRec.hitT) + hitRec.Ng*1e-3f;
-  //   shadowRay.dir = normalize(lp.directionalLight.dir);
-  //   shadowRay.tmin = 0.f;
-  //   shadowRay.tmax = INFINITY;
-  //   HitRec shadowRec = worldIntersection(shadowRay, rnd);
-  //   hitRec.color.xyz *= 1.f-shadowRec.color.w;
-  // }
+    Ray shadowRay;
+    shadowRay.org = ray.eval(hitRec.hitT) + hitRec.Ng*1e-3f;
+    shadowRay.dir = normalize(lp.directionalLight.dir);
+    shadowRay.tmin = 0.f;
+    shadowRay.tmax = INFINITY;
+    HitRec shadowRec = worldIntersection(shadowRay, rnd);
+    hitRec.color.xyz *= 1.f-shadowRec.color.w;
+  }
 
   vec4f finalColor = over(hitRec.color, lp.backgroundColor);
 
