@@ -311,6 +311,9 @@ extern "C" int main(int argc, char *argv[]) {
     updateAnariTransfunc(device);
   });
 
+  float unitDistance = g_appState.unitDistance;
+  pl.uiParam("Unit distance", &unitDistance, 0.001f, 5.f);
+
   do {
     struct {
       vec3f lower_left, horizontal, vertical;
@@ -332,6 +335,14 @@ extern "C" int main(int argc, char *argv[]) {
     anari::math::uint2 imageSize = {(unsigned)fb.width, (unsigned)fb.height};
     anari::setParameter(device, frame, "size", imageSize);
     anari::commitParameters(device, frame);
+
+    // varying world
+    if (unitDistance != g_appState.unitDistance) {
+      anariSetParameter(
+          device, g_appState.volume, "unitDistance", ANARI_FLOAT32, &g_appState.unitDistance);
+      anari::commitParameters(device, g_appState.volume);
+      g_appState.unitDistance = unitDistance;
+    }
 
     anari::render(device, frame);
     anari::wait(device, frame);
