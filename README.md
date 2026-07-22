@@ -107,7 +107,8 @@ conformant ANARI app (with support for unstructured meshes, i.e., ANARI 1.1+).
 The course uses the CUDA programming language and C/C++ on the host as this is
 a common choice when programming for HPC systems. We use NVIDIA OptiX to make
 use of hardware ray tracing features. OptiX also offers a full feature set on
-NVIDIA GPUs without RTX cores.
+NVIDIA GPUs without RTX cores. OptiX is used through the OptiX Wrappers Library
+([OWL](https://github.com/NVIDIA/OWL)).
 
 Our framework comes with a CPU fallback allowing to run some of the samples
 with a limited feature set. While this fallback does not support BVHs, there is
