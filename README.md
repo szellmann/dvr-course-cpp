@@ -65,15 +65,43 @@ also defined when compiling with fakeOWL, while `WITH_CUDA` is not (see below).
 ## Example programs overview
 
 ### Ex. 00: Hello DVR Course!
+Sample app that renders a single voxel with ray marching. The direct volume
+rendering "Hello World" program.
+
 ### Ex. 01: Let there be voxels..
+Extends Ex. 00 to render voxels using the NanoVDB framework.
+
 ### Ex. 02: Woodcock tracking
+Replaces the ray marcher from before with a Woodcock tracker, still doing
+absorption plus emission rendering.
+
 ### Ex. 03: Multi volume
+Renders multiple volumes in different channels with different transfer
+functions and integration methods.
+
 ### Ex. 04: Lights on!!
+Extends the Woodcock tracking example and adds point lights and ambient
+occlusion.
+
 ### Ex. 05: Tets N' friends
+Adds more interesting primitive types to the sample program, i.e., tetrahedra
+sampled with OptiX and ray tracing intersections.
+
 ### Ex. 06: Need for Speed
+Extends the Ex. 05 to use a grid acceleration structure with local majorants
+to accelerate traversal.
+
 ### Ex. 07: Render Graph
+Makes the sample more interesting by adding support for triangle geometry,
+multiple volumes in one pipeline, etc.
+
 ### Ex. 08 (TODO: on multi-GPU)
+
 ### Ex. 09: ANARI
+This sample spreads the developments out across an "app" part, now running the
+volume renderer through the ANARI interface, and another "device" part
+implementing the volume renderer as a device library that can loaded by a
+conformant ANARI app (with support for unstructured meshes, i.e., ANARI 1.1+).
 
 ## Compiling and running the samples on non-NVIDIA hardware
 The course uses the CUDA programming language and C/C++ on the host as this is
@@ -100,6 +128,6 @@ used in host or device programs.
 ## SPDX-License-Identifier: Apache-2.0
 
 ## TODOs:
-- [ ] Add single line summary for each sample to this document
+- [x] Add single line summary for each sample to this document
 - [ ] Implement sample 08
 - [x] Refactor importer functions so every sample uses the same code
